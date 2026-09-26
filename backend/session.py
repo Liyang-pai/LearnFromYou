@@ -33,6 +33,9 @@ class Session:
         self.asr_pending = 0
         self.audio = None
         self.audio_enabled = False
+        self.audio_started_at = 0
+        self.audio_frames = 0
+        self.last_audio_notice = 0
         self.active = False
         self.processing = False
         self.muted = False
@@ -93,6 +96,9 @@ class Session:
             await self.stop_audio()
         self.audio = await asyncio.to_thread(AudioStream, config.VAD_PATH, rate)
         self.audio_enabled = True
+        self.audio_started_at = time.monotonic()
+        self.audio_frames = 0
+        self.last_audio_notice = 0
         await self.emit("audio", {"recording": True, "sample_rate": rate})
 
     async def accept_audio(self, data):
@@ -107,6 +113,12 @@ class Session:
             self.audio_enabled = False
             await self.emit("error", {"message": "音频处理积压，已停止接收新录音；已接收内容继续处理，请暂停讲授后重启麦克风", "code": "audio_backlog"})
             return
+        self.audio_frames += 1
+        now = time.monotonic()
+        if self.audio_frames == 1 or now - self.last_audio_notice >= 2:
+            self.last_audio_notice = now
+            await self.emit("audio_input", {"frames": self.audio_frames, "samples": int(len(samples)),
+                                              "queue": self.audio_queue.qsize()})
         self.audio_queue.put_nowait(samples)
 
     async def audio_loop(self):
@@ -241,6 +253,9 @@ class Session:
         while True:
             await asyncio.sleep(.15)
             now = time.monotonic()
+            if self.audio_enabled and self.audio_started_at and self.audio_frames == 0 and now - self.audio_started_at > 2:
+                self.audio_started_at = 0
+                await self.emit("error", {"message": "录音已开启，但没有收到浏览器音频帧。请检查 Chrome 的麦克风设备选择和权限，然后重新开启麦克风。", "code": "no_audio_frames", "retryable": True})
             silence = 0 if self.active else now - self.last_voice
             if self.pending:
                 text = "\n".join(s["text"] for s in self.pending)
@@ -329,4 +344,3 @@ class Session:
         await self.llm.close()
         if self.log:
             self.log.close()
-

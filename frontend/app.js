@@ -1,7 +1,8 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let socket, running = false, starting = false, recording = false, ending = false;
-let context, stream, source, worklet, silentGain, flushed;
+let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
+let sentAudioFrames = 0;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 const labels = {tentative:'暂定理解',understood:'当前理解',unclear:'信息缺失',conflict:'存在冲突',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
@@ -63,6 +64,7 @@ function handle(event) {
       $('boundary').textContent = d.scope.boundary_note; showState(d.state); syncControls(); break;
     case 'status': $('sessionStatus').textContent = d.message; break;
     case 'audio': $('sessionStatus').textContent = d.recording ? '正在听课' : '麦克风已暂停'; break;
+    case 'audio_input': $('sessionStatus').textContent = `正在听课 · 已收到 ${d.frames} 个音频帧`; break;
     case 'vad': $('avatar').classList.toggle('listening',d.speaking); $('studentMood').textContent = d.speaking ? '正在听你讲……' : '正在整理刚才听到的内容。'; break;
     case 'transcript':
       $('transcriptCount').textContent = ++transcriptCount;
@@ -129,15 +131,32 @@ async function startMic() {
     source = context.createMediaStreamSource(stream);
     worklet = new AudioWorkletNode(context,'capture-processor');
     silentGain = context.createGain(); silentGain.gain.value = 0;
-    worklet.port.onmessage = e => {
-      if(e.data.flushed) { flushed?.(); return; }
+    const sendAudioFrame = samples => {
       if(socket?.readyState === WebSocket.OPEN && recording) {
         if(socket.bufferedAmount > 1024 * 1024) { showError('录音发送积压，已暂停麦克风，请稍后重试。'); stopMic(); return; }
-        socket.send(e.data.samples.buffer); $('meterFill').style.width = Math.min(100,e.data.rms * 600) + '%';
+        const copy = new Float32Array(samples);
+        socket.send(copy.buffer);
+        sentAudioFrames += 1;
+        $('meterFill').style.width = Math.min(100, rms(copy) * 600) + '%';
       }
+    };
+    worklet.port.onmessage = e => {
+      if(e.data.flushed) { flushed?.(); return; }
+      sendAudioFrame(e.data.samples);
     };
     send({type:'audio_start',sample_rate:context.sampleRate});
     recording = true; source.connect(worklet); worklet.connect(silentGain); silentGain.connect(context.destination);
+    sentAudioFrames = 0;
+    // Some Chrome/macOS input devices load an AudioWorklet but do not pull
+    // its render graph. Fall back to the broadly supported ScriptProcessor.
+    fallbackTimer = setTimeout(() => {
+      if (!recording || sentAudioFrames > 0) return;
+      worklet?.disconnect();
+      processor = context.createScriptProcessor(2048, 1, 1);
+      processor.onaudioprocess = event => sendAudioFrame(event.inputBuffer.getChannelData(0));
+      source.connect(processor); processor.connect(silentGain);
+      $('micHint').textContent = '已切换兼容录音通道。请继续讲授，停顿后会出现转写。';
+    }, 1200);
     $('micHint').textContent = '麦克风已开启。停顿后出现最终转写；学生在静音时也会继续听课。建议戴耳机。';
   } catch(e) {
     showError(e.name === 'NotAllowedError' ? '麦克风权限未开放，请在浏览器地址栏允许麦克风后重试。' : '麦克风无法启动：' + e.message);
@@ -145,15 +164,20 @@ async function startMic() {
   }
   syncControls();
 }
+function rms(samples) {
+  let sum = 0; for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
+  return Math.sqrt(sum / Math.max(1, samples.length));
+}
 async function stopMic(notify = true) {
   if(worklet && recording) {
     await Promise.race([new Promise(resolve => { flushed = resolve; worklet.port.postMessage('flush'); }),new Promise(resolve => setTimeout(resolve,200))]);
   }
   recording = false; flushed = null;
-  source?.disconnect(); worklet?.disconnect(); silentGain?.disconnect();
+  clearTimeout(fallbackTimer); fallbackTimer = null;
+  source?.disconnect(); worklet?.disconnect(); processor?.disconnect(); silentGain?.disconnect();
   stream?.getTracks().forEach(track => track.stop());
   if(context && context.state !== 'closed') await context.close();
-  source = worklet = silentGain = context = stream = null;
+  source = worklet = processor = silentGain = context = stream = null;
   if(notify && running) send({type:'audio_stop'});
   $('meterFill').style.width = '0%'; syncControls();
 }

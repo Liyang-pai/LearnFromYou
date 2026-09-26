@@ -2,9 +2,9 @@
 .env.*
 !.env.example
 .venv/
-asr/models/
+asr/models/*
+!asr/models/README.md
 logs/
 __pycache__/
 .pytest_cache/
 .DS_Store
-
