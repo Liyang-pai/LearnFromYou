@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>听懂了吗 · AI 学生试讲</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header><a class="brand" href="/">听懂了吗<span>AI 学生试讲</span></a><span id="health" class="pill">正在连接本机服务</span></header>
+  <main>
+    <section class="intro"><div><div class="eyebrow">一个正在学习的学生</div><h1>从你的讲解里，慢慢听懂。</h1><p>先告诉学生准备学什么，再开始讲课。没讲过的知识，不默认知道。</p></div><div class="local-note"><i></i> 本机识别语音<br><span>课堂文本交给 DeepSeek 理解</span></div></section>
+    <div id="error" role="alert" class="error hidden"><span id="errorText"></span><button id="retry" class="small hidden">重试这一段</button><button id="dismiss" class="small">收起</button></div>
+    <div class="workspace">
+      <aside class="card setup">
+        <div class="section-heading"><span class="step">01</span><h2>这节课，讲什么？</h2></div>
+        <form id="lessonForm">
+          <label for="topic">教学主题 <span>必填</span></label>
+          <input id="topic" name="topic" placeholder="例如：链表的基本概念" maxlength="500" required>
+          <label for="points">准备讲的知识点</label>
+          <textarea id="points" rows="3" maxlength="3000" placeholder="例如：节点、连接方式、从哪里开始访问"></textarea>
+          <label for="prerequisites">学生已经知道什么</label>
+          <textarea id="prerequisites" rows="3" maxlength="2000" placeholder="只填写明确已知的内容，可留空。每行一条。"></textarea>
+          <label for="level">理解基础</label>
+          <input id="level" maxlength="300" value="普通初学者，保留日常语言与基本逻辑能力">
+          <p class="hint">教学主题是待学范围，不会自动写进学生的已知知识。</p>
+          <button id="start" class="primary full" type="submit">创建试讲 <span>↗</span></button>
+        </form>
+        <div id="scope" class="scope hidden"><span class="eyebrow">本节待学范围</span><div id="scopeTags"></div><p id="boundary"></p></div>
+        <div class="setup-foot">单个学生 · 单次课堂 · 无教学评分</div>
+      </aside>
+      <section class="classroom">
+        <div class="card interaction">
+          <div class="classroom-top"><div class="section-heading"><span class="step">02</span><h2>开始讲给学生听</h2></div><span class="pill" id="sessionStatus">尚未开始</span></div>
+          <div class="student"><div id="avatar" class="avatar">听<span id="studentDot"></span></div><div><span class="eyebrow">你的 AI 学生</span><p id="studentMood">准备好后，我们就开始。</p></div><div class="meter" aria-label="麦克风音量"><div id="meterFill"></div></div></div>
+          <div id="conversation" class="conversation" aria-live="polite"><div class="empty" id="emptyConversation">学生会根据你实际讲过的内容回应。<br>也可能还不确定，或者需要你再解释一点。</div></div>
+          <div class="controls">
+            <button id="mic" class="primary" disabled>开启麦克风</button>
+            <button id="stopSpeech" disabled>停止播报</button>
+            <label class="toggle"><input id="mute" type="checkbox">学生静音</label>
+            <label class="toggle"><input id="tts" type="checkbox" checked>语音播报</label>
+            <button id="end" class="quiet" disabled>结束试讲</button>
+          </div>
+          <p class="hint control-hint" id="micHint">建议戴耳机，避免学生语音被麦克风收回。静音时，学生仍继续听课。</p>
+          <details class="text-test"><summary>用文字测试同一条学习链路</summary><form id="textForm"><textarea id="teacherText" rows="2" maxlength="5000" placeholder="输入教师讲授或提问，如：你目前理解了什么？" disabled></textarea><button id="sendText" disabled>发送讲授</button></form></details>
+        </div>
+        <div class="card debug">
+          <div class="debug-heading"><div><span class="eyebrow">让每一步都看得见</span><h2>课堂调试台</h2></div><button id="export" class="small">导出本次记录</button></div>
+          <div class="stats"><span>转写 <b id="transcriptCount">0</b></span><span>教学片段 <b id="segmentCount">0</b></span><span>状态版本 <b id="stateVersion">0</b></span><span>最近模型耗时 <b id="llmTime">—</b></span></div>
+          <div class="tabs" role="tablist"><button data-tab="transcripts" class="selected" role="tab" aria-selected="true">转写与分段</button><button data-tab="input" role="tab" aria-selected="false">LLM 输入</button><button data-tab="state" role="tab" aria-selected="false">学生状态</button><button data-tab="output" role="tab" aria-selected="false">输出与事件</button></div>
+          <div class="pane" id="pane-transcripts"><div id="transcripts" class="empty">麦克风最终转写和送入模型的教学片段会显示在这里。</div></div>
+          <div class="pane hidden" id="pane-input"><p class="hint">实际请求正文，不包含认证信息。上方是最近一次调用。</p><div id="modelInputs" class="empty">尚无模型调用</div></div>
+          <div class="pane hidden" id="pane-state"><div id="stateCards" class="empty">学生尚未开始学习</div><details><summary>查看原始状态 JSON</summary><pre id="stateJson">{}</pre></details></div>
+          <div class="pane hidden" id="pane-output"><div id="events" class="empty">候选回复、模型原始输出和发言控制原因会显示在这里。</div></div>
+        </div>
+      </section>
+    </div>
+    <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
+  </main>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

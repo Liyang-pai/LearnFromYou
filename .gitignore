@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.venv/
+asr/models/
+logs/
+__pycache__/
+.pytest_cache/
+.DS_Store
+
