@@ -1,4 +1,4 @@
-"""Persistent SenseVoice model + per-session VAD. No audio leaves the machine."""
+"""One selected local ASR model + per-session VAD. No audio leaves the machine."""
 from pathlib import Path
 import threading
 import numpy as np
@@ -6,18 +6,41 @@ import sherpa_onnx
 
 
 class Recognizer:
-    def __init__(self, model_dir: Path, threads=2):
+    def __init__(self, model_dir: Path, threads=2, model=None):
         self.lock = threading.Lock()
-        self.engine = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-            model=str(model_dir / "model.int8.onnx"), tokens=str(model_dir / "tokens.txt"),
-            num_threads=threads, use_itn=True, language="auto")
+        family = model.family if model else "sense_voice"
+        common = {"num_threads": threads, "provider": "cpu"}
+        if family == "sense_voice":
+            self.engine = sherpa_onnx.OfflineRecognizer.from_sense_voice(
+                model=str(model_dir / "model.int8.onnx"), tokens=str(model_dir / "tokens.txt"),
+                use_itn=True, language="auto", **common)
+        elif family == "paraformer":
+            self.engine = sherpa_onnx.OfflineRecognizer.from_paraformer(
+                paraformer=str(model_dir / "model.onnx"), tokens=str(model_dir / "tokens.txt"), **common)
+        elif family == "whisper":
+            names = [asset.name for asset in model.files]
+            self.engine = sherpa_onnx.OfflineRecognizer.from_whisper(
+                encoder=str(model_dir / next(n for n in names if "-encoder." in n)),
+                decoder=str(model_dir / next(n for n in names if "-decoder." in n)),
+                tokens=str(model_dir / next(n for n in names if n.endswith("-tokens.txt"))),
+                language="zh", task="transcribe", **common)
+        else:
+            raise ValueError("不支持的 ASR 模型类型")
 
     def transcribe(self, samples, sample_rate=16000):
         with self.lock:
+            if self.engine is None:
+                raise ValueError("ASR 模型已释放，请重新开始试讲")
             stream = self.engine.create_stream()
             stream.accept_waveform(sample_rate, np.asarray(samples, dtype=np.float32))
             self.engine.decode_stream(stream)
             return stream.result.text.strip()
+
+    def close(self):
+        # Native inference cannot be cancelled by cancelling asyncio.to_thread.
+        # Taking the decode lock waits until the underlying worker really finishes.
+        with self.lock:
+            self.engine = None
 
 
 class Resampler:
@@ -82,4 +105,3 @@ class AudioStream:
             self.vad.pop()
         self.active = False
         return segments
-

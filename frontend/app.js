@@ -4,6 +4,8 @@ let socket, running = false, starting = false, recording = false, ending = false
 let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
 let sentAudioFrames = 0;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
+let asrReady = false, asrBusy = false, asrDownloading = false;
+let asrDebugAvailable = null;
 const labels = {tentative:'暂定理解',understood:'当前理解',unclear:'信息缺失',conflict:'存在冲突',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
@@ -11,10 +13,13 @@ function showError(message, retry = false) {
   $('errorText').textContent = message; $('error').classList.remove('hidden'); $('retry').classList.toggle('hidden', !retry);
 }
 function syncControls() {
-  $('start').disabled = running || starting;
+  const debugBusy = Boolean(window.asrDebug?.busy);
+  $('start').disabled = running || starting || !asrReady || asrBusy || asrDownloading || debugBusy;
+  $('changeModel').disabled = running || starting || ending || asrBusy || debugBusy;
   for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
   for (const id of ['topic','points','prerequisites','level']) $(id).disabled = running || starting;
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
+  window.asrDebug?.sync();
 }
 function append(container, node, first = false) {
   if (container.classList.contains('empty')) { container.textContent = ''; container.classList.remove('empty'); }
@@ -113,7 +118,7 @@ async function connect() {
   await new Promise((resolve,reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('无法连接本机服务')); });
 }
 $('lessonForm').addEventListener('submit',async e => {
-  e.preventDefault(); if(starting || running) return;
+  e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—';
@@ -197,7 +202,134 @@ for(const tab of document.querySelectorAll('[data-tab]')) tab.onclick = () => {
   for(const t of document.querySelectorAll('[data-tab]')) { const active = t === tab; t.classList.toggle('selected',active); t.setAttribute('aria-selected',String(active)); $('pane-' + t.dataset.tab).classList.toggle('hidden',!active); }
 };
 window.addEventListener('beforeunload',() => { stream?.getTracks().forEach(t => t.stop()); socket?.close(); });
-fetch('/api/health').then(r => r.json()).then(h => {
-  $('health').textContent = h.asr_ready && h.model_configured ? '本机 ASR 已就绪 · DeepSeek 已配置' : '服务需要检查';
-  if(h.error) showError(h.error); else if(!h.model_configured) showError('请在项目 .env 中配置 Deepseek_API。');
-}).catch(() => { $('health').textContent = '本机服务未连接'; });
+// The model screen shares this page so navigating never disconnects a lesson.
+function showPage(models, updateURL = true) {
+  $('lessonPage').classList.toggle('hidden', models);
+  $('modelsPage').classList.toggle('hidden', !models);
+  for (const [id, active] of [['modelsTab', models], ['classroomTab', !models]]) {
+    $(id).classList.toggle('selected', active);
+    if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current');
+  }
+  if (updateURL) history.pushState(null, '', models ? '/models' : '/');
+}
+$('modelsTab').onclick = () => showPage(true);
+$('classroomTab').onclick = () => showPage(false);
+$('changeModel').onclick = () => showPage(true);
+window.addEventListener('popstate', () => showPage(location.pathname === '/models', false));
+showPage(location.pathname === '/models', false);
+
+function formatBytes(size) {
+  return size >= 1e9 ? (size / 1e9).toFixed(2) + ' GB' : Math.round(size / 1e6) + ' MB';
+}
+function modelMessage(message, error = false) {
+  $('asrMessage').textContent = message || '';
+  $('asrMessage').classList.toggle('hidden', !message);
+  $('asrMessage').classList.toggle('failed', error);
+}
+async function asrRequest(url, method = 'GET') {
+  const response = await fetch(url, {method});
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || '模型操作失败，请重试');
+  return data;
+}
+let actionPending = false, refreshingASR = false, lastModelRender = '', lastNotice = '';
+async function modelAction(model, action) {
+  if (actionPending) return;
+  actionPending = true;
+  renderModelCards(lastASRState);
+  try {
+    await asrRequest(`/api/asr/models/${encodeURIComponent(model.id)}/${action}`, 'POST');
+    modelMessage(action === 'select' ? `已选择 ${model.name}，下次试讲使用此模型。` : action === 'cancel' ? '正在取消下载……' : `开始下载 ${model.name}。`);
+  } catch (error) { modelMessage(error.message, true); }
+  finally { actionPending = false; lastModelRender = ''; await refreshASR(); }
+}
+let lastASRState;
+function renderModelCards(state) {
+  if (!state) return;
+  const renderKey = JSON.stringify([state.models, state.vad_ready, state.busy, state.activity, running, starting, ending, actionPending, Boolean(window.asrDebug?.busy)]);
+  if (renderKey === lastModelRender) return;
+  lastModelRender = renderKey;
+  const holder = $('modelCards');
+  // Keep keyboard focus on the same action across progress updates.
+  const focused = document.activeElement?.dataset?.modelAction;
+  holder.replaceChildren();
+  const busy = state.busy || running || starting || ending || window.asrDebug?.busy;
+  const downloading = state.models.some(m => ['downloading', 'verifying', 'cancelling'].includes(m.state));
+  const stateNames = {available:'未安装', installed:'已安装', incomplete:'文件不完整', downloading:'下载中', verifying:'校验中', cancelling:'取消中', cancelled:'已取消', failed:'下载失败'};
+  for (const model of state.models) {
+    const card = document.createElement('article'); card.className = 'card model-card' + (model.selected ? ' selected-model' : '');
+    const top = document.createElement('div'); top.className = 'model-card-top';
+    const title = document.createElement('h2'); title.textContent = model.name;
+    const status = document.createElement('span'); status.className = 'pill'; status.textContent = model.selected ? '当前选择' : stateNames[model.state];
+    top.append(title, status);
+    const tag = document.createElement('span'); tag.className = 'tag model-label'; tag.textContent = model.label;
+    const description = document.createElement('p'); description.className = 'model-description'; description.textContent = model.description;
+    const meta = document.createElement('div'); meta.className = 'model-meta';
+    const language = document.createElement('span'); language.textContent = model.languages;
+    const size = document.createElement('strong'); size.textContent = formatBytes(model.size_bytes);
+    meta.append(language, size);
+    const links = document.createElement('div'); links.className = 'model-links';
+    for (const [text, href] of [['模型来源',model.source], ['权重许可',model.license_url]]) {
+      const a = document.createElement('a'); a.textContent = text; a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; links.append(a);
+    }
+    const directory = document.createElement('code'); directory.textContent = model.directory + '/'; links.append(directory);
+    card.append(top, tag, description, meta, links);
+    const active = ['downloading', 'verifying', 'cancelling'].includes(model.state);
+    if (active) {
+      const progress = document.createElement('progress'); progress.max = model.job.total_bytes || 1; progress.value = model.job.downloaded_bytes || 0;
+      progress.setAttribute('aria-label', `${model.name} 下载进度`);
+      const detail = document.createElement('p'); detail.className = 'hint';
+      detail.textContent = `${formatBytes(model.job.downloaded_bytes || 0)} / ${formatBytes(model.job.total_bytes || model.size_bytes)} · ${model.job.file || stateNames[model.state]}`;
+      card.append(progress, detail);
+    }
+    if (model.job.error) { const error = document.createElement('p'); error.className = 'model-error'; error.textContent = model.job.error; card.append(error); }
+    const actions = document.createElement('div'); actions.className = 'model-actions';
+    function button(text, action, disabled, primary = false) {
+      const b = document.createElement('button'); b.textContent = text; b.disabled = disabled || actionPending;
+      b.className = primary ? 'primary' : ''; b.dataset.modelAction = model.id + ':' + action;
+      b.onclick = () => modelAction(model, action); actions.append(b);
+    }
+    if (active) button(model.state === 'cancelling' ? '正在取消' : '取消下载', 'cancel', model.state === 'cancelling');
+    else if (model.installed) {
+      button(model.selected ? '已选择使用' : '选择使用', 'select', busy || model.selected, true);
+      if (model.downloadable) button(state.vad_ready ? '校验 / 修复' : '准备 VAD', 'download', busy || downloading);
+    } else if (model.downloadable) {
+      button(['failed','cancelled','incomplete'].includes(model.state) ? '重新下载' : '下载模型', 'download', busy || downloading, true);
+    } else {
+      const hint = document.createElement('p'); hint.className = 'hint'; hint.textContent = '开发模型文件不完整，请选择上方标准模型。'; actions.append(hint);
+    }
+    card.append(actions); holder.append(card);
+  }
+  if (focused) [...holder.querySelectorAll('button')].find(b => b.dataset.modelAction === focused && !b.disabled)?.focus();
+}
+async function refreshASR() {
+  if (refreshingASR) return;
+  refreshingASR = true;
+  try {
+    const [state, health] = await Promise.all([asrRequest('/api/asr/models'), asrRequest('/api/health')]);
+    asrDebugAvailable = health.asr_debug_available === true;
+    lastASRState = state; asrReady = state.asr_ready; asrBusy = state.busy;
+    asrDownloading = state.models.some(m => ['downloading','verifying','cancelling'].includes(m.state));
+    const selected = state.models.find(m => m.selected);
+    $('modelsPath').textContent = state.models_dir;
+    $('currentASR').textContent = selected ? `当前模型：${selected.name}` : '尚未选择语音模型';
+    $('asrSetupHint').textContent = state.busy ? '当前试讲或 ASR 调试已锁定模型，结束后可切换。' : asrDownloading ? '请等待模型下载完成，或取消下载后再创建试讲。' : !state.vad_ready && selected ? '共享 VAD 缺失，请在模型页点击「准备 VAD」。' : state.asr_ready ? '开始试讲或调试时加载；空闲时可直接删除模型文件夹。' : '开始前请下载并选择本机语音识别模型。';
+    $('modelsBusy').classList.toggle('hidden', !(state.busy || running || starting || ending || window.asrDebug?.busy));
+    $('modelsBusy').textContent = state.activity === 'debug' || window.asrDebug?.busy ? 'ASR 调试正在准备、录音或处理。结束测试后可以下载或切换模型。' : '试讲创建、进行或结束处理中。结束后可以下载或切换模型。';
+    $('openModelsFolder').disabled = actionPending;
+    $('health').textContent = state.engine_state === 'loading' ? '正在加载本机 ASR' : state.activity === 'debug' ? '本机 ASR 调试中' : state.error ? 'ASR 加载失败 · 请检查模型' : !asrReady ? '请配置 ASR 模型' : !health.model_configured ? '本机 ASR 已配置 · 请配置 LLM 密钥' : '本机 ASR 已配置 · LLM 已配置';
+    if (state.notice && state.notice !== lastNotice) { modelMessage(state.notice, true); lastNotice = state.notice; }
+    if (state.error) modelMessage(state.error, true);
+    renderModelCards(state); syncControls();
+  } catch (error) {
+    asrReady = false; asrDebugAvailable = null; $('health').textContent = '本机服务未连接'; syncControls();
+    modelMessage('无法读取本机模型状态，请检查服务是否启动。', true);
+  } finally { refreshingASR = false; }
+}
+$('refreshModels').onclick = () => refreshASR();
+$('openModelsFolder').onclick = async () => {
+  try { await asrRequest('/api/asr/open-folder', 'POST'); }
+  catch (error) { modelMessage(error.message, true); }
+};
+refreshASR();
+setInterval(refreshASR, 1500);

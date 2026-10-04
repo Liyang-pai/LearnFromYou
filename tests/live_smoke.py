@@ -10,7 +10,9 @@ import websockets
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from backend.config import PORT, MODEL_DIR
+from backend.config import PORT, MODELS_DIR
+from asr.catalog import LEGACY_DIRECTORY
+MODEL_DIR = MODELS_DIR / LEGACY_DIRECTORY
 
 
 async def main():

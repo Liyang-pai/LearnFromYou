@@ -16,9 +16,11 @@ from .speech import Speaker
 
 
 class Session:
-    def __init__(self, send, recognizer):
+    def __init__(self, send, recognizer, vad_path=None, asr_model=None):
         self.send = send
         self.recognizer = recognizer
+        self.vad_path = vad_path
+        self.asr_model = asr_model
         self.id = uuid.uuid4().hex[:12]
         self.state = StudentState()
         self.sources = {}
@@ -52,6 +54,7 @@ class Session:
         self.ready = False
         self.finishing = False
         self.closed = False
+        self._close_task = None
         self.started = time.monotonic()
         self.log = None
         self.llm = ModelClient(self.emit)
@@ -86,7 +89,7 @@ class Session:
         self.ready = True
         self.tasks = [asyncio.create_task(self.audio_loop()), asyncio.create_task(self.asr_loop()),
                       asyncio.create_task(self.learn_loop()), asyncio.create_task(self.clock_loop())]
-        await self.emit("ready", {"session_id": self.id, "scope": self.preparation.model_dump(),
+        await self.emit("ready", {"session_id": self.id, "asr_model": self.asr_model, "scope": self.preparation.model_dump(),
             "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump()})
 
     async def start_audio(self, rate):
@@ -94,7 +97,7 @@ class Session:
             raise ValueError("不支持的麦克风采样率")
         if self.audio:
             await self.stop_audio()
-        self.audio = await asyncio.to_thread(AudioStream, config.VAD_PATH, rate)
+        self.audio = await asyncio.to_thread(AudioStream, self.vad_path, rate)
         self.audio_enabled = True
         self.audio_started_at = time.monotonic()
         self.audio_frames = 0
@@ -332,8 +335,13 @@ class Session:
         await self.close()
 
     async def close(self):
-        if self.closed:
-            return
+        # A cancelled caller may retry close; reuse the same cleanup task rather
+        # than treating a partially released native recognizer as already closed.
+        if self._close_task is None:
+            self._close_task = asyncio.create_task(self._close_resources())
+        await asyncio.shield(self._close_task)
+
+    async def _close_resources(self):
         self.closed = True
         await self.speaker.stop()
         for task in self.tasks + ([self.tts_task] if self.tts_task else []):
@@ -341,6 +349,10 @@ class Session:
         for task in self.tasks + ([self.tts_task] if self.tts_task else []):
             with contextlib.suppress(asyncio.CancelledError, Exception):
                 await task
+        if self.recognizer and hasattr(self.recognizer, "close"):
+            await asyncio.to_thread(self.recognizer.close)
+        self.recognizer = None
+        self.audio = None
         await self.llm.close()
         if self.log:
             self.log.close()

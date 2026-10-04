@@ -1,46 +1,49 @@
 #!/usr/bin/env python3
-"""Run local, offline SenseVoice INT8 transcription on a WAV/FLAC file."""
-
-from __future__ import annotations
-
+"""Transcribe WAV/FLAC locally with the same selected model as the web UI."""
 import argparse
+import asyncio
 from pathlib import Path
+import sys
 
-import sherpa_onnx
 import soundfile as sf
 
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from asr.catalog import CATALOG, LEGACY_DIRECTORY
+from asr.manager import ModelManager
+from backend import config
 
-PROJECT_DIR = Path(__file__).resolve().parent
-MODEL_DIR = PROJECT_DIR / "models" / "sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09"
-DEFAULT_WAV = MODEL_DIR / "test_wavs" / "zh.wav"
+
+def read_audio(path):
+    samples, rate = sf.read(path, dtype="float32", always_2d=True)
+    return samples.mean(axis=1), rate
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Transcribe audio locally with SenseVoice INT8.")
-    parser.add_argument("audio", nargs="?", type=Path, default=DEFAULT_WAV, help="WAV/FLAC audio file")
-    parser.add_argument("--threads", type=int, default=2, help="CPU inference threads (default: 2)")
+def main():
+    parser = argparse.ArgumentParser(description="使用已安装的本地 ASR 模型识别 WAV/FLAC")
+    parser.add_argument("audio", nargs="?", type=Path, help="音频文件")
+    parser.add_argument("--model", choices=[m.id for m in CATALOG], help="只为本次命令指定模型，不修改网页选择")
+    parser.add_argument("--threads", type=int, default=config.ASR_THREADS)
     args = parser.parse_args()
+    if args.threads < 1:
+        parser.error("线程数必须大于零")
+    audio = args.audio or config.MODELS_DIR / LEGACY_DIRECTORY / "test_wavs/zh.wav"
+    if not audio.is_file():
+        parser.error("请提供音频路径，例如：python asr/transcribe.py /完整路径/录音.wav")
+    manager = ModelManager(config.MODELS_DIR, args.threads)
 
-    if not args.audio.is_file():
-        parser.error(f"Audio file not found: {args.audio}")
-
-    samples, sample_rate = sf.read(args.audio, dtype="float32", always_2d=False)
-    if samples.ndim == 2:
-        samples = samples.mean(axis=1)  # Stereo/multichannel -> mono
-
-    recognizer = sherpa_onnx.OfflineRecognizer.from_sense_voice(
-        model=str(MODEL_DIR / "model.int8.onnx"),
-        tokens=str(MODEL_DIR / "tokens.txt"),
-        num_threads=args.threads,
-        use_itn=True,
-        language="auto",
-    )
-    stream = recognizer.create_stream()
-    stream.accept_waveform(sample_rate, samples)
-    recognizer.decode_stream(stream)
-
-    print(f"Audio: {args.audio}")
-    print(f"Transcript: {stream.result.text}")
+    async def run():
+        try:
+            engine, _, model_id = await manager.acquire(args.model)
+            samples, rate = read_audio(audio)
+            text = await asyncio.to_thread(engine.transcribe, samples, rate)
+            print(f"Audio: {audio}\nModel: {model_id}\nTranscript: {text}")
+        finally:
+            await manager.shutdown()
+    try:
+        asyncio.run(run())
+    except (ValueError, OSError) as error:
+        parser.error(str(error))
 
 
 if __name__ == "__main__":

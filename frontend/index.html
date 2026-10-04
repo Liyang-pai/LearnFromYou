@@ -2,12 +2,19 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>听懂了吗 · AI 学生试讲</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <title>讲给我听 · Learn from Me · 开发调试</title>
+  <script>
+    // Opening this file directly cannot reach the API or load the recording worklet.
+    if (location.protocol === 'file:') location.replace('http://127.0.0.1:8765/models');
+  </script>
+  <link rel="stylesheet" href="/static/style.css?v=20261004-asr-debug-2">
 </head>
 <body>
-  <header><a class="brand" href="/">听懂了吗<span>AI 学生试讲</span></a><span id="health" class="pill">正在连接本机服务</span></header>
+  <header><a class="brand" href="/">讲给我听<span>Learn from Me</span></a><span id="health" class="pill">正在连接本机服务</span></header>
   <main>
+    <aside class="development-note"><strong>开发调试界面</strong><span>当前页面用于验证 ASR 和试讲链路。面向用户的正式前端将另行开发。</span></aside>
+    <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button></nav>
+    <div id="lessonPage">
     <section class="intro"><div><div class="eyebrow">一个正在学习的学生</div><h1>从你的讲解里，慢慢听懂。</h1><p>先告诉学生准备学什么，再开始讲课。没讲过的知识，不默认知道。</p></div><div class="local-note"><i></i> 本机识别语音<br><span>课堂文本交给 DeepSeek 理解</span></div></section>
     <div id="error" role="alert" class="error hidden"><span id="errorText"></span><button id="retry" class="small hidden">重试这一段</button><button id="dismiss" class="small">收起</button></div>
     <div class="workspace">
@@ -23,8 +30,9 @@
           <label for="level">理解基础</label>
           <input id="level" maxlength="300" value="普通初学者，保留日常语言与基本逻辑能力">
           <p class="hint">教学主题是待学范围，不会自动写进学生的已知知识。</p>
-          <button id="start" class="primary full" type="submit">创建试讲 <span>↗</span></button>
+          <button id="start" class="primary full" type="submit" disabled>创建试讲 <span>↗</span></button>
         </form>
+        <div class="asr-choice"><span id="currentASR">正在检查语音模型</span><button id="changeModel" class="small" type="button">选择 ASR 模型</button><p id="asrSetupHint" class="hint">开始前请下载并选择本机语音识别模型。</p></div>
         <div id="scope" class="scope hidden"><span class="eyebrow">本节待学范围</span><div id="scopeTags"></div><p id="boundary"></p></div>
         <div class="setup-foot">单个学生 · 单次课堂 · 无教学评分</div>
       </aside>
@@ -54,8 +62,27 @@
         </div>
       </section>
     </div>
+    </div>
+    <section id="modelsPage" class="hidden" aria-labelledby="modelsHeading">
+      <div class="models-heading"><div><div class="eyebrow">本机语音识别</div><h1 id="modelsHeading">选择适合你的语音模型</h1><p>轻量开始，或为更清晰的讲授选择更大容量。可安装多个，试讲前切换。</p></div><button id="refreshModels">刷新状态</button></div>
+      <div class="card models-folder"><div><strong>模型文件夹</strong><code id="modelsPath">正在读取目录</code><p class="hint">每个模型独占一个文件夹。空闲时可将不需要的模型文件夹拖入废纸篓或回收站，再刷新状态。</p></div><button id="openModelsFolder">打开文件夹</button></div>
+      <p id="asrMessage" class="models-message hidden" role="status" aria-live="polite"></p>
+      <p id="modelsBusy" class="hint hidden">试讲创建、进行或结束处理中。结束后可以下载或切换模型。</p>
+      <section class="card asr-debug" aria-labelledby="asrDebugHeading">
+        <div class="asr-debug-heading"><div><div class="eyebrow">独立测试 · 无需 LLM 密钥</div><h2 id="asrDebugHeading">ASR 转文字调试</h2><p class="hint">使用当前选择的模型。对着麦克风讲几句，停顿后查看逐段转写；结束录音会处理最后一段。</p></div><span id="asrDebugStatus" class="pill" role="status" aria-live="polite">尚未开始</span></div>
+        <div class="asr-debug-controls"><button id="asrDebugStart" class="primary" disabled>开始录音测试</button><button id="asrDebugStop" disabled>结束录音</button><button id="asrDebugClear">清空结果</button><button id="asrDebugExport" disabled>导出结果</button><div class="meter" aria-label="ASR 调试麦克风音量"><div id="asrDebugMeter"></div></div></div>
+        <p id="asrDebugHint" class="hint">请先安装并选择模型。音频只在本机处理，不调用学生模型，也不播放声音。</p>
+        <p id="asrDebugError" class="model-error hidden" role="alert"></p>
+        <div class="stats asr-debug-stats"><span>测试模型 <b id="asrDebugModel">—</b></span><span>转写段数 <b id="asrDebugCount">0</b></span><span>接收录音 <b id="asrDebugDuration">0s</b></span><span>识别总耗时 <b id="asrDebugSeconds">0s</b></span></div>
+        <div id="asrDebugResults" class="asr-debug-results" aria-live="polite"><p class="empty">尚无转写。可以测试普通话、英文术语、数字和连续讲授，然后结束测试，切换模型进行比较。</p></div>
+      </section>
+      <div id="modelCards" class="model-grid"><p class="empty">正在读取模型列表……</p></div>
+      <p class="hint models-note">体积为所需文件的下载与安装占用，共享 VAD 另需约 644KB。识别准确性与速度取决于讲课内容和设备，推荐标签为选型建议，尚未提供实测评分。音频只在本机处理。</p>
+    </section>
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
-  <script src="/static/app.js" defer></script>
+  <script src="/static/app.js?v=20261004-asr-debug-2" defer></script>
+  <script src="/static/pcm-recorder.js?v=20261004-asr-debug-2" defer></script>
+  <script src="/static/asr-debug.js?v=20261004-asr-debug-2" defer></script>
 </body>
 </html>

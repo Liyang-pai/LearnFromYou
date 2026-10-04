@@ -1,15 +1,17 @@
-# 听懂了吗 · AI 学生试讲 MVP
+# 讲给我听 · Learn from Me
+
+**当前仓库的前端是开发调试界面**，用于验证 ASR 转写效果与 AI 学生试讲链路。它不是面向用户的正式产品界面；正式前端将另行设计和开发。
 
 一个本地语音识别、云端 Student LLM 的试讲练习工具。教师讲授时，AI 学生只根据明确的前置知识和本次课堂内容形成认知，不会因为课题名称就默认知道答案。
 
-> 当前版本主要在 **macOS Apple Silicon** 上验证。网页与本地 ASR 可迁移到其他系统，但系统语音播报需要自行替换 `backend/speech.py` 中的 macOS `say` 调用。
+> 当前版本主要在 **macOS Apple Silicon** 上验证。ASR 模型管理、下载和 CPU 识别面向 macOS / Windows x64，CI 覆盖两端。系统语音播报仍保留 macOS `say` 临时实现，本次未适配 Windows。
 
 ## 下载者需要配置什么
 
 | 项目 | 是否必须 | 说明 |
 | --- | --- | --- |
-| Python 3.10+ | 必须 | 推荐使用独立虚拟环境。当前开发环境为 Python 3.13。 |
-| 本地 ASR 模型 | 必须 | GitHub 不包含模型权重。准备一个 sherpa-onnx SenseVoice 模型目录，内含 `model.int8.onnx` 与 `tokens.txt`；详情见 `asr/models/README.md`。 |
+| Python 3.11+ | 必须 | 推荐使用独立虚拟环境。当前开发环境为 Python 3.13。 |
+| 本地 ASR 模型 | 必须 | GitHub 不包含任何模型文件。启动网页后，在「ASR 模型」页面下载并选择；支持安装多个。详情见 `asr/README.md`。 |
 | DeepSeek 或兼容 LLM API 密钥 | 必须 | 将密钥写入本地 `.env`，不会上传或提交到 GitHub。 |
 | Chrome 麦克风权限 | 试讲时必须 | 选择真实麦克风，不要选择 `Background Music (Virtual)` 等无教师语音的虚拟设备。 |
 | 耳机 | 建议 | 降低学生语音播报被重新识别为教师语音的概率。 |
@@ -33,19 +35,11 @@ DEEPSEEK_API_KEY=你的密钥
 
 默认使用 DeepSeek：`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-chat`。也可以填写兼容 OpenAI Chat Completions 接口的地址与模型名。旧版字段 `Deepseek_API` 仍可用，但新安装请使用 `DEEPSEEK_API_KEY`。
 
-接着按 `asr/models/README.md` 放置本地模型。默认模型位置为：
+随后启动服务，在网页「ASR 模型」页面下载并选择模型。首次配置无需预先安装模型；选择成功后返回课堂。推荐优先尝试 Paraformer 中文完整版，轻量选择为标准 SenseVoice Small INT8；另有 Whisper Small / Turbo INT8。详见 [ASR 模型管理](asr/README.md)。
 
-```text
-asr/models/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-int8-2025-09-09/
-├── model.int8.onnx
-└── tokens.txt
-```
+仅测试语音转文字时，可直接在模型页面的「ASR 转文字调试」点击「开始录音测试」，无需填写主题或配置 LLM 密钥。停顿后显示逐段转写、音频时长、识别耗时和实时系数；结束录音会处理尾段并释放模型，随后可切换模型再次测试。结果可清空或导出 JSON，音频不写入文件，也不调用 LLM / TTS。
 
-如将模型放在其他位置，在 `.env` 设置：
-
-```dotenv
-ASR_MODEL_DIR=/绝对路径/你的模型目录
-```
+Windows PowerShell 使用 `.venv\Scripts\python.exe` 替换下面的 `./.venv/bin/python`，复制环境示例可运行 `Copy-Item .env.example .env`。模型不需要单独安装 GPU 或 CUDA 环境。
 
 ## 启动
 
@@ -55,7 +49,11 @@ ASR_MODEL_DIR=/绝对路径/你的模型目录
 
 使用 Chrome 打开 **http://127.0.0.1:8765**。macOS 可双击 `启动试讲.command`；若网页先于服务加载完成，稍等后刷新。终端保持开启，按 Control-C 关闭服务。
 
-1. 输入每次要讲的主题、知识点及明确前置知识，点击“创建试讲”。
+页面必须通过本机服务地址访问。直接打开 `frontend/index.html` 会跳转到默认地址 `http://127.0.0.1:8765/models`；若修改了 `PORT`，请使用相应端口的 HTTP 地址。若提示无法连接，请先启动服务。
+
+更新代码后，需要在原终端按 Control-C，再重新启动服务并刷新网页。服务不会自动重新加载 Python 代码；只刷新网页可能出现新页面连接旧后端的情况。ASR 调试面板会检查后端是否支持调试接口，并在版本不匹配时提示重启。
+
+1. 首次使用先在「ASR 模型」下载并选择模型；之后可以在试讲前切换。输入每次要讲的主题、知识点及明确前置知识，点击“创建试讲”。
 2. 范围分析完成后，点击“开启麦克风”，允许浏览器使用麦克风，并选择真实麦克风设备。建议戴耳机。
 3. 自然讲授。转写按短段显示；教学内容进一步聚合后发送给学生模型。
 4. 可以直接问“你理解了吗”，或停顿让学生提出相关疑问。
@@ -72,7 +70,8 @@ ASR_MODEL_DIR=/绝对路径/你的模型目录
 
 ## 模块
 
-- `asr/recognizer.py`：常驻 SenseVoice、采样率处理、Silero VAD。没有云端 ASR。
+- `asr/catalog.py`、`manager.py`：固定模型清单、下载校验、本地选择与安装状态。
+- `asr/recognizer.py`：SenseVoice / Paraformer / Whisper CPU 适配、采样率处理、Silero VAD。仅在试讲时加载，不使用云端 ASR。
 - `backend/session.py`：音频、转写和认知更新的串行队列，会话与发言控制。
 - `backend/prompts.py`：课前与课堂 Prompt。教学材料作为数据，不作为系统指令。
 - `backend/schemas.py`、`policy.py`：结构化状态、来源校验、提问生命周期与静音规则。
@@ -95,7 +94,7 @@ ASR_MODEL_DIR=/绝对路径/你的模型目录
 
 ```sh
 ./.venv/bin/python -m pytest -q
-./.venv/bin/python asr/transcribe.py
+./.venv/bin/python asr/transcribe.py /完整路径/录音.wav
 ```
 
 启动服务后，执行真实 API 和录音数据链路测试（会使用少量 DeepSeek 配额，不会播放声音）：
@@ -104,7 +103,9 @@ ASR_MODEL_DIR=/绝对路径/你的模型目录
 ./.venv/bin/python tests/live_smoke.py
 ```
 
-`asr/transcribe.py /完整路径/录音.wav` 继续支持独立 WAV/FLAC 转写。现有模型说明指向粤语微调版本；应以实际课程检验普通话、术语及数字识别，不假定所有主题都已验证。
+`asr/transcribe.py /完整路径/录音.wav --model 模型ID` 支持选择已安装模型进行独立 WAV/FLAC 转写。默认测试使用模拟下载；真实模型测试在本地文件存在时运行。准确性比较工具与数据格式见 [ASR 说明](asr/README.md)，推荐标签尚未用真实课程录音验证。
+
+整个 `asr/models/` 被 Git 忽略，小型 VAD 和本地配置也不会提交。CI 使用 `scripts/check_model_files.py` 拒绝任何被强行加入索引的模型目录文件。
 
 ## 已知边界
 
