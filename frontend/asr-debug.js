@@ -116,7 +116,7 @@
   $('asrDebugStart').onclick = start; $('asrDebugStop').onclick = stop;
   $('asrDebugClear').onclick = clear;
   $('asrDebugExport').onclick = () => {
-    const report = {project:'讲给我听 / Learn from Me',model_id:state.model,transcripts:state.records};
+    const report = {project:'讲给我听 / Learn From You',model_id:state.model,transcripts:state.records};
     const url = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], {type:'application/json'}));
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = `asr-debug-${state.model || 'result'}-${Date.now()}.json`; anchor.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);

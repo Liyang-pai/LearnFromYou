@@ -30,7 +30,7 @@ async def lifespan(app):
         await models.shutdown()
 
 
-app = FastAPI(title="讲给我听 · Learn from Me（开发调试）", lifespan=lifespan)
+app = FastAPI(title="讲给我听 · Learn From You（开发调试）", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.ROOT / "frontend"), name="static")
 
 

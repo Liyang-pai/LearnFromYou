@@ -59,7 +59,7 @@ def test_microphone_debug_without_llm_drains_tail_and_releases(debug_service):
     service, manager, engines = debug_service
     with TestClient(service.app, base_url='http://localhost:8765') as client:
         page = client.get('/models').text
-        assert '讲给我听' in page and 'Learn from Me' in page
+        assert '讲给我听' in page and 'Learn From You' in page
         assert '开发调试界面' in page and '正式前端将另行开发' in page
         assert 'ASR 转文字调试' in page
         assert client.get('/api/health').json()['asr_debug_available'] is True

@@ -1,4 +1,4 @@
-# 讲给我听 · Learn from Me
+# 讲给我听 · Learn From You
 
 **当前仓库的前端是开发调试界面**，用于验证 ASR 转写效果与 AI 学生试讲链路。它不是面向用户的正式产品界面；正式前端将另行设计和开发。
 
@@ -19,8 +19,8 @@
 ## 从零安装
 
 ```sh
-git clone https://github.com/Liyang-pai/project.git
-cd project
+git clone https://github.com/Liyang-pai/LearnFromYou.git
+cd LearnFromYou
 python3 -m venv .venv
 ./.venv/bin/python -m pip install --upgrade pip
 ./.venv/bin/python -m pip install -r requirements.txt

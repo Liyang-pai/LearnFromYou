@@ -2,15 +2,15 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>讲给我听 · Learn from Me · 开发调试</title>
+  <title>讲给我听 · Learn From You · 开发调试</title>
   <script>
     // Opening this file directly cannot reach the API or load the recording worklet.
     if (location.protocol === 'file:') location.replace('http://127.0.0.1:8765/models');
   </script>
-  <link rel="stylesheet" href="/static/style.css?v=20261004-asr-debug-2">
+  <link rel="stylesheet" href="/static/style.css?v=20261004-asr-debug-3">
 </head>
 <body>
-  <header><a class="brand" href="/">讲给我听<span>Learn from Me</span></a><span id="health" class="pill">正在连接本机服务</span></header>
+  <header><a class="brand" href="/">讲给我听<span>Learn From You</span></a><span id="health" class="pill">正在连接本机服务</span></header>
   <main>
     <aside class="development-note"><strong>开发调试界面</strong><span>当前页面用于验证 ASR 和试讲链路。面向用户的正式前端将另行开发。</span></aside>
     <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button></nav>
@@ -81,8 +81,8 @@
     </section>
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
-  <script src="/static/app.js?v=20261004-asr-debug-2" defer></script>
-  <script src="/static/pcm-recorder.js?v=20261004-asr-debug-2" defer></script>
-  <script src="/static/asr-debug.js?v=20261004-asr-debug-2" defer></script>
+  <script src="/static/app.js?v=20261004-asr-debug-3" defer></script>
+  <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
+  <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
 </body>
 </html>
