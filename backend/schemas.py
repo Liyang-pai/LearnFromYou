@@ -134,3 +134,24 @@ class GeneratedAssessment(StrictModel):
 class AssessmentAudit(StrictModel):
     verdict: Literal["supported", "unsupported", "uncertain"]
     reason: str = Field(min_length=1, max_length=600)
+
+
+class ReportCitation(StrictModel):
+    source_id: str = Field(min_length=1, max_length=60)
+    quote: str = Field(min_length=1, max_length=500)
+
+
+class ReportFinding(StrictModel):
+    observation: str = Field(min_length=1, max_length=600)
+    interpretation: str = Field(min_length=1, max_length=600)
+    suggestion: str = Field(default="", max_length=600)
+    basis: Literal["classroom", "assessment"]
+    knowledge_ids: list[str] = Field(default_factory=list, max_length=8)
+    citations: list[ReportCitation] = Field(min_length=1, max_length=6)
+
+
+class TrialReportAnalysis(StrictModel):
+    taught_points: list[ReportFinding] = Field(default_factory=list, max_length=12)
+    understanding: list[ReportFinding] = Field(default_factory=list, max_length=8)
+    changes: list[ReportFinding] = Field(default_factory=list, max_length=8)
+    priorities: list[ReportFinding] = Field(default_factory=list, max_length=3)

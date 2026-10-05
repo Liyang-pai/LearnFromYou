@@ -15,9 +15,11 @@ from . import config
 from .llm import ModelError
 from .schemas import Lesson
 from .session import Session
+from .report import generate_report
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
+report_lock = asyncio.Lock()
 
 
 @asynccontextmanager
@@ -73,6 +75,22 @@ async def health():
 @app.get("/models")
 async def models_page():
     return FileResponse(config.ROOT / "frontend/index.html")
+
+
+@app.post("/api/sessions/{session_id}/report")
+async def classroom_report(session_id: str):
+    try:
+        # One local user; serialize generation to avoid duplicate model charges.
+        async with report_lock:
+            return await generate_report(session_id)
+    except FileNotFoundError:
+        raise HTTPException(404, "没有找到本次课堂记录") from None
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    except ModelError as exc:
+        raise HTTPException(503, str(exc)) from None
+    except OSError:
+        raise HTTPException(500, "报告文件读写失败；课堂记录未改动，请重试") from None
 
 
 @app.get("/api/asr/models")

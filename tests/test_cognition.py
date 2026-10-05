@@ -6,7 +6,7 @@ from pydantic import ValidationError
 
 from backend.assessment import classroom_payload, assess
 from backend.policy import apply_result
-from backend.schemas import ClassroomEvent, Knowledge, StudentResult, StudentState
+from backend.schemas import ClassroomEvent, Knowledge, StudentResult, StudentState, Lesson, Preparation, Question
 from test_assessment import AssessmentModel, fixture_question, SOURCES as ASSESSMENT_SOURCES
 
 
@@ -125,3 +125,40 @@ def test_same_id_self_reference_is_normalized_without_losing_history():
 def test_self_reference_cannot_invent_an_existing_knowledge():
     with pytest.raises(ValueError):
         apply_result(StudentState(), StudentResult(knowledge_updates=[rule(supersedes=['k_star'])]), SOURCES, {'t2'})
+
+
+@pytest.mark.parametrize('number',[6,9,12])
+def test_blue_box_answer_context_preserves_boundaries_without_blanket_refusal(number):
+    """Contract test, not a fake model pretending to prove natural-language compliance."""
+    from backend import prompts
+    from backend.assessment import ANSWER_PROMPT
+    from backend.session import Session
+    session=Session(None,None)
+    session.lesson=Lesson(topic='蓝盒规则')
+    session.preparation=Preparation(scope=['蓝盒规则'],boundary_note='只按课堂知识')
+    session.state=StudentState(knowledge=[
+        Knowledge(id='rule',text='偶数先乘二再加三，奇数只乘二。',status='tentative',sources=['t1']),
+        Knowledge(id='boundary',text='输入大于10时规则变化，特殊规则尚未教授。',status='tentative',sources=['t2']),
+        Knowledge(id='unknown',text='特殊规则具体内容未知。',status='unclear',sources=['t2'])],
+        open_questions=[Question(id='q1',topic='特殊规则',text='特殊规则是什么？',status='pending',sources=['t2'])])
+    session.sources={'t1':{'id':'t1','text':session.state.knowledge[0].text},
+                     't2':{'id':'t2','text':session.state.knowledge[1].text}}
+    session.processed_ids={'t1','t2'}
+    batch=[{'id':'t3','text':f'蓝盒({number})是多少？'}]
+    try:
+        payload=session.payload(batch)
+        for context in (payload,classroom_payload(session.state,list(session.sources.values()))):
+            assert context['current_state']['knowledge'][1]['id']=='boundary'
+            assert context['current_state']['inactive_knowledge'][0]['id']=='unknown'
+            assert context['current_state']['open_questions'][0]['status']=='pending'
+            assert any(s['id']=='t2' for s in context['teacher_sources'])
+        assert payload['new_teacher_segments']==batch
+        for prompt in (prompts.STUDENT,ANSWER_PROMPT):
+            assert prompts.ANSWER_BOUNDARIES in prompt
+            assert '输入6、9应正常' in prompt and '输入12不能外推' in prompt
+            assert '只有与本题必要推理直接相关的缺口' in prompt
+            assert '阈值、否定或必要条件被转写遗漏' in prompt
+            assert '不能用示例中的阈值10补齐课堂未知的阈值' in prompt
+            assert '不能断言本题已经超出某个未确定的阈值' in prompt
+            assert '不得先算出旧规则的数值答案' in prompt
+    finally:asyncio.run(session.llm.close())

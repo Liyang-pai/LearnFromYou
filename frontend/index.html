@@ -7,7 +7,7 @@
     // Opening this file directly cannot reach the API or load the recording worklet.
     if (location.protocol === 'file:') location.replace('http://127.0.0.1:8765/models');
   </script>
-  <link rel="stylesheet" href="/static/style.css?v=20261004-asr-debug-3">
+  <link rel="stylesheet" href="/static/style.css?v=20261005-report-1">
 </head>
 <body>
   <header><a class="brand" href="/">讲给我听<span>Learn From You</span></a><span id="health" class="pill">正在连接本机服务</span></header>
@@ -60,6 +60,13 @@
           <div id="assessmentResults" aria-live="polite"><p class="hint">完成测验后，这里显示学生作答、课堂依据和一项改进建议。</p></div>
           <p class="hint">标准答案与评估反馈不进入学生知识。本结果反映模拟学生表现，不是教师水平评分；模型评估仍需人工复核。</p>
         </section>
+        <section id="trialReport" class="card hidden" aria-labelledby="reportHeading">
+          <div class="assessment-heading"><div><span class="eyebrow">课堂证据 → 复查问题 → 下一次改进</span><h2 id="reportHeading">课后试讲反馈报告</h2></div><span id="reportStatus" class="pill" role="status">结束课堂后可生成</span></div>
+          <p class="hint">结束后按需分析实际讲授、学生表现与认知变化。每个结论附证据；不提供教师总分。</p>
+          <div class="assessment-controls"><button id="generateReport" class="primary" disabled>生成试讲报告</button><button id="downloadReport" disabled>下载 Markdown</button></div>
+          <p id="reportError" class="model-error" role="alert"></p>
+          <div id="reportContent" aria-live="polite"></div>
+        </section>
         <div class="card debug">
           <div class="debug-heading"><div><span class="eyebrow">让每一步都看得见</span><h2>课堂调试台</h2></div><button id="export" class="small">导出本次记录</button></div>
           <div class="stats"><span>转写 <b id="transcriptCount">0</b></span><span>教学片段 <b id="segmentCount">0</b></span><span>状态版本 <b id="stateVersion">0</b></span><span>最近模型耗时 <b id="llmTime">—</b></span></div>
@@ -90,8 +97,9 @@
     </section>
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
-  <script src="/static/app.js?v=20261004-asr-debug-3" defer></script>
+  <script src="/static/app.js?v=20261005-report-1" defer></script>
   <script src="/static/assessment.js?v=20261005-assessment-1" defer></script>
+  <script src="/static/report.js?v=20261005-report-1" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
 </body>

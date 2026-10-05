@@ -65,6 +65,7 @@ function showState(state) {
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
   window.assessment?.handle(event);
+  window.trialReport?.handle(event);
   switch (event.type) {
     case 'ready':
       starting = false; running = true; sessionId = d.session_id; $('sessionStatus').textContent = '课堂已就绪'; $('studentMood').textContent = '这节课的内容，我准备开始听了。';
@@ -128,6 +129,7 @@ $('lessonForm').addEventListener('submit',async e => {
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
   window.assessment?.reset();
+  window.trialReport?.reset();
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
   $('error').classList.add('hidden'); $('scope').classList.add('hidden'); syncControls();
