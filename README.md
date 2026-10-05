@@ -4,7 +4,7 @@
 
 一个本地语音识别、云端 Student LLM 的试讲练习工具。教师讲授时，AI 学生只根据明确的前置知识和本次课堂内容形成认知，不会因为课题名称就默认知道答案。
 
-> 当前版本主要在 **macOS Apple Silicon** 上验证。ASR 模型管理、下载和 CPU 识别面向 macOS / Windows x64，CI 覆盖两端。系统语音播报仍保留 macOS `say` 临时实现，本次未适配 Windows。
+> 当前版本主要在 **macOS Apple Silicon** 上验证。ASR 模型管理、下载和 CPU 识别面向 macOS / Windows x64，CI 覆盖两端。系统语音支持 macOS `say` 和 Windows 本地 System.Speech；Windows 优先选择已安装的中文语音。
 
 ## 下载者需要配置什么
 
@@ -76,7 +76,7 @@ Windows PowerShell 使用 `.venv\Scripts\python.exe` 替换下面的 `./.venv/bi
 - `backend/prompts.py`：课前与课堂 Prompt。教学材料作为数据，不作为系统指令。
 - `backend/schemas.py`、`policy.py`：结构化状态、来源校验、提问生命周期与静音规则。
 - `backend/llm.py`：兼容接口，可替换地址和模型；无效 JSON 最多修复一次。
-- `backend/speech.py`：macOS 本机语音，支持立即停止。
+- `backend/speech.py`、`windows_speech.py`：macOS / Windows 本机语音，支持停止播报。Windows 使用系统自带 Windows PowerShell，无需新增 Python 依赖。
 - `frontend/`：本地网页、麦克风 AudioWorklet、调试面板。
 
 状态只在本次会话维护；`logs/会话编号.jsonl` 保存调试事件，属于本地调试记录，不是跨课程长期记忆。可从网页导出同样的事件记录。日志包含讲授文本和模型输入输出，需要时可以自行清理。
@@ -109,8 +109,15 @@ Windows PowerShell 使用 `.venv\Scripts\python.exe` 替换下面的 `./.venv/bi
 
 ## 已知边界
 
-首版只允许一个活动试讲，主要面向这台 Mac 的耳机演示。外放回声消除仅作为辅助，不保证复杂环境下学生语音不会被麦克风收回。识别是短段最终转写，不是逐字即时转写。
+首版只允许一个活动试讲，主要面向本机的耳机演示。外放回声消除仅作为辅助，不保证复杂环境下学生语音不会被麦克风收回。识别是短段最终转写，不是逐字即时转写。
 
 程序检查来源是否存在，无法仅凭引用编号证明一句话完全由课堂支持。Prompt 也不能让预训练模型真正忘记知识；需继续用未讲内容、错误但自洽的讲解和特殊术语做回归测试。
 
 “当前理解”表示学生当前的认知，不代表标准答案或永久掌握。本版不提供教师评分、多学生、视觉、长期记忆或账号系统。
+
+
+## Windows 语音播报
+
+Windows 使用 System.Speech 的已安装语音，通过本机默认音频设备播放。可用 `TTS_VOICE` 指定语音名称；没有同名语音时优先选择已启用的中文语音，否则使用系统默认语音。无需配置语音 API 密钥。
+
+播报文字通过标准输入传入，不拼接到 PowerShell 脚本中；播报进程不弹出窗口。主动停止或被教师打断视为正常中断，不报语音失败。声音来自运行后台的电脑。更新代码后需重启后台并刷新网页，在课堂勾选“语音播报”，同时检查电脑音量与输出设备。

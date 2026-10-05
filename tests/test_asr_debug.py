@@ -116,7 +116,7 @@ def test_invalid_sample_rate_does_not_load_model(debug_service, rate):
         assert not engines and not manager.busy
 
 
-@pytest.mark.parametrize('frame', [b'x', b'', b'x'*65540, np.array([float('nan')],dtype='<f4').tobytes()])
+@pytest.mark.parametrize('frame', [b'x', b'', b'x'*65540, np.array([float('nan')],dtype='<f4').tobytes()], ids=['odd-byte-count', 'empty', 'oversize', 'nan'])
 def test_invalid_pcm_releases_model(debug_service, frame):
     service, manager, engines = debug_service
     with TestClient(service.app) as client:
