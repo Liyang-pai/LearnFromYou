@@ -53,7 +53,7 @@ async def main():
         await send(type='text',text='从头节点开始访问，头节点就是我们保存的起点。沿着引用可以找到下一个节点；最后一个节点没有下一个节点。这说明了从哪里开始和什么时候停止。你明白了吗？')
         state=await until('state');reply=await until('reply')
         print('CLARIFICATION_REPLY',reply['text'],flush=True)
-        print('CLARIFICATION_QUESTIONS',json.dumps(state['state']['questions'],ensure_ascii=False),flush=True)
+        print('CLARIFICATION_QUESTIONS',json.dumps(state['state']['open_questions'],ensure_ascii=False),flush=True)
 
         await send(type='mute',value=True);await until('mute')
         await send(type='text',text='再补充一下，空链表没有任何节点。我刚才补充了什么，你知道吗？')
