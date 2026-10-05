@@ -1,12 +1,13 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let socket, running = false, starting = false, recording = false, ending = false;
+let micStarting = false, micGeneration = 0;
 let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
 let sentAudioFrames = 0;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
-const labels = {tentative:'暂定理解',understood:'当前理解',unclear:'信息缺失',conflict:'存在冲突',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
+const labels = {tentative:'暂定理解',understood:'课堂推断理解',unclear:'信息缺失',conflict:'冲突或失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
 function showError(message, retry = false) {
@@ -19,6 +20,8 @@ function syncControls() {
   for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
   for (const id of ['topic','points','prerequisites','level']) $(id).disabled = running || starting;
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
+  if (window.assessment?.busy || micStarting) $('mic').disabled = true;
+  window.assessment?.sync();
   window.asrDebug?.sync();
 }
 function append(container, node, first = false) {
@@ -47,12 +50,12 @@ function showState(state) {
   $('stateVersion').textContent = state.version;
   $('stateJson').textContent = JSON.stringify(state, null, 2);
   const holder = $('stateCards'); holder.textContent = ''; holder.classList.remove('empty');
-  for (const [name, items] of [['当前认知',state.knowledge],['问题与解答',state.questions]]) {
+  for (const [name, items] of [['当前认知',state.knowledge],['问题与解答',state.open_questions ?? state.questions ?? []],['近期课堂事件',state.recent_events ?? []]]) {
     const heading = document.createElement('div'); heading.className = 'state-title'; heading.textContent = name; holder.append(heading);
     if (!items.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
     for (const item of items) {
       const row = document.createElement('div'); row.className = 'state-item ' + item.status;
-      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = labels[item.status];
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = labels[item.status] || '课堂事件';
       const text = document.createElement('span'); text.textContent = item.text;
       const meta = document.createElement('small'); meta.textContent = `${item.id} · 来源 ${item.sources.join('、')}${item.attempts !== undefined ? ' · 已提问 ' + item.attempts + ' 次' : ''}${item.resolution_sources?.length ? ' · 解答来源 ' + item.resolution_sources.join('、') : ''}`;
       row.append(tag,text,meta); holder.append(row);
@@ -61,6 +64,7 @@ function showState(state) {
 }
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
+  window.assessment?.handle(event);
   switch (event.type) {
     case 'ready':
       starting = false; running = true; sessionId = d.session_id; $('sessionStatus').textContent = '课堂已就绪'; $('studentMood').textContent = '这节课的内容，我准备开始听了。';
@@ -80,8 +84,9 @@ function handle(event) {
       const row = recordNode(`教学片段 · ${d.sources.join('、')} · ${d.reason}`,d.text); row.classList.add('segment'); append($('transcripts'),row); break;
     }
     case 'llm_request':
-      $('sessionStatus').textContent = d.phase === 'preparation' ? '正在分析课堂范围' : '学生正在消化';
-      append($('modelInputs'),recordNode(`${stamp} · ${d.phase === 'preparation' ? '课前范围分析' : '学生认知更新'} · 第 ${d.attempt} 次`,JSON.stringify(d.body,null,2),true),true); break;
+      { const phase = {preparation:'课前范围分析', student:'学生认知更新', assessment_question:'课堂自动出题', assessment_audit:'题目依据检查', assessment_answer:'测验独立作答', assessment_evaluation:'测验独立评估'}[d.phase] || d.phase;
+      $('sessionStatus').textContent = phase;
+      append($('modelInputs'),recordNode(`${stamp} · ${phase} · 第 ${d.attempt} 次`,JSON.stringify(d.body,null,2),true),true); break; }
     case 'llm_output':
       $('llmTime').textContent = d.seconds + 's';
       append($('events'),recordNode(`${stamp} · 模型原始输出 · ${d.phase}`,d.raw,true),true); break;
@@ -114,6 +119,7 @@ async function connect() {
   socket.onclose = () => {
     if(running || starting) showError('本机服务连接已断开；请检查服务并重新创建试讲。');
     running = false; starting = false; ending = false; stopMic(false); syncControls();
+    window.assessment?.disconnected();
   };
   await new Promise((resolve,reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('无法连接本机服务')); });
 }
@@ -121,6 +127,7 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
+  window.assessment?.reset();
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
   $('error').classList.add('hidden'); $('scope').classList.add('hidden'); syncControls();
@@ -128,11 +135,17 @@ $('lessonForm').addEventListener('submit',async e => {
   catch(e) { starting = false; syncControls(); showError(e.message); }
 });
 async function startMic() {
-  $('mic').disabled = true;
+  if (!running || ending || micStarting || window.assessment?.busy) return;
+  const generation = ++micGeneration;
+  micStarting = true; syncControls();
   try {
     context = new AudioContext(); await context.resume();
-    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
+    if (generation !== micGeneration || !running || ending) return;
+    const captured = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
+    if (generation !== micGeneration || !running || ending) { captured.getTracks().forEach(track => track.stop()); return; }
+    stream = captured;
     await context.audioWorklet.addModule('/static/audio-worklet.js');
+    if (generation !== micGeneration || !running || ending) return;
     source = context.createMediaStreamSource(stream);
     worklet = new AudioWorkletNode(context,'capture-processor');
     silentGain = context.createGain(); silentGain.gain.value = 0;
@@ -164,16 +177,20 @@ async function startMic() {
     }, 1200);
     $('micHint').textContent = '麦克风已开启。停顿后出现最终转写；学生在静音时也会继续听课。建议戴耳机。';
   } catch(e) {
+    if (generation !== micGeneration) return;
     showError(e.name === 'NotAllowedError' ? '麦克风权限未开放，请在浏览器地址栏允许麦克风后重试。' : '麦克风无法启动：' + e.message);
     await stopMic(false);
+  } finally {
+    if (generation === micGeneration) micStarting = false;
+    syncControls();
   }
-  syncControls();
 }
 function rms(samples) {
   let sum = 0; for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
   return Math.sqrt(sum / Math.max(1, samples.length));
 }
 async function stopMic(notify = true) {
+  micGeneration += 1; micStarting = false;
   if(worklet && recording) {
     await Promise.race([new Promise(resolve => { flushed = resolve; worklet.port.postMessage('flush'); }),new Promise(resolve => setTimeout(resolve,200))]);
   }

@@ -51,6 +51,15 @@
           <p class="hint control-hint" id="micHint">建议戴耳机，避免学生语音被麦克风收回。静音时，学生仍继续听课。</p>
           <details class="text-test"><summary>用文字测试同一条学习链路</summary><form id="textForm"><textarea id="teacherText" rows="2" maxlength="5000" placeholder="输入教师讲授或提问，如：你目前理解了什么？" disabled></textarea><button id="sendText" disabled>发送讲授</button></form></details>
         </div>
+        <section class="card assessment" aria-labelledby="assessmentHeading">
+          <div class="assessment-heading"><div><span class="eyebrow">讲解 → 作答 → 补讲 → 新题验证</span><h2 id="assessmentHeading">检验学生理解</h2></div><span id="assessmentStatus" class="pill" role="status">尚未测验</span></div>
+          <p id="assessmentHint" class="hint">根据实际讲授自动出题，无需准备题库。先暂停麦克风，等待认知更新后开始。</p>
+          <div class="assessment-controls"><label for="assessmentKind">题型</label><select id="assessmentKind"><option value="apply">应用题</option><option value="explain">复述题</option><option value="boundary">边界题</option></select><button id="assess" class="primary" disabled>检验学生理解</button></div>
+          <p id="assessmentQuestion" class="assessment-question hidden"></p>
+          <p id="assessmentComparison" class="hint hidden"></p>
+          <div id="assessmentResults" aria-live="polite"><p class="hint">完成测验后，这里显示学生作答、课堂依据和一项改进建议。</p></div>
+          <p class="hint">标准答案与评估反馈不进入学生知识。本结果反映模拟学生表现，不是教师水平评分；模型评估仍需人工复核。</p>
+        </section>
         <div class="card debug">
           <div class="debug-heading"><div><span class="eyebrow">让每一步都看得见</span><h2>课堂调试台</h2></div><button id="export" class="small">导出本次记录</button></div>
           <div class="stats"><span>转写 <b id="transcriptCount">0</b></span><span>教学片段 <b id="segmentCount">0</b></span><span>状态版本 <b id="stateVersion">0</b></span><span>最近模型耗时 <b id="llmTime">—</b></span></div>
@@ -82,6 +91,7 @@
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
   <script src="/static/app.js?v=20261004-asr-debug-3" defer></script>
+  <script src="/static/assessment.js?v=20261005-assessment-1" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
 </body>

@@ -249,6 +249,8 @@ async def websocket(ws: WebSocket):
                 elif kind == "retry":
                     session.retry_event.set()
                     await session.emit("status", {"message": "正在重试，未处理内容仍按顺序保留"})
+                elif kind == "assessment":
+                    await session.start_assessment(event.get("kind", "apply"))
                 elif kind == "end":
                     await session.finish()
                     await models.release()
@@ -257,7 +259,8 @@ async def websocket(ws: WebSocket):
                         active_session = None
             except (ValueError, ValidationError, ModelError) as e:
                 if session and not session.closed:
-                    await session.emit("error", {"message": str(e), "retryable": bool(session.failed_batch)})
+                    await session.emit("error", {"message": str(e), "retryable": bool(session.failed_batch),
+                                                 "code": "assessment_failure" if kind == "assessment" else "session_failure"})
                     if not session.ready:
                         await session.close()
                         if owns_engine:
