@@ -4,6 +4,7 @@ import json
 import re
 import time
 import uuid
+from collections import deque
 from datetime import datetime, timezone
 
 import numpy as np
@@ -11,6 +12,7 @@ from asr.recognizer import AudioStream
 from . import config, prompts
 from .llm import ModelClient, ModelError
 from .policy import apply_result, invited, mark_delivered, speech_block
+from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, Preparation, StudentResult, StudentState
 from .speech import Speaker
 
@@ -31,7 +33,12 @@ class Session:
         self.pending_since = 0
         self.audio_queue = asyncio.Queue(maxsize=240)
         self.asr_queue = asyncio.Queue(maxsize=30)
+        self.review_queue = asyncio.Queue()
         self.teaching_queue = asyncio.Queue()
+        self.asr_review = True
+        self.reviewer = None
+        self.review_processing = False
+        self.review_context = deque(maxlen=8)
         self.asr_pending = 0
         self.audio = None
         self.audio_enabled = False
@@ -73,9 +80,10 @@ class Session:
             with contextlib.suppress(Exception):
                 await self.send(event)
 
-    async def start(self, lesson: Lesson, muted=False, tts=True):
+    async def start(self, lesson: Lesson, muted=False, tts=True, asr_review=True):
         self.lesson = lesson
         self.muted, self.tts_enabled = muted, tts
+        self.asr_review = asr_review
         logs = config.ROOT / "logs"
         logs.mkdir(exist_ok=True)
         self.log = (logs / (self.id + ".jsonl")).open("a", encoding="utf-8")
@@ -86,11 +94,17 @@ class Session:
                 item = {"id": f"p{len(self.prerequisites) + 1}", "text": text.strip(), "kind": "prerequisite"}
                 self.prerequisites.append(item)
                 self.sources[item["id"]] = item
+        if self.asr_review:
+            self.reviewer = TranscriptReviewer(self.llm, self.emit, lesson)
+            await self.reviewer.initialize()
         self.ready = True
         self.tasks = [asyncio.create_task(self.audio_loop()), asyncio.create_task(self.asr_loop()),
                       asyncio.create_task(self.learn_loop()), asyncio.create_task(self.clock_loop())]
+        if self.asr_review:
+            self.tasks.append(asyncio.create_task(self.review_loop()))
         await self.emit("ready", {"session_id": self.id, "asr_model": self.asr_model, "scope": self.preparation.model_dump(),
-            "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump()})
+            "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump(),
+            "asr_review": self.asr_review})
 
     async def start_audio(self, rate):
         if not 8000 <= rate <= 96000:
@@ -178,7 +192,9 @@ class Session:
         self.revision += 1
         self.candidate = None
         item = {"id": f"t{sum(k.startswith('t') for k in self.sources) + 1}", "text": text,
-                "mode": mode, "revision": self.revision, "at": round(time.monotonic() - self.started, 3)}
+                "mode": mode, "revision": self.revision, "at": round(time.monotonic() - self.started, 3),
+                "raw_text": text, "corrected_text": None, "review_seconds": 0,
+                "review_status": "bypassed" if mode == "text" else ("pending" if self.asr_review else "disabled")}
         self.sources[item["id"]] = item
         if not self.pending:
             self.pending_since = time.monotonic()
@@ -203,9 +219,28 @@ class Session:
             return
         batch, self.pending = self.pending, []
         self.pending_since = 0
-        self.teaching_queue.put_nowait(batch)
+        queue = self.review_queue if self.asr_review else self.teaching_queue
+        # The queue insertion precedes the first await to preserve flush order.
+        queue.put_nowait(batch)
         await self.emit("segment", {"sources": [s["id"] for s in batch], "text": "\n".join(s["text"] for s in batch),
-            "reason": reason, "queued": self.teaching_queue.qsize()})
+            "reason": reason, "queued": queue.qsize(), "destination": "review" if self.asr_review else "student"})
+
+    async def review_loop(self):
+        while True:
+            batch = await self.review_queue.get()
+            self.review_processing = True
+            try:
+                reviewed = await self.reviewer.review(batch, list(self.review_context))
+                for source in reviewed:
+                    self.sources[source["id"]] = source
+                    self.review_context.append(teacher_source(source))
+                self.teaching_queue.put_nowait(reviewed)
+                await self.emit("review_completed", {"sources": [s["id"] for s in reviewed],
+                    "segments": reviewed, "seconds": max(s["review_seconds"] for s in reviewed),
+                    "queued": self.review_queue.qsize()})
+            finally:
+                self.review_processing = False
+                self.review_queue.task_done()
 
     def payload(self, batch):
         relevant = {s for k in self.state.knowledge for s in k.sources}
@@ -214,8 +249,8 @@ class Session:
         relevant |= {s["id"] for s in teacher[-8:] + batch}
         return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.level,
                 "explicit_prerequisites": self.prerequisites,
-                "current_state": self.state.model_dump(), "new_teacher_segments": batch,
-                "teacher_sources": [s for s in teacher if s["id"] in relevant],
+                "current_state": self.state.model_dump(), "new_teacher_segments": [teacher_source(s) for s in batch],
+                "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
                 "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
 
     async def learn_loop(self):
@@ -274,7 +309,8 @@ class Session:
             return
         c = self.candidate
         reason = speech_block(muted=self.muted, stale=c["revision"] != self.revision,
-            busy=bool(self.processing or self.pending or self.asr_pending or not self.teaching_queue.empty()),
+            busy=bool(self.processing or self.pending or self.asr_pending or self.review_processing
+                      or not self.review_queue.empty() or not self.teaching_queue.empty()),
             speaking=self.active, silence=silence,
             required_pause=config.DIRECT_PAUSE if c["addressed"] else config.SPEAK_PAUSE,
             candidate=c["reply"], addressed=c["addressed"])
@@ -327,7 +363,8 @@ class Session:
         await self.flush("session_end")
         await self.emit("status", {"message": "正在处理最后的课堂内容"})
         deadline = time.monotonic() + 100
-        while (self.processing or not self.teaching_queue.empty()) and not self.failed_batch and time.monotonic() < deadline:
+        while (self.processing or self.review_processing or not self.review_queue.empty()
+               or not self.teaching_queue.empty()) and not self.failed_batch and time.monotonic() < deadline:
             await asyncio.sleep(.1)
         remaining = [s for s in self.sources if s.startswith("t") and s not in self.processed_ids]
         await self.emit("finished", {"state": self.state.model_dump(), "unprocessed_sources": remaining,
