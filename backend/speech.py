@@ -1,5 +1,7 @@
 import asyncio
+import sys
 from .config import TTS_VOICE
+from .windows_speech import start_windows_speech
 
 
 class Speaker:
@@ -9,17 +11,22 @@ class Speaker:
 
     async def stop(self):
         async with self.lock:
-            if self.process and self.process.returncode is None:
-                self.process.terminate()
-                await self.process.wait()
+            process = self.process
             self.process = None
+            if process and process.returncode is None:
+                process.terminate()
+                await process.wait()
 
     async def speak(self, text):
         await self.stop()
         async with self.lock:
-            self.process = await asyncio.create_subprocess_exec(
-                "/usr/bin/say", "-v", TTS_VOICE, "-r", "185", "--", text,
-                stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+            if sys.platform == "win32":
+                self.process = await start_windows_speech(text, TTS_VOICE)
+            else:
+                self.process = await asyncio.create_subprocess_exec(
+                    "/usr/bin/say", "-v", TTS_VOICE, "-r", "185", "--", text,
+                    stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
             process = self.process
-        await process.wait()
-        return process.returncode
+        code = await process.wait()
+        # Windows termination returns 1; intentional interruption is not a TTS failure.
+        return code if self.process is process else -15
