@@ -1,5 +1,5 @@
-from typing import Literal
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Annotated, Literal
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
 class StrictModel(BaseModel):
@@ -16,6 +16,19 @@ class Lesson(StrictModel):
 class Preparation(StrictModel):
     scope: list[str] = Field(max_length=12)
     boundary_note: str = Field(max_length=400)
+
+
+class ReviewGlossary(StrictModel):
+    terms: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(max_length=40)
+
+
+class CorrectedSource(StrictModel):
+    id: str = Field(min_length=1, max_length=60)
+    text: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=10000)]
+
+
+class ReviewResult(StrictModel):
+    segments: list[CorrectedSource] = Field(min_length=1)
 
 
 class Knowledge(StrictModel):
@@ -57,4 +70,3 @@ class StudentState(StrictModel):
     version: int = 0
     knowledge: list[Knowledge] = Field(default_factory=list)
     questions: list[Question] = Field(default_factory=list)
-

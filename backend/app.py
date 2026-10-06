@@ -221,12 +221,15 @@ async def websocket(ws: WebSocket):
                     if active_session and not active_session.closed:
                         raise ValueError("已有试讲正在运行，请先结束原试讲")
                     lesson = Lesson.model_validate(event.get("lesson", {}))
+                    asr_review = event.get("asr_review", True)
+                    if type(asr_review) is not bool:
+                        raise ValueError("语音转文字审核选项必须为布尔值")
                     await ws.send_json({"type": "status", "data": {"message": "正在加载本机 ASR 模型"}})
                     engine, vad_path, model_id = await models.acquire()
                     owns_engine = True
                     session = Session(ws.send_json, engine, vad_path, model_id)
                     active_session = session
-                    await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)))
+                    await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)), asr_review)
                 elif not session or not session.ready or session.closed:
                     raise ValueError("请先创建试讲")
                 elif kind == "audio_start":
