@@ -1,4 +1,4 @@
-"""Standalone microphone ASR diagnostic; no lesson, LLM, TTS, or audio files."""
+"""Standalone microphone/file ASR diagnostic; no lesson, LLM, TTS, or saved audio."""
 import asyncio
 import contextlib
 import time
@@ -9,12 +9,13 @@ from .recognizer import AudioStream
 
 
 class ASRDebug:
-    def __init__(self, send, engine, audio, model_id, sample_rate):
+    def __init__(self, send, engine, audio, model_id, sample_rate, upload=None):
         self.send = send
         self.engine = engine
         self.audio = audio
         self.model_id = model_id
         self.sample_rate = sample_rate
+        self.upload = upload
         self.queue = asyncio.Queue(maxsize=240)
         self.accepting = True
         self.frames = self.samples = self.segments = self.characters = 0
@@ -22,9 +23,9 @@ class ASRDebug:
         self.worker = asyncio.create_task(self.process())
 
     @classmethod
-    async def create(cls, send, engine, vad_path, model_id, sample_rate):
+    async def create(cls, send, engine, vad_path, model_id, sample_rate, upload=None):
         audio = await asyncio.to_thread(AudioStream, vad_path, sample_rate)
-        return cls(send, engine, audio, model_id, sample_rate)
+        return cls(send, engine, audio, model_id, sample_rate, upload)
 
     async def emit(self, kind, data):
         await self.send({"type": kind, "data": data})
@@ -37,6 +38,8 @@ class ASRDebug:
         samples = np.frombuffer(data, dtype="<f4").copy()
         if not np.isfinite(samples).all():
             raise ValueError("音频含无效数值")
+        if self.upload:
+            self.upload.accept(samples)
         if self.queue.full():
             self.accepting = False
             await self.emit("error", {"message": "识别处理积压，请结束录音并等待已接收内容处理完成。",
@@ -59,7 +62,8 @@ class ASRDebug:
         await self.emit("transcript", {"index": self.segments, "model_id": self.model_id,
                                        "text": text, "asr_seconds": round(seconds, 3),
                                        "audio_seconds": round(duration, 3),
-                                       "real_time_factor": round(seconds / max(duration, .001), 3)})
+                                       "real_time_factor": round(seconds / max(duration, .001), 3),
+                                       **(self.upload.metadata if self.upload else {})})
 
     async def process(self):
         while True:
@@ -75,6 +79,8 @@ class ASRDebug:
                     await self.emit("vad", {"speaking": speaking})
                 for segment in segments:
                     await self.decode(segment)
+                if self.upload:
+                    await self.emit("upload_ack", self.upload.progress(len(samples)))
             finally:
                 self.queue.task_done()
 

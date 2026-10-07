@@ -41,6 +41,7 @@ class Session:
         self.review_context = deque(maxlen=8)
         self.asr_pending = 0
         self.audio = None
+        self.upload = None
         self.audio_enabled = False
         self.audio_started_at = 0
         self.audio_frames = 0
@@ -106,26 +107,32 @@ class Session:
             "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump(),
             "asr_review": self.asr_review})
 
-    async def start_audio(self, rate):
+    async def start_audio(self, rate, upload=None):
         if not 8000 <= rate <= 96000:
             raise ValueError("不支持的麦克风采样率")
+        if self.upload or (upload and self.audio):
+            raise ValueError("请先停止当前音频输入，再开始新的输入")
         if self.audio:
             await self.stop_audio()
         self.audio = await asyncio.to_thread(AudioStream, self.vad_path, rate)
+        self.upload = upload
         self.audio_enabled = True
         self.audio_started_at = time.monotonic()
         self.audio_frames = 0
         self.last_audio_notice = 0
-        await self.emit("audio", {"recording": True, "sample_rate": rate})
+        await self.emit("audio", {"recording": True, "sample_rate": rate,
+                                  **(upload.progress() if upload else {})})
 
     async def accept_audio(self, data):
         if not self.audio_enabled or self.finishing:
             return
-        if len(data) % 4 or len(data) > 65536:
+        if not data or len(data) % 4 or len(data) > 65536:
             raise ValueError("音频帧格式无效")
         samples = np.frombuffer(data, dtype="<f4").copy()
         if not np.isfinite(samples).all():
             raise ValueError("音频含无效数值")
+        if self.upload:
+            self.upload.accept(samples)
         if self.audio_queue.full():
             self.audio_enabled = False
             await self.emit("error", {"message": "音频处理积压，已停止接收新录音；已接收内容继续处理，请暂停讲授后重启麦克风", "code": "audio_backlog"})
@@ -136,11 +143,11 @@ class Session:
             self.last_audio_notice = now
             await self.emit("audio_input", {"frames": self.audio_frames, "samples": int(len(samples)),
                                               "queue": self.audio_queue.qsize()})
-        self.audio_queue.put_nowait(samples)
+        self.audio_queue.put_nowait((samples, self.upload))
 
     async def audio_loop(self):
         while True:
-            samples = await self.audio_queue.get()
+            samples, upload = await self.audio_queue.get()
             try:
                 segments, transitions, active = await asyncio.to_thread(self.audio.feed, samples)
                 for on in transitions:
@@ -156,31 +163,39 @@ class Session:
                 self.active = active
                 for segment in segments:
                     self.asr_pending += 1
-                    await self.asr_queue.put(segment)
+                    await self.asr_queue.put((segment, upload))
+                if upload and not upload.failed:
+                    await self.emit("upload_ack", upload.progress(len(samples)))
             except Exception:
                 self.audio_enabled = False
+                if upload:
+                    upload.failed = True
                 await self.emit("error", {"message": "录音处理失败，请停止并重新开启麦克风", "code": "audio_failure"})
             finally:
                 self.audio_queue.task_done()
 
     async def asr_loop(self):
         while True:
-            samples = await self.asr_queue.get()
+            samples, upload = await self.asr_queue.get()
             try:
                 started = time.monotonic()
                 text = await asyncio.to_thread(self.recognizer.transcribe, samples)
                 seconds = round(time.monotonic() - started, 3)
                 if text:
-                    await self.add_transcript(text, "microphone", {"asr_seconds": seconds, "audio_seconds": round(len(samples) / 16000, 3)})
+                    await self.add_transcript(text, "microphone", {"asr_seconds": seconds, "audio_seconds": round(len(samples) / 16000, 3)},
+                                              upload.metadata if upload else None)
                 else:
                     await self.emit("asr_empty", {"asr_seconds": seconds})
             except Exception:
+                if upload:
+                    upload.failed = True
+                    self.audio_enabled = False
                 await self.emit("error", {"message": "本段语音识别失败，未生成课堂文本；请重讲这一段", "code": "asr_failure"})
             finally:
                 self.asr_pending -= 1
                 self.asr_queue.task_done()
 
-    async def add_transcript(self, text, mode="text", metrics=None):
+    async def add_transcript(self, text, mode="text", metrics=None, source=None):
         text = text.strip()
         if not text:
             return
@@ -195,24 +210,37 @@ class Session:
                 "mode": mode, "revision": self.revision, "at": round(time.monotonic() - self.started, 3),
                 "raw_text": text, "corrected_text": None, "review_seconds": 0,
                 "review_status": "bypassed" if mode == "text" else ("pending" if self.asr_review else "disabled")}
+        if source:
+            item.update(source)
         self.sources[item["id"]] = item
         if not self.pending:
             self.pending_since = time.monotonic()
         self.pending.append(item)
         await self.emit("transcript", {**item, **(metrics or {})})
 
-    async def stop_audio(self):
+    async def stop_audio(self, cancelled=False):
         self.audio_enabled = False
+        upload = self.upload
         await self.audio_queue.join()
         if self.audio:
-            segments = await asyncio.to_thread(self.audio.finish)
+            try:
+                segments = await asyncio.to_thread(self.audio.finish)
+            except Exception:
+                segments = []
+                if upload:
+                    upload.failed = True
+                await self.emit("error", {"message": "末尾音频处理失败，已有转写保留", "code": "audio_failure"})
             for samples in segments:
                 self.asr_pending += 1
-                await self.asr_queue.put(samples)
+                await self.asr_queue.put((samples, upload))
         await self.asr_queue.join()
         self.audio = None
+        self.upload = None
         self.active = False
         await self.emit("audio", {"recording": False})
+        if upload:
+            await self.flush("audio_upload_stopped" if cancelled else "audio_upload_end")
+            await self.emit("upload_finished", upload.summary(cancelled))
 
     async def flush(self, reason="manual"):
         if not self.pending:
@@ -291,7 +319,7 @@ class Session:
         while True:
             await asyncio.sleep(.15)
             now = time.monotonic()
-            if self.audio_enabled and self.audio_started_at and self.audio_frames == 0 and now - self.audio_started_at > 2:
+            if self.audio_enabled and not self.upload and self.audio_started_at and self.audio_frames == 0 and now - self.audio_started_at > 2:
                 self.audio_started_at = 0
                 await self.emit("error", {"message": "录音已开启，但没有收到浏览器音频帧。请检查 Chrome 的麦克风设备选择和权限，然后重新开启麦克风。", "code": "no_audio_frames", "retryable": True})
             silence = 0 if self.active else now - self.last_voice
