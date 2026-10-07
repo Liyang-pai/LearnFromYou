@@ -11,6 +11,7 @@ from pydantic import ValidationError
 
 from asr.manager import ModelManager
 from asr.debug import ASRDebug
+from asr.upload import AudioUpload
 from . import config
 from .llm import ModelError
 from .schemas import Lesson
@@ -64,7 +65,7 @@ async def index():
 @app.get("/api/health")
 async def health():
     state = await asyncio.to_thread(models.snapshot)
-    return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "model_configured": bool(config.API_KEY),
+    return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "audio_upload_available": True, "model_configured": bool(config.API_KEY),
             "student_model": config.MODEL, "asr_model": state["selected_id"],
             "vad_ready": state["vad_ready"], "engine_state": state["engine_state"],
             "asr_busy": state["busy"], "asr_activity": state["activity"], "error": state["error"], "notice": state["notice"]}
@@ -159,17 +160,22 @@ async def asr_debug(ws: WebSocket):
                 rate = event.get("sample_rate")
                 if type(rate) is not int or not 8000 <= rate <= 96000:
                     raise ValueError("不支持的麦克风采样率")
+                upload = AudioUpload.from_event(event, rate)
                 await ws.send_json({"type": "status", "data": {"message": "正在加载当前 ASR 模型……"}})
                 engine, vad_path, model_id = await models.acquire(purpose="debug")
                 owns_engine = True
-                debug = await ASRDebug.create(ws.send_json, engine, vad_path, model_id, rate)
-                await debug.emit("ready", {"model_id": model_id, "sample_rate": rate})
+                debug = await ASRDebug.create(ws.send_json, engine, vad_path, model_id, rate, upload)
+                await debug.emit("ready", {"model_id": model_id, "sample_rate": rate,
+                                           **(upload.progress() if upload else {})})
             elif event.get("type") == "stop" and debug:
                 await debug.emit("status", {"message": "正在处理末尾录音，请稍等……"})
                 summary = await debug.finish()
                 await debug.close()
                 await models.release()
                 owns_engine = False
+                if debug.upload:
+                    await debug.emit("upload_finished", debug.upload.summary(event.get("cancelled", False)))
+                    summary.update(debug.upload.summary(event.get("cancelled", False)))
                 await debug.emit("finished", summary)
                 break
             else:
@@ -212,7 +218,13 @@ async def websocket(ws: WebSocket):
                 break
             if message.get("bytes") is not None:
                 if session and session.ready and not session.finishing:
-                    await session.accept_audio(message["bytes"])
+                    try:
+                        await session.accept_audio(message["bytes"])
+                    except ValueError as exc:
+                        session.audio_enabled = False
+                        if session.upload:
+                            session.upload.failed = True
+                        await session.emit("error", {"message": str(exc), "code": "audio_failure"})
                 continue
             try:
                 event = json.loads(message.get("text", "{}"))
@@ -221,19 +233,27 @@ async def websocket(ws: WebSocket):
                     if active_session and not active_session.closed:
                         raise ValueError("已有试讲正在运行，请先结束原试讲")
                     lesson = Lesson.model_validate(event.get("lesson", {}))
+                    asr_review = event.get("asr_review", True)
+                    if type(asr_review) is not bool:
+                        raise ValueError("语音转文字审核选项必须为布尔值")
                     await ws.send_json({"type": "status", "data": {"message": "正在加载本机 ASR 模型"}})
                     engine, vad_path, model_id = await models.acquire()
                     owns_engine = True
                     session = Session(ws.send_json, engine, vad_path, model_id)
                     active_session = session
-                    await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)))
+                    await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)), asr_review)
                 elif not session or not session.ready or session.closed:
                     raise ValueError("请先创建试讲")
                 elif kind == "audio_start":
-                    await session.start_audio(int(event.get("sample_rate", 0)))
+                    rate = event.get("sample_rate", 0)
+                    if type(rate) is not int:
+                        raise ValueError("音频采样率必须为整数")
+                    await session.start_audio(rate, AudioUpload.from_event(event, rate))
                 elif kind == "audio_stop":
-                    await session.stop_audio()
+                    await session.stop_audio(event.get("cancelled", False))
                 elif kind == "text":
+                    if session.upload:
+                        raise ValueError("请先完成或停止音频上传，再发送文字")
                     await session.add_transcript(str(event.get("text", "")))
                     await session.flush("text_test")
                 elif kind == "flush":

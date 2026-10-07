@@ -3,9 +3,14 @@ const $ = id => document.getElementById(id);
 let socket, running = false, starting = false, recording = false, ending = false;
 let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
 let sentAudioFrames = 0;
+let micStarting = false, micStopping = false;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
+let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
+const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新'};
+const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原文', bypassed:'文字输入 · 无需审核', disabled:'审核已关闭'};
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
+let audioUploadAvailable = null;
 const labels = {tentative:'暂定理解',understood:'当前理解',unclear:'信息缺失',conflict:'存在冲突',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
@@ -13,13 +18,17 @@ function showError(message, retry = false) {
   $('errorText').textContent = message; $('error').classList.remove('hidden'); $('retry').classList.toggle('hidden', !retry);
 }
 function syncControls() {
-  const debugBusy = Boolean(window.asrDebug?.busy);
+  const debugBusy = Boolean(window.asrDebug?.busy || window.asrDebug?.upload?.busy);
+  const uploadBusy = Boolean(window.lessonUpload?.busy);
   $('start').disabled = running || starting || !asrReady || asrBusy || asrDownloading || debugBusy;
   $('changeModel').disabled = running || starting || ending || asrBusy || debugBusy;
   for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
-  for (const id of ['topic','points','prerequisites','level']) $(id).disabled = running || starting;
+  $('mic').disabled ||= uploadBusy || micStarting || micStopping;
+  for (const id of ['teacherText','sendText']) $(id).disabled ||= uploadBusy;
+  for (const id of ['topic','points','prerequisites','level','asrReview']) $(id).disabled = running || starting || ending;
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
   window.asrDebug?.sync();
+  window.lessonUpload?.sync();
 }
 function append(container, node, first = false) {
   if (container.classList.contains('empty')) { container.textContent = ''; container.classList.remove('empty'); }
@@ -59,33 +68,68 @@ function showState(state) {
     }
   }
 }
+function showActivity() {
+  // Audio frames must not hide a pending review or student request.
+  if (ending) $('sessionStatus').textContent = '正在处理最后的课堂内容';
+  else if (studentFailed) $('sessionStatus').textContent = '学生处理暂停 · 可以重试';
+  else if (glossaryBusy) $('sessionStatus').textContent = '正在准备术语';
+  else if (reviewBusy && studentBusy) $('sessionStatus').textContent = '正在审核转写 · 学生正在消化';
+  else if (reviewBusy) $('sessionStatus').textContent = '正在审核转写';
+  else if (studentBusy) $('sessionStatus').textContent = '学生正在消化';
+}
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
+  window.lessonUpload?.handle(event);
   switch (event.type) {
     case 'ready':
+      $('asrReview').checked = d.asr_review !== false;
       starting = false; running = true; sessionId = d.session_id; $('sessionStatus').textContent = '课堂已就绪'; $('studentMood').textContent = '这节课的内容，我准备开始听了。';
       $('scope').classList.remove('hidden'); $('scopeTags').textContent = '';
       for (const name of d.scope.scope) { const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = name; $('scopeTags').append(tag); }
       $('boundary').textContent = d.scope.boundary_note; showState(d.state); syncControls(); break;
     case 'status': $('sessionStatus').textContent = d.message; break;
-    case 'audio': $('sessionStatus').textContent = d.recording ? '正在听课' : '麦克风已暂停'; break;
+    case 'audio':
+      if (!d.recording) { micStopping = false; syncControls(); }
+      $('sessionStatus').textContent = d.input_source === 'audio_file' ? '正在处理上传音频' : d.recording ? '正在听课' : '音频输入已暂停'; break;
+    case 'upload_finished': $('sessionStatus').textContent = '音频识别完成 · 等待课堂后续处理'; break;
     case 'audio_input': $('sessionStatus').textContent = `正在听课 · 已收到 ${d.frames} 个音频帧`; break;
     case 'vad': $('avatar').classList.toggle('listening',d.speaking); $('studentMood').textContent = d.speaking ? '正在听你讲……' : '正在整理刚才听到的内容。'; break;
     case 'transcript':
       $('transcriptCount').textContent = ++transcriptCount;
-      append($('transcripts'),recordNode(`${d.id} · ${d.mode === 'microphone' ? '本机 ASR' : '文字测试'} · ${stamp}${d.asr_seconds !== undefined ? ' · 识别 ' + d.asr_seconds + 's' : ''}`,d.text));
+      append($('transcripts'),recordNode(`${d.id} · ${d.input_source === 'audio_file' ? '上传音频 · 本机 ASR · ' + d.filename : d.mode === 'microphone' ? '本机 ASR' : '文字测试'} · ${stamp}${d.asr_seconds !== undefined ? ' · 识别 ' + d.asr_seconds + 's' : ''}`,d.text));
       $('transcripts').parentElement.scrollTop = $('transcripts').parentElement.scrollHeight; break;
     case 'segment': {
       $('segmentCount').textContent = ++segmentCount;
       const row = recordNode(`教学片段 · ${d.sources.join('、')} · ${d.reason}`,d.text); row.classList.add('segment'); append($('transcripts'),row); break;
     }
+    case 'review_glossary':
+      glossaryBusy = d.status === 'started';
+      append($('events'),recordNode(`${stamp} · 术语准备 · ${d.status === 'started' ? '进行中' : d.status === 'ready' ? '完成' : '使用空术语表'}`,JSON.stringify(d,null,2),true),true); break;
+    case 'review_started':
+      reviewBusy = true; break;
+    case 'review_completed':
+      reviewBusy = false;
+      for (const s of d.segments) {
+        if (s.review_status === 'bypassed') continue;
+        const corrected = s.corrected_text === null ? '未生成，使用原文' : s.corrected_text;
+        const row = recordNode(`${s.id} · ${reviewLabels[s.review_status]} · ${s.review_seconds}s`, `原始转写：\n${s.raw_text}\n\n校正文本：\n${corrected}`);
+        row.classList.add('segment'); append($('transcripts'),row);
+        $('reviewTime').textContent = s.review_seconds + 's';
+      }
+      $('sessionStatus').textContent = '转写已就绪 · 等待学生处理';
+      append($('events'),recordNode(`${stamp} · 审核完成 · ${d.sources.join('、')}`,JSON.stringify(d,null,2),true),true); break;
+    case 'warning':
+      $('reviewNotice').textContent = d.message; $('reviewNotice').classList.remove('hidden');
+      append($('events'),recordNode(`${stamp} · 提示`,d.message),true); break;
     case 'llm_request':
-      $('sessionStatus').textContent = d.phase === 'preparation' ? '正在分析课堂范围' : '学生正在消化';
-      append($('modelInputs'),recordNode(`${stamp} · ${d.phase === 'preparation' ? '课前范围分析' : '学生认知更新'} · 第 ${d.attempt} 次`,JSON.stringify(d.body,null,2),true),true); break;
+      if (d.phase === 'student') { studentBusy = true; studentFailed = false; }
+      if (d.phase === 'preparation') $('sessionStatus').textContent = '正在分析课堂范围';
+      append($('modelInputs'),recordNode(`${stamp} · ${phaseLabels[d.phase] || d.phase} · 第 ${d.attempt} 次`,JSON.stringify(d.body,null,2),true),true); break;
     case 'llm_output':
       $('llmTime').textContent = d.seconds + 's';
       append($('events'),recordNode(`${stamp} · 模型原始输出 · ${d.phase}`,d.raw,true),true); break;
     case 'state':
+      studentBusy = studentFailed = false;
       showState(d.state); $('sessionStatus').textContent = $('mute').checked ? '静音中 · 继续学习' : '继续听课';
       $('studentMood').textContent = d.note || '正在等待你继续讲。';
       append($('events'),recordNode(`${stamp} · 认知更新与候选回复`,JSON.stringify(d,null,2),true),true); break;
@@ -95,25 +139,33 @@ function handle(event) {
     case 'speech': $('avatar').classList.toggle('speaking',d.speaking); if(d.speaking) $('studentMood').textContent = '学生正在回应……'; break;
     case 'speech_stopped': $('avatar').classList.remove('speaking'); break;
     case 'error':
+      if (d.code === 'model_failure') { studentBusy = false; studentFailed = true; }
+      if (starting) glossaryBusy = false;
       showError(d.message,!!d.retryable); append($('events'),recordNode(`${stamp} · 错误`,d.message),true);
       if (starting) { starting = false; syncControls(); $('sessionStatus').textContent = '创建失败，可重试'; }
-      if (d.code === 'audio_backlog' || d.code === 'audio_failure') stopMic();
+      if (window.lessonUpload?.busy && (['audio_backlog','audio_failure','asr_failure'].includes(d.code))) window.lessonUpload.stop();
+      else if (window.lessonUpload?.phase === 'starting' && window.lessonUpload.busy) window.lessonUpload.abort(d.message);
+      else if (d.code === 'audio_backlog' || d.code === 'audio_failure') stopMic();
       if(d.retryable) $('sessionStatus').textContent = '处理暂停 · 可以重试'; break;
     case 'finished':
+      glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
       running = false; ending = false; showState(d.state); syncControls(); $('sessionStatus').textContent = '本次试讲已结束';
       $('studentMood').textContent = '这节课结束了。我的当前理解保留在下方。';
       append($('events'),recordNode('结束记录',JSON.stringify(d,null,2),true),true);
       if(d.unprocessed_sources.length) showError('部分课堂内容尚未处理：' + d.unprocessed_sources.join('、') + '。原文已保存在本次记录中。');
       break;
   }
+  showActivity();
 }
 async function connect() {
   if (socket) { socket.onclose = null; socket.close(); }
   socket = new WebSocket(`ws://${location.host}/ws/session`);
   socket.onmessage = e => { try { handle(JSON.parse(e.data)); } catch { showError('接收到无法显示的服务消息'); } };
   socket.onclose = () => {
+    window.lessonUpload?.abort('本机服务连接已断开；已有课堂记录保留，未发送部分未进入课堂。');
     if(running || starting) showError('本机服务连接已断开；请检查服务并重新创建试讲。');
-    running = false; starting = false; ending = false; stopMic(false); syncControls();
+    running = false; starting = false; ending = false;
+    glossaryBusy = reviewBusy = studentBusy = studentFailed = false; stopMic(false); syncControls();
   };
   await new Promise((resolve,reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('无法连接本机服务')); });
 }
@@ -121,13 +173,16 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
-  $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—';
+  glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
+  $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
-  $('error').classList.add('hidden'); $('scope').classList.add('hidden'); syncControls();
-  try { await connect(); send({type:'start',lesson:{topic,points:$('points').value,prerequisites:$('prerequisites').value,level:$('level').value},muted:$('mute').checked,tts:$('tts').checked}); }
+  $('error').classList.add('hidden'); $('scope').classList.add('hidden'); $('reviewNotice').classList.add('hidden'); syncControls();
+  try { await connect(); send({type:'start',lesson:{topic,points:$('points').value,prerequisites:$('prerequisites').value,level:$('level').value},muted:$('mute').checked,tts:$('tts').checked,asr_review:$('asrReview').checked}); }
   catch(e) { starting = false; syncControls(); showError(e.message); }
 });
 async function startMic() {
+  if (!running || ending || recording || micStarting || micStopping || window.lessonUpload?.busy) return;
+  micStarting = true; syncControls();
   $('mic').disabled = true;
   try {
     context = new AudioContext(); await context.resume();
@@ -167,6 +222,7 @@ async function startMic() {
     showError(e.name === 'NotAllowedError' ? '麦克风权限未开放，请在浏览器地址栏允许麦克风后重试。' : '麦克风无法启动：' + e.message);
     await stopMic(false);
   }
+  micStarting = false;
   syncControls();
 }
 function rms(samples) {
@@ -174,6 +230,7 @@ function rms(samples) {
   return Math.sqrt(sum / Math.max(1, samples.length));
 }
 async function stopMic(notify = true) {
+  if (notify && running && (recording || micStarting)) micStopping = true;
   if(worklet && recording) {
     await Promise.race([new Promise(resolve => { flushed = resolve; worklet.port.postMessage('flush'); }),new Promise(resolve => setTimeout(resolve,200))]);
   }
@@ -183,15 +240,16 @@ async function stopMic(notify = true) {
   stream?.getTracks().forEach(track => track.stop());
   if(context && context.state !== 'closed') await context.close();
   source = worklet = processor = silentGain = context = stream = null;
-  if(notify && running) send({type:'audio_stop'});
+  if(notify && running && micStopping) send({type:'audio_stop'});
+  if (!notify) micStopping = false;
   $('meterFill').style.width = '0%'; syncControls();
 }
 $('mic').onclick = () => recording ? stopMic() : startMic();
 $('stopSpeech').onclick = () => send({type:'stop_speech'});
 $('mute').onchange = () => { if(running) send({type:'mute',value:$('mute').checked}); };
 $('tts').onchange = () => { if(running) send({type:'tts',value:$('tts').checked}); };
-$('textForm').onsubmit = e => { e.preventDefault(); const text = $('teacherText').value.trim(); if(!text || !running) return; send({type:'text',text}); bubble(text,true); $('teacherText').value = ''; };
-$('end').onclick = async () => { if(ending) return; ending = true; syncControls(); await stopMic(); send({type:'end'}); $('sessionStatus').textContent = '正在结束试讲'; };
+$('textForm').onsubmit = e => { e.preventDefault(); const text = $('teacherText').value.trim(); if(!text || !running || window.lessonUpload?.busy || ending) return; send({type:'text',text}); bubble(text,true); $('teacherText').value = ''; };
+$('end').onclick = async () => { if(ending) return; ending = true; syncControls(); await window.lessonUpload?.stop(); await stopMic(); send({type:'end'}); $('sessionStatus').textContent = '正在结束试讲'; };
 $('retry').onclick = () => { send({type:'retry'}); $('error').classList.add('hidden'); };
 $('dismiss').onclick = () => $('error').classList.add('hidden');
 $('export').onclick = () => {
@@ -202,6 +260,25 @@ for(const tab of document.querySelectorAll('[data-tab]')) tab.onclick = () => {
   for(const t of document.querySelectorAll('[data-tab]')) { const active = t === tab; t.classList.toggle('selected',active); t.setAttribute('aria-selected',String(active)); $('pane-' + t.dataset.tab).classList.toggle('hidden',!active); }
 };
 window.addEventListener('beforeunload',() => { stream?.getTracks().forEach(t => t.stop()); socket?.close(); });
+window.lessonUpload = new AudioFileInput('lessonUpload', {
+  readyKind:'audio', finishedText:'音频识别完成；转写已进入课堂，审核和学生处理进度见课堂状态。',
+  blocked:() => audioUploadAvailable === null ? '正在等待本机服务连接。' : audioUploadAvailable === false ? '当前后端不支持上传音频，请重启服务并刷新页面。' :
+    ending ? '正在结束试讲，请等待处理完成。' : !running || starting ? '请先创建试讲。' : recording || micStarting || micStopping ? '请先暂停麦克风，并等待录音处理结束。' : null,
+  changed:() => syncControls(),
+  open:metadata => {
+    if (socket?.readyState !== WebSocket.OPEN) throw new Error('本机服务未连接');
+    send({type:'audio_start', ...metadata});
+  },
+  send:frame => {
+    if (socket?.readyState !== WebSocket.OPEN) throw new Error('本机服务连接已断开');
+    socket.send(frame);
+  },
+  end:cancelled => {
+    if (socket?.readyState !== WebSocket.OPEN) throw new Error('本机服务连接已断开');
+    send({type:'audio_stop', cancelled});
+  },
+  disconnected:() => socket?.close()
+});
 // The model screen shares this page so navigating never disconnects a lesson.
 function showPage(models, updateURL = true) {
   $('lessonPage').classList.toggle('hidden', models);
@@ -308,6 +385,7 @@ async function refreshASR() {
   try {
     const [state, health] = await Promise.all([asrRequest('/api/asr/models'), asrRequest('/api/health')]);
     asrDebugAvailable = health.asr_debug_available === true;
+    audioUploadAvailable = health.audio_upload_available === true;
     lastASRState = state; asrReady = state.asr_ready; asrBusy = state.busy;
     asrDownloading = state.models.some(m => ['downloading','verifying','cancelling'].includes(m.state));
     const selected = state.models.find(m => m.selected);
@@ -322,7 +400,7 @@ async function refreshASR() {
     if (state.error) modelMessage(state.error, true);
     renderModelCards(state); syncControls();
   } catch (error) {
-    asrReady = false; asrDebugAvailable = null; $('health').textContent = '本机服务未连接'; syncControls();
+    asrReady = false; asrDebugAvailable = null; audioUploadAvailable = null; $('health').textContent = '本机服务未连接'; syncControls();
     modelMessage('无法读取本机模型状态，请检查服务是否启动。', true);
   } finally { refreshingASR = false; }
 }
