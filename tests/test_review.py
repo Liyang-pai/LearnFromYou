@@ -117,7 +117,7 @@ def test_default_glossary_and_mixed_segment_isolate_student_inputs(tmp_path, mon
             assert record['sources'] == ['t1', 't2', 't3']
         finally:
             await session.close()
-        saved = [json.loads(line) for line in (tmp_path / 'logs' / (session.id + '.jsonl')).read_text().splitlines()]
+        saved = [json.loads(line) for line in (tmp_path / 'logs' / (session.id + '.jsonl')).read_text(encoding="utf-8").splitlines()]
         assert any(e['type'] == 'review_completed' and e['data']['segments'][0]['raw_text'] !=
                    e['data']['segments'][0]['corrected_text'] for e in saved)
     asyncio.run(run())

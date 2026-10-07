@@ -149,7 +149,7 @@ def test_classroom_upload_enters_review_learning_and_logs(tmp_path, monkeypatch,
             await session.stop_audio()
             assert 'input_source' not in session.sources['t3']
         finally: await session.close()
-        log = [json.loads(line) for line in (tmp_path / 'logs' / f'{session.id}.jsonl').read_text().splitlines()]
+        log = [json.loads(line) for line in (tmp_path / 'logs' / f'{session.id}.jsonl').read_text(encoding="utf-8").splitlines()]
         raw = next(e['data'] for e in log if e['type'] == 'transcript')
         assert raw['filename'] == '讲解.wav' and raw['upload_id'] == 'fixture-1'
     asyncio.run(run())
