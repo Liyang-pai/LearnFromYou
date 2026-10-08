@@ -102,30 +102,45 @@
           "label": "AI 学生发言次数",
           "method": "只计实际 reply 事件，候选、重试、模型输出不计。"
         },
-        "student_questions": {
-          "value": 0,
-          "label": "学生提出的疑问数",
-          "method": "实际交付 question 的唯一 question_id；同疑问重复追问仅计一个。"
-        },
-        "responded_questions": {
-          "value": 0,
-          "label": "有教师回应证据的疑问",
-          "method": "已提出疑问的 resolution_sources 指向有效教师来源；这是系统可观察的回应证据，不证明理解。"
-        },
-        "unanswered_questions": {
-          "value": 0,
-          "label": "未记录明确回应的疑问",
-          "method": "已提出且没有 resolution_sources 的疑问；不等于确定教师从未回应。"
-        },
-        "resolved_questions": {
-          "value": 0,
-          "label": "系统标记已解决的疑问",
-          "method": "已实际提出疑问中，最终状态为 resolved 的数量；不是独立验证。"
-        },
         "verified_understanding": {
           "value": null,
           "label": "课堂理解已验证数量",
           "method": "普通课堂未独立验证；课后模拟验证另列，不更改学生认知。"
+        },
+        "student_questions": {
+          "value": 0,
+          "label": "学生独立疑问数量",
+          "method": "检查全部学生发言，复用唯一疑问对象；无法可靠关联的显式疑问不强行合并，数量显示无法统计。"
+        },
+        "question_occurrences": {
+          "value": 0,
+          "label": "学生疑问出现次数",
+          "method": "按发言中的疑问计数，同一发言关联同一疑问仅计一次；重复追问可多次出现，含未能关联的疑问片段。"
+        },
+        "responded_questions": {
+          "value": 0,
+          "label": "已记录教师回应的疑问",
+          "method": "疑问提出之后的解释来源或同疑问暂缓回应；回应不等于解释、解决或理解。"
+        },
+        "explained_questions": {
+          "value": 0,
+          "label": "已记录内容解释的疑问",
+          "method": "提出后有效 resolution_sources，排除仅暂缓处理的来源；解释仍不证明理解。"
+        },
+        "unanswered_questions": {
+          "value": 0,
+          "label": "已关联疑问中未记录回应",
+          "method": "仅统计已关联对象；未回应为零不表示全部解决，未关联疑问另列限制。"
+        },
+        "resolved_questions": {
+          "value": 0,
+          "label": "系统标记已解决的疑问",
+          "method": "最终 resolved 状态，仅为系统标记，不是独立验证。"
+        },
+        "unresolved_questions": {
+          "value": 0,
+          "label": "系统尚未标记解决的疑问",
+          "method": "包括已回应但暂缓或仍未解决的疑问，与未记录回应分开统计。"
         }
       },
       "knowledge_points": [
@@ -145,10 +160,13 @@
       "incomplete": false,
       "limitations": [
         "当前理解是课堂推断；沉默不是理解证据。",
-        "错误记录包括已恢复的历史错误，不全部等同于最终失败。"
-      ]
+        "错误记录包括已恢复的历史错误，不全部等同于最终失败。",
+        "疑问状态分别记录提出、回应、内容解释、系统解决；课堂理解未独立验证。未回应为零不表示全部解决。"
+      ],
+      "question_mentions": [],
+      "unmatched_questions": []
     },
-    "source_hash": "26d14ad48e019e5e5b54f1839f3cd830d0c45123e16cde3574f2c933b56c44a8"
+    "source_hash": "733c029f096fc781b87120d4ee4f4c711413ade8873f689679f59621240f492c"
   },
   "status": "ready",
   "stages": {
@@ -191,12 +209,16 @@
       {
         "id": "v1",
         "knowledge_id": "k1",
-        "question": "如果放进去的是五，输出是多少？请说明理由。",
+        "question": "有人说蓝盒先放入五，再把输出放回蓝盒，最后仍是六。判断他说得对不对，请说明理由。",
         "citations": [
           {
             "event_id": "111111111111:e000002",
             "quote": "蓝盒规则是输入数字加一。比如输入三，输出四。"
           }
+        ],
+        "task_kind": "发现错误",
+        "required_tasks": [
+          "有人说蓝盒先放入五，再把输出放回蓝盒，最后仍是六。判断他说得对不对，请说明理由。"
         ]
       }
     ]
@@ -205,7 +227,7 @@
     "answers": [
       {
         "id": "v1",
-        "text": "我得到六，因为按今天教的规则要在五的基础上加一。",
+        "text": "他说得不对。第一次五加一得到六，第二次输入已经变成六，再加一得到七；不能把第二次也当作输入五。",
         "citations": [
           {
             "event_id": "111111111111:e000002",
@@ -227,7 +249,32 @@
             "event_id": "111111111111:e000002",
             "quote": "蓝盒规则是输入数字加一。比如输入三，输出四。"
           }
-        ]
+        ],
+        "task_checks": [
+          {
+            "task": "有人说蓝盒先放入五，再把输出放回蓝盒，最后仍是六。判断他说得对不对，请说明理由。",
+            "outcome": "有依据地完成",
+            "answer_quote": "他说得不对。第一次五加一得到六，第二次输入已经变成六，再加一得到七；不能把第二次也当作输入五。",
+            "explanation": "在课堂定义的规则内，对新输入给出了结果和理由；不是全面掌握证明。",
+            "citations": [
+              {
+                "event_id": "111111111111:e000002",
+                "quote": "蓝盒规则是输入数字加一。比如输入三，输出四。"
+              }
+            ]
+          }
+        ],
+        "reasoning_check": {
+          "kind": "新情境推理",
+          "answer_quote": "他说得不对。第一次五加一得到六，第二次输入已经变成六，再加一得到七；不能把第二次也当作输入五。",
+          "explanation": "在课堂定义的规则内，对新输入给出了结果和理由；不是全面掌握证明。",
+          "citations": [
+            {
+              "event_id": "111111111111:e000002",
+              "quote": "蓝盒规则是输入数字加一。比如输入三，输出四。"
+            }
+          ]
+        }
       }
     ]
   },

@@ -32,8 +32,9 @@
     for (const point of summary.knowledge_points) target.append(node('p',`${point.text} · ${statuses[point.status] || point.status}`));
     if (!summary.knowledge_points.length) target.append(node('p','没有可靠的已处理知识记录。','hint'));
     target.append(node('h3','疑问与处理情况'));
-    const qlabels = {pending:'待提问', asked:'已提问', resolved:'系统标记已解决', deferred:'暂缓'};
-    for (const q of summary.questions) target.append(node('p',`${q.text} · ${qlabels[q.status] || q.status} · 教师解释来源：${q.resolution_sources?.join('、') || '未记录'}`));
+    const qlabels = {pending:'系统待提问', asked:'系统已提问', resolved:'系统标记已解决', deferred:'暂缓处理，尚未解决'};
+    for (const q of summary.questions) target.append(node('p',`${q.text} · ${q.expressed ? '学生已提出' : '仅系统记录，未确认学生提出'} · ${qlabels[q.status] || q.status} · 回应来源：${q.response_sources?.join('、') || '未记录'} · 内容解释来源：${q.explanation_sources?.join('、') || '未记录'} · 独立理解：尚未验证`));
+    for (const note of summary.limitations || []) target.append(node('p',note,'hint'));
     if (!summary.questions.length) target.append(node('p','未记录学生疑问。','hint'));
     if (summary.unprocessed_sources.length) target.append(node('p','未处理讲授：' + summary.unprocessed_sources.join('、'),'report-warning'));
     for (const error of summary.processing_errors) target.append(node('p','处理异常记录：' + error.text,'hint'));
@@ -45,16 +46,25 @@
     document.querySelectorAll('.report-highlight').forEach(n => n.classList.remove('report-highlight'));
     row.open = true; row.classList.add('report-highlight');
     const body = row.querySelector('[data-evidence-text]'), text = state.view.snapshot.evidence[id].text;
-    const index = text.indexOf(quote); body.replaceChildren();
-    if (quote && index >= 0) body.append(document.createTextNode(text.slice(0,index)), node('mark',quote), document.createTextNode(text.slice(index + quote.length)));
-    else body.textContent = text;
+    const quotes = Array.isArray(quote) ? quote : [quote];
+    const ranges = quotes.filter(Boolean).map(q => [text.indexOf(q), text.indexOf(q)+q.length]).filter(r => r[0]>=0).sort((a,b)=>a[0]-b[0]);
+    const merged=[];
+    for (const range of ranges) {
+      const last=merged[merged.length-1];
+      if (last && range[0]<=last[1]) last[1]=Math.max(last[1],range[1]); else merged.push(range);
+    }
+    body.replaceChildren(); let end=0;
+    for (const range of merged) { body.append(document.createTextNode(text.slice(end,range[0])),node('mark',text.slice(...range))); end=range[1]; }
+    body.append(document.createTextNode(text.slice(end)));
     row.scrollIntoView({behavior:'smooth',block:'center'}); row.focus();
   }
   function citations(parent, items) {
     const refs = node('div',undefined,'report-citations');
-    for (const c of items || []) {
-      const button = node('button','查看证据 · ' + c.event_id,'small'); button.type = 'button';
-      button.onclick = () => locate(c.event_id,c.quote); refs.append(button);
+    const grouped = new Map();
+    for (const c of items || []) { if (!grouped.has(c.event_id)) grouped.set(c.event_id,new Set()); grouped.get(c.event_id).add(c.quote); }
+    for (const [id,quotes] of grouped) {
+      const button = node('button','查看证据 · ' + id,'small'); button.type = 'button';
+      button.onclick = () => locate(id,[...quotes]); refs.append(button);
     }
     parent.append(refs);
   }
@@ -66,7 +76,7 @@
     const recall = section('学生说，我学到了什么');
     recall.append(node('p','这是模拟学生的表达，不能仅凭复述就认为已经理解。','hint'));
     if (!view.recall) recall.append(node('p','尚未生成或生成失败，暂不展示复述。'));
-    else for (const [key,title] of [['explained','我能解释的'],['doubts','我还有疑问的'],['uncertain','我不确定的']]) {
+    else for (const [key,title] of [['explained','我的理解'],['doubts','我实际表达过的疑问'],['uncertain','尚未确认的理解（模拟推断）']]) {
       recall.append(node('h4',title));
       for (const item of view.recall[key]) { const block = node('div',undefined,'report-item'); block.append(node('p',item.text)); citations(block,item.citations); recall.append(block); }
       if (!view.recall[key].length) recall.append(node('p','暂无有依据的内容。','hint'));

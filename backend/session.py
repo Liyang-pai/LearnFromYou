@@ -311,11 +311,15 @@ class Session:
                 count += 1
             self.processing = True
             target_revision = batch[-1]["revision"]
+            retry_error = None
             while True:
                 try:
-                    result = await self.llm.generate("student", prompts.STUDENT, self.payload(batch), StudentResult)
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
+                    payload = self.payload(batch)
+                    if retry_error:
+                        payload['retry_feedback'] = {'error': retry_error, 'allowed_source_ids': sorted(allowed)}
+                    result = await self.llm.generate("student", prompts.STUDENT, payload, StudentResult)
                     next_state, candidate = apply_result(self.state, result, allowed, ids)
                     self.state = next_state
                     self.processed_ids |= ids
@@ -327,6 +331,7 @@ class Session:
                     self.failed_batch = None
                     break
                 except (ModelError, ValueError) as e:
+                    retry_error = str(e) if isinstance(e, ValueError) else None
                     self.failed_batch = batch
                     self.retry_event.clear()
                     await self.emit("error", {"message": str(e), "code": "model_failure", "retryable": True,

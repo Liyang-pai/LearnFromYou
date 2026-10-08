@@ -10,6 +10,7 @@ import tempfile
 from . import config, report_prompts
 from .llm import ModelClient, ModelError
 from .report_models import RecallPlan, Answers, Verification, Diagnosis
+from .report_data import refresh_question_settlement
 
 LIMITATION = '模拟验证只提供课堂内解释或应用的证据，不能证明真实掌握或知识客观正确。'
 PHASES = ('recall', 'answers', 'verification', 'diagnosis')
@@ -28,7 +29,24 @@ def validate_citations(items, snapshot, *, learning_only=False):
             raise ValueError('学生不能把未处理内容或自己的发言当作学到的知识')
 
 
+def naturalize_recall(plan, snapshot):
+    expressed = {q['id'] for q in snapshot['settlement']['questions'] if q.get('expressed')}
+    for item in list(plan['doubts']):
+        if not set(item['question_ids']).intersection(expressed):
+            plan['doubts'].remove(item)
+            item['text'] = '我还不能确认这个理解：' + item['text']
+            plan['uncertain'].append(item)
+    starts = ('我的理解是', '我记住的是', '我现在知道')
+    for i, item in enumerate(plan['explained']):
+        item['text'] = re.sub(r'^我能解释', starts[i % len(starts)], item['text'])
+    for group in ('explained', 'doubts', 'uncertain'):
+        for item in plan[group]:
+            for internal, label in {'tentative':'暂定理解', 'understood':'当前理解', 'unclear':'信息还不完整', 'conflict':'理解有冲突'}.items():
+                item['text'] = re.sub(r'\b' + internal + r'\b', label, item['text'])
+
+
 def validate_recall(plan, snapshot):
+    naturalize_recall(plan, snapshot)
     known = {k['id']: k for k in snapshot['settlement']['knowledge_points']}
     source_events = {s['id']: s['event_id'] for s in snapshot['learning_sources']}
     questions = {q['id']: q for q in snapshot['questions']}
@@ -39,7 +57,8 @@ def validate_recall(plan, snapshot):
                 raise ValueError('知识复述必须使用学生第一人称')
             if set(item['knowledge_ids']) - known.keys() or set(item['question_ids']) - questions.keys():
                 raise ValueError('复述引用了不存在的知识或疑问')
-            validate_citations(item['citations'], snapshot, learning_only=bool(item['knowledge_ids']))
+            # 学生原话可证明疑问或为复述提供上下文；每条知识仍须在下方绑定实际讲授来源。
+            validate_citations(item['citations'], snapshot)
             cited_ids = {c['event_id'] for c in item['citations']}
             if any(not cited_ids.intersection(source_events.get(s) for s in known[k]['sources']) for k in item['knowledge_ids']):
                 raise ValueError('复述证据与所引用的知识来源不对应')
@@ -51,7 +70,8 @@ def validate_recall(plan, snapshot):
                     raise ValueError('本次学到的知识必须有实际教师讲授证据')
             if group in ('doubts', 'uncertain'):
                 preserved.update(item['question_ids'])
-            if any(item['text'].strip() == c['quote'].strip() for c in item['citations']):
+            if any(item['text'].strip() == c['quote'].strip() and snapshot['evidence'][c['event_id']]['kind'] == 'transcript'
+                   for c in item['citations']):
                 raise ValueError('学生复述不能直接复制教师原句')
     unresolved = {q['id'] for q in questions.values() if q['status'] != 'resolved'}
     if not unresolved <= preserved:
@@ -83,16 +103,43 @@ def validate_verification(result, plan, answers, snapshot):
     if len(ids) != len(set(ids)) or set(ids) != {p['id'] for p in plan['probes']}:
         raise ValueError('验证结论与题目不对应')
     answered = {a['id']: a for a in answers['answers']}
+    probes = {p['id']: p for p in plan['probes']}
+    def normalized(text):
+        # Only canonicalize identifiers/numbers, never infer understanding from a similarity score.
+        text = re.sub(r'[A-Za-z_][A-Za-z_0-9]*|\d+(?:\.\d+)?', '@', text)
+        return re.sub(r'\W', '', text)
     for verdict in result['results']:
         validate_citations(verdict['citations'], snapshot, learning_only=True)
         answer = answered[verdict['id']]
+        probe = probes[verdict['id']]
+        checks = verdict.get('task_checks') or []
+        reasoning = verdict.get('reasoning_check') or {}
+        required = probe.get('required_tasks') or []
+        quote = reasoning.get('answer_quote', '')
         repetition = any(re.sub(r'\W', '', answer['text']) == re.sub(r'\W', '', s['text'])
                          for s in snapshot['learning_sources'])
+        canonical_copy = bool(quote.strip()) and any(
+            normalized(quote) and normalized(quote) in normalized(s['text'])
+            for s in snapshot['learning_sources'] if s['kind'] == 'teacher')
+        supported = bool(required and checks and reasoning and quote.strip() and quote in answer['text'])
+        supported = supported and set(required) == {c['task'] for c in checks} and len(checks) == len(required)
+        supported = supported and all(t in probe['question'] for t in required)
+        for check in checks + ([reasoning] if reasoning else []):
+            validate_citations(check.get('citations', []), snapshot, learning_only=True)
+            if not check.get('citations') or not check.get('answer_quote', '').strip() or check['answer_quote'] not in answer['text']:
+                supported = False
+        outcomes = {c['outcome'] for c in checks}
         if verdict['status'] == '有理解证据':
-            if verdict['reasoning'] != '解释或应用' or repetition:
+            if verdict['reasoning'] != '解释或应用' or repetition or canonical_copy or reasoning.get('kind') == '仅换名换数或复述':
                 verdict.update(status='尚未验证', explanation='回答仅有复述证据，尚不能确认解释或应用。')
-            elif not verdict['citations'] or not answer['citations']:
-                verdict.update(status='证据不足', explanation='缺少作答或判断的课堂依据。')
+            elif not supported or not verdict['citations'] or not answer['citations']:
+                verdict.update(status='证据不足', explanation='缺少逐项任务检查、实际作答原文或课堂依据，不能确认独立推理。')
+            elif '理由错误' in outcomes:
+                verdict.update(status='存在误解', explanation='结论即使正确，理由仍与课堂依据冲突：' + '；'.join(c['explanation'] for c in checks if c['outcome'] == '理由错误'))
+            elif outcomes.intersection({'未回答', '部分完成'}):
+                verdict.update(status='尚未验证', explanation='未完成题目要求的全部解释或应用：' + '；'.join(c['explanation'] for c in checks if c['outcome'] != '有依据地完成'))
+            elif outcomes != {'有依据地完成'} or reasoning.get('kind') != '新情境推理' or probe.get('task_kind', '未标注') == '未标注':
+                verdict.update(status='证据不足', explanation='无法可靠确认新情境中的推理，不能仅因答案正确而判定理解。')
         elif verdict['status'] == '存在误解' and not verdict['citations']:
             verdict.update(status='证据不足', explanation='没有课堂依据，无法可靠判断是否存在误解。')
 
@@ -111,6 +158,26 @@ def validate_diagnosis(diagnosis, snapshot):
     linked = [s['finding_id'] for s in diagnosis['suggestions']]
     if set(linked) - weaknesses or len(linked) != len(set(linked)):
         raise ValueError('建议必须对应本报告的具体不足，不能重复或虚构问题')
+    # A fleeting question followed by an explanation is not evidence of teaching failure.
+    supported = []
+    for finding in diagnosis['weaknesses']:
+        cited = {c['event_id'] for c in finding['citations']}
+        for q in snapshot['settlement']['questions']:
+            mention_ids = {m['event_id'] for m in snapshot['settlement'].get('question_mentions', []) if m['question_id'] == q['id']}
+            explanation_orders = [e['order'] for e in snapshot['evidence'].values()
+                                  if e.get('source_id') in q.get('explanation_sources', [])]
+            continued = {eid for eid in mention_ids if explanation_orders and snapshot['evidence'][eid]['order'] > max(explanation_orders)
+                         and re.search(r'不[清确]楚|不理解|没[有弄]*明白|困惑|疑惑|[？?]', snapshot['evidence'][eid]['text'])}
+            if not q.get('expressed') or (q['status'] == 'resolved' and not cited.intersection(continued)): continue
+            topic = q.get('topic', q['text'])
+            description = finding['observation'] + finding['interpretation']
+            relevant = any(topic[i:i+3] in description for i in range(max(0, len(topic)-2))) or topic[-2:] in description
+            teacher_evidence = any(snapshot['evidence'][eid]['kind'] == 'transcript' for eid in cited)
+            if cited.intersection(mention_ids) and relevant and teacher_evidence:
+                supported.append(finding); break
+    kept = {f['id'] for f in supported}
+    diagnosis['weaknesses'] = supported
+    diagnosis['suggestions'] = [s for s in diagnosis['suggestions'] if s['finding_id'] in kept]
 
 
 def markdown(view):
@@ -120,18 +187,25 @@ def markdown(view):
     for item in summary['metrics'].values():
         value = '无法统计' if item['value'] is None else str(item['value'])
         lines += [f"- {item['label']}：{value}。口径：{item['method']}"]
-    lines += ['', '主要知识点：'] + [f"- {k['text']}（{k['status']}）" for k in summary['knowledge_points']]
+    knowledge_labels = {'understood':'当前理解', 'tentative':'暂定理解', 'conflict':'存在冲突', 'unclear':'信息缺失'}
+    lines += ['', '主要知识点：'] + [f"- {k['text']}（{knowledge_labels.get(k['status'], k['status'])}）" for k in summary['knowledge_points']]
     if not summary['knowledge_points']: lines += ['- 无可靠已处理知识记录。']
-    lines += ['', '疑问状态：'] + [f"- {q['id']}：{q['text']}（{q['status']}），解释来源：{'、'.join(q.get('resolution_sources', [])) or '未记录'}" for q in summary['questions']]
+    qlabels = {'pending':'系统待提问', 'asked':'系统已提问', 'resolved':'系统标记已解决', 'deferred':'暂缓处理，尚未解决'}
+    lines += ['', '疑问状态：'] + [f"- {q['id']}：{q['text']} · {'学生已提出' if q.get('expressed') else '仅系统记录，未确认学生提出'} · {qlabels.get(q['status'], q['status'])} · 回应来源：{'、'.join(q.get('response_sources', [])) or '未记录'} · 内容解释来源：{'、'.join(q.get('explanation_sources', [])) or '未记录'} · 独立理解：尚未验证" for q in summary['questions']]
+    lines += [''] + ['- ' + note for note in summary.get('limitations', [])]
     lines += ['', '未处理来源：' + ('、'.join(summary['unprocessed_sources']) or '无'),
               '处理异常记录：'] + [f"- {e['event_id']}：{e['text']}" for e in summary['processing_errors']]
     if summary['incomplete']: lines += ['', '**反馈可能不完整：存在未处理讲授或录音识别缺口，不能算作学生已经学习；请核对是否已重讲。**']
     lines += ['', '## 学生说，我学到了什么', '']
     def cites(items):
-        return [f"  - 证据 `{c['event_id']}`：{c['quote']}" for c in items]
+        grouped = {}
+        for c in items:
+            grouped.setdefault(c['event_id'], [])
+            if c['quote'] not in grouped[c['event_id']]: grouped[c['event_id']].append(c['quote'])
+        return [f"  - 证据 `{eid}`：" + ' / '.join(quotes) for eid, quotes in grouped.items()]
     recall = view.get('recall')
     if recall:
-        for key, title in [('explained', '我能解释的'), ('doubts', '我还有疑问的'), ('uncertain', '我不确定的')]:
+        for key, title in [('explained', '我的理解'), ('doubts', '我实际表达过的疑问'), ('uncertain', '尚未确认的理解（模拟推断）')]:
             lines += ['### ' + title, '']
             for item in recall[key]: lines += ['- ' + item['text']] + cites(item['citations'])
             if not recall[key]: lines += ['暂无有依据的内容。']
@@ -145,7 +219,7 @@ def markdown(view):
                   '学生回答：' + (answer['text'] if answer else '尚未验证'),
                   '结论：' + (result['status'] if result else '尚未验证'),
                   '依据说明：' + (result['explanation'] if result else '验证未完成或失败。')]
-        lines += cites(probe['citations']) + cites(answer['citations'] if answer else []) + cites(result['citations'] if result else [])
+        lines += cites(probe['citations'] + (answer['citations'] if answer else []) + (result['citations'] if result else []))
     if not (recall or {}).get('probes'): lines += ['', '没有可靠验证题，尚未验证。']
     diagnosis = view.get('diagnosis') or {'strengths': [], 'weaknesses': [], 'suggestions': []}
     for key, title in [('strengths', '本次试讲的优点'), ('weaknesses', '本次试讲的不足')]:
@@ -216,7 +290,14 @@ class ReportService:
                 for stage in loaded['stages'].values():
                     if stage['status'] == 'generating': stage.update(status='failed', error='服务重启中断了生成，可以重试。')
             self.views[sid] = loaded
-        return deepcopy(self.views[sid])
+        view = deepcopy(self.views[sid])
+        # Read-only compatibility projection: preserve original cached/model outputs and event hash.
+        refresh_question_settlement(view['snapshot'])
+        if view.get('recall'): naturalize_recall(view['recall'], view['snapshot'])
+        if view.get('verification') and view.get('answers') and view.get('recall'):
+            validate_verification(view['verification'], view['recall'], view['answers'], view['snapshot'])
+        if view.get('diagnosis'): validate_diagnosis(view['diagnosis'], view['snapshot'])
+        return view
 
     def start(self, sid):
         view = self.get(sid)
@@ -264,7 +345,8 @@ class ReportService:
                         elif phase == 'answers':
                             prompt, payload, schema = report_prompts.ANSWER, {**classroom, 'public_questions': public}, Answers
                         elif phase == 'verification':
-                            prompt, payload, schema = report_prompts.VERIFY, {**classroom, 'public_questions': public, 'student_answers': view['answers']}, Verification
+                            prompt, payload, schema = report_prompts.VERIFY, {**classroom, 'public_questions': public,
+                                'verification_tasks': view['recall']['probes'], 'student_answers': view['answers']}, Verification
                         else:
                             prompt, payload, schema = report_prompts.DIAGNOSE, {**classroom, 'verification': view['verification'],
                                 'settlement': snapshot['settlement'], 'limitation': LIMITATION}, Diagnosis

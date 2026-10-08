@@ -1,5 +1,7 @@
 # Learn From You 报告 V2 · 验收记录
 
+> 本文保留首次开发验收基线。真实体验后的问题修复及最新测试结果见 [修复验收记录](report-v2-fixes-validation.md)。
+
 日期：2026-10-08。开发分支 `feature/trial-report-v2`，基线 `398467852331c66ea71b6a87a8edeecbd64c9da7`。
 
 ## 实际执行结果

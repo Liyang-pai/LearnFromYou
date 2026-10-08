@@ -15,8 +15,8 @@ CASES = {
     '正确讲解': {'sid': '111111111111', 'topic': '自定义蓝盒规则',
         'teacher': '蓝盒规则是输入数字加一。比如输入三，输出四。',
         'knowledge': '蓝盒把输入数字加一。', 'recall': '我现在会按老师的蓝盒规则，把放进去的数字增加一。',
-        'question': '如果放进去的是五，输出是多少？请说明理由。',
-        'answer': '我得到六，因为按今天教的规则要在五的基础上加一。',
+        'question': '有人说蓝盒先放入五，再把输出放回蓝盒，最后仍是六。判断他说得对不对，请说明理由。',
+        'answer': '他说得不对。第一次五加一得到六，第二次输入已经变成六，再加一得到七；不能把第二次也当作输入五。',
         'verdict': '有理解证据', 'reasoning': '解释或应用', 'explanation': '在课堂定义的规则内，对新输入给出了结果和理由；不是全面掌握证明。'},
     '错误讲解': {'sid': '222222222222', 'topic': '乘法讲解错误样例',
         'teacher': '今天我们把二乘三的结果记为七。',
@@ -62,12 +62,17 @@ class ExampleModel:
                 doubts = [{'text': '我还有这个疑问：' + case['doubt'], 'question_ids': ['q1'], 'citations': [citation]}]
             data = {'explained': [{'text': case['recall'], 'knowledge_ids': ['k1'], 'citations': [citation]}],
                 'doubts': doubts, 'uncertain': [], 'probes': [] if not case['question'] else [
-                    {'id': 'v1', 'knowledge_id': 'k1', 'question': case['question'], 'citations': [citation]}]}
+                    {'id': 'v1', 'knowledge_id': 'k1', 'question': case['question'], 'task_kind': '发现错误',
+                     'required_tasks': [case['question']], 'citations': [citation]}]}
         elif phase.endswith('answers'):
             data = {'answers': [{'id': 'v1', 'text': case['answer'], 'citations': [citation]}]}
         elif phase.endswith('verification'):
             data = {'results': [{'id': 'v1', 'status': case['verdict'], 'reasoning': case['reasoning'],
-                'explanation': case['explanation'], 'citations': [citation]}]}
+                'explanation': case['explanation'], 'citations': [citation],
+                'task_checks': [{'task': case['question'], 'outcome': '有依据地完成', 'answer_quote': case['answer'],
+                                'explanation': case['explanation'], 'citations': [citation]}],
+                'reasoning_check': {'kind': '新情境推理' if case['reasoning'] == '解释或应用' else '仅换名换数或复述',
+                                    'answer_quote': case['answer'], 'explanation': case['explanation'], 'citations': [citation]}}]}
         else:
             if case.get('doubt'):
                 data = {'strengths': [], 'weaknesses': [{'id': 'f1', 'observation': '教师表示引用改变稍后再讲，学生随后追问删除操作。',

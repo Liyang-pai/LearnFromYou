@@ -68,6 +68,7 @@ def test_generation_isolated_idempotent_and_exports(tmp_path, monkeypatch):
     for section in ('本次试讲结算', '学生说，我学到了什么', '学生真的理解了吗', '本次试讲的优点', '本次试讲的不足', '下次应该怎么改', '课堂证据'):
         assert section in exported
     assert SID+':e000002' in exported and '原始转写' in exported and '模拟验证' in exported
+    assert '（当前理解）' in exported and '（understood）' not in exported
 
 
 @pytest.mark.parametrize('failed_phase', ['recall', 'answers', 'verification', 'diagnosis'])
@@ -407,6 +408,20 @@ def test_asr_failure_without_transcript_marks_possible_gap():
     assert summary['incomplete'] and summary['audio_gap_events']==[SID+':failure']
 
 SID = 'abcdef123456'
+
+
+def test_recall_can_cite_student_doubt_but_knowledge_still_needs_teacher_source():
+    from backend.report_v2 import validate_recall
+    snapshot = build_snapshot(SID, classroom(question=True))
+    teacher = {'event_id': SID + ':e000002', 'quote': snapshot['evidence'][SID + ':e000002']['text']}
+    student = {'event_id': SID + ':e000003', 'quote': '删除时为什么看前驱？'}
+    plan = {'explained': [], 'doubts': [{'text': '我知道节点的组成，但我还不明白为什么需要前驱。',
+            'knowledge_ids': ['k1'], 'question_ids': ['q1'], 'citations': [teacher, student]}],
+            'uncertain': [], 'probes': []}
+    validate_recall(plan, snapshot)
+    plan['doubts'][0]['citations'] = [student]
+    with pytest.raises(ValueError, match='知识来源不对应'):
+        validate_recall(plan, snapshot)
 
 
 def classroom(*, text='节点保存数据和下一个节点的引用。', status='understood', question=False):
