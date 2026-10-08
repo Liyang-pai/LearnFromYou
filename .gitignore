@@ -7,3 +7,5 @@ logs/
 __pycache__/
 .pytest_cache/
 .DS_Store
+heat-capacity-test/
+tempCodeRunnerFile.command

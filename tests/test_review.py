@@ -275,6 +275,47 @@ def test_deadline_includes_json_repair_attempt(monkeypatch, phase, timeout_name)
     asyncio.run(run())
 
 
+@pytest.mark.parametrize('count', [40, 41, 45, 46])
+def test_glossary_overrun_tolerance_keeps_model_limit_and_review_flow(monkeypatch, count):
+    monkeypatch.setattr(config, 'API_KEY', 'test-key')
+    async def run():
+        calls, events = [], []
+        terms = [f'术语{i}' for i in range(count)]
+        async def transport(request):
+            body = json.loads(request.content)
+            calls.append(body)
+            if body['messages'][0]['content'].startswith('你为语音识别文本校正器'):
+                result = {'terms': terms}
+            else:
+                result = {'segments': [{'id': 't1', 'text': '链表'}]}
+            return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(result)}}]})
+        async def emit(kind, data):
+            events.append((kind, data))
+        llm = ModelClient(emit)
+        await llm.http.aclose()
+        llm.http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
+        reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表'))
+        try:
+            await reviewer.initialize()
+            prompt, schema = calls[0]['messages'][0]['content'].split('\nJSON schema:\n')
+            assert '最多 40 项' in prompt
+            assert json.loads(schema)['properties']['terms']['maxItems'] == 40
+            assert len(calls) == (1 if count <= 45 else 2)
+            assert reviewer.terms == (terms if count <= 45 else [])
+            glossary = next(data for kind, data in events if kind == 'review_glossary' and data['status'] != 'started')
+            assert glossary['status'] == ('ready' if count <= 45 else 'fallback')
+            assert any(kind == 'warning' for kind, _ in events) == (count > 45)
+            batch = [{'id': 't1', 'text': '练表', 'raw_text': '练表', 'mode': 'microphone',
+                      'revision': 1, 'at': 0, 'corrected_text': None, 'review_status': 'pending', 'review_seconds': 0}]
+            result = await reviewer.review(batch, [])
+            payload = json.loads(calls[-1]['messages'][1]['content'])
+            assert payload['terms'] == reviewer.terms
+            assert result[0]['text'] == '链表' and result[0]['review_status'] == 'reviewed'
+        finally:
+            await llm.close()
+    asyncio.run(run())
+
+
 def test_context_is_last_eight_finalized_teacher_sources(tmp_path, monkeypatch):
     async def run():
         model = ReviewModel()

@@ -19,7 +19,9 @@ class Preparation(StrictModel):
 
 
 class ReviewGlossary(StrictModel):
-    terms: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(max_length=40)
+    # Ask the model for 40 terms, but tolerate a small overrun without a repair retry.
+    terms: list[Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]] = Field(
+        max_length=45, json_schema_extra={"maxItems": 40})
 
 
 class CorrectedSource(StrictModel):
