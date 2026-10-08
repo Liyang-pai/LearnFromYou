@@ -402,6 +402,9 @@ def test_websocket_locks_model_and_releases_on_end_disconnect_and_failure(manage
         async def generate(self, *args):
             if self.fail:
                 raise ModelError('模拟课前失败')
+            if args[0] == 'review_glossary':
+                from backend.schemas import ReviewGlossary
+                return ReviewGlossary(terms=[])
             return Preparation(scope=['主题'], boundary_note='test')
         async def close(self): pass
     monkeypatch.setattr('backend.session.ModelClient', FakeLLM)

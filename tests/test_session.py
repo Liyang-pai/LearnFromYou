@@ -39,7 +39,7 @@ def test_failed_batch_retries_before_later_content(tmp_path, monkeypatch):
         await session.llm.close()
         fake=FakeModel(True);session.llm=fake
         try:
-            await session.start(Lesson(topic='任意主题'),tts=False)
+            await session.start(Lesson(topic='任意主题'),tts=False,asr_review=False)
             await session.add_transcript('第一段');await session.flush()
             await until(lambda:session.failed_batch is not None)
             assert session.state.version==0
@@ -60,7 +60,7 @@ def test_mute_updates_state_without_backlog_speech(tmp_path, monkeypatch):
         async def emit(e):events.append(e)
         session=Session(emit,None);await session.llm.close();session.llm=FakeModel()
         try:
-            await session.start(Lesson(topic='任意主题'),muted=True,tts=False)
+            await session.start(Lesson(topic='任意主题'),muted=True,tts=False,asr_review=False)
             await session.add_transcript('你理解了吗');await session.flush()
             await until(lambda:session.state.version==1)
             await session.try_speak(10)
@@ -78,7 +78,7 @@ def test_new_input_invalidates_previous_candidate(tmp_path, monkeypatch):
         async def emit(e):events.append(e)
         session=Session(emit,None);await session.llm.close();session.llm=FakeModel()
         try:
-            await session.start(Lesson(topic='任意主题'),tts=False)
+            await session.start(Lesson(topic='任意主题'),tts=False,asr_review=False)
             await session.add_transcript('你理解了吗');await session.flush()
             await until(lambda:session.state.version==1)
             await session.add_transcript('我再补充一下。')
