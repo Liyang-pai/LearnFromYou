@@ -146,7 +146,11 @@ def verification_case(text, outcome='有依据地完成', kind='新情境推理'
         'task_checks': [{'task': task, 'outcome': outcome, 'answer_quote': text,
                          'explanation': '检查是否判断了两步操作，并依据课堂规则解释。', 'citations': [citation]}],
         'reasoning_check': {'kind': kind, 'answer_quote': text if quote is None else quote,
-                            'explanation': '检查新判断的实际推理。', 'citations': [citation]}}]}
+                            'explanation': '检查新判断的实际推理。', 'citations': [citation],
+                            'comparison': {'kind':'实质任务变化','difference':'教师分别说明操作，题目需要识别混合操作的错误说法并作对比判断。',
+                                           'answer_quote':text,'citations':[citation],
+                                           'teacher_steps':['区分操作对象'], 'task_steps':['区分操作对象','发现矛盾'],
+                                           'task_quote':task}}}]}
     return plan, answers, result
 
 

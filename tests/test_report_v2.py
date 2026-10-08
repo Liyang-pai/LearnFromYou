@@ -34,7 +34,8 @@ class SimulatedModel:
             data = {'results': [{'id': 'v1', 'status': '有理解证据', 'reasoning': '解释或应用',
                      'explanation': '在本课堂规则内给出了应用思路，不证明知识客观正确。', 'citations': [citation]}]}
         else:
-            data = {'strengths': [{'id': 'f1', 'observation': '教师明确讲述了节点组成。', 'interpretation': '这提供了可追溯的解释依据。', 'citations': [citation]}],
+            data = {'summary':{'text':'教师明确讲述了节点组成，提供了解释依据；模拟检查不能证明真实学生掌握。','citations':[citation]},
+                    'strengths': [{'id': 'f1', 'observation': '教师明确讲述了节点组成。', 'interpretation': '这提供了可追溯的解释依据。', 'citations': [citation]}],
                     'weaknesses': [], 'suggestions': []}
         return output_type.model_validate(data)
 
@@ -65,7 +66,7 @@ def test_generation_isolated_idempotent_and_exports(tmp_path, monkeypatch):
     assert not {'recall', 'verification', 'reference_answer', 'criteria', 'knowledge_id'} & answer_input.keys()
     assert service.get(SID)['snapshot'] == original
     exported = markdown(service.get(SID))
-    for section in ('本次试讲结算', '学生说，我学到了什么', '学生真的理解了吗', '本次试讲的优点', '本次试讲的不足', '下次应该怎么改', '课堂证据'):
+    for section in ('课堂总体评价', '本次试讲结算', '学生说，我学到了什么', '学生真的理解了吗', '本次试讲的优点', '本次试讲的不足', '课堂证据'):
         assert section in exported
     assert SID+':e000002' in exported and '原始转写' in exported and '模拟验证' in exported
     assert '（当前理解）' in exported and '（understood）' not in exported

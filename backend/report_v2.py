@@ -11,6 +11,7 @@ from . import config, report_prompts
 from .llm import ModelClient, ModelError
 from .report_models import RecallPlan, Answers, Verification, Diagnosis
 from .report_data import refresh_question_settlement
+from .report_reader import reader_view
 
 LIMITATION = '模拟验证只提供课堂内解释或应用的证据，不能证明真实掌握或知识客观正确。'
 PHASES = ('recall', 'answers', 'verification', 'diagnosis')
@@ -129,6 +130,16 @@ def validate_verification(result, plan, answers, snapshot):
             if not check.get('citations') or not check.get('answer_quote', '').strip() or check['answer_quote'] not in answer['text']:
                 supported = False
         outcomes = {c['outcome'] for c in checks}
+        comparison = reasoning.get('comparison') or {}
+        if comparison:
+            validate_citations(comparison.get('citations', []), snapshot, learning_only=True)
+        compared = bool(comparison.get('difference') and comparison.get('citations')
+                        and comparison.get('answer_quote', '').strip()
+                        and comparison['answer_quote'] in answer['text'])
+        teacher_steps = comparison.get('teacher_steps') or []
+        task_steps = comparison.get('task_steps') or []
+        task_quote = comparison.get('task_quote', '')
+        compared = compared and bool(teacher_steps and task_steps and task_quote.strip() and task_quote in probe['question'])
         if verdict['status'] == '有理解证据':
             if verdict['reasoning'] != '解释或应用' or repetition or canonical_copy or reasoning.get('kind') == '仅换名换数或复述':
                 verdict.update(status='尚未验证', explanation='回答仅有复述证据，尚不能确认解释或应用。')
@@ -140,20 +151,34 @@ def validate_verification(result, plan, answers, snapshot):
                 verdict.update(status='尚未验证', explanation='未完成题目要求的全部解释或应用：' + '；'.join(c['explanation'] for c in checks if c['outcome'] != '有依据地完成'))
             elif outcomes != {'有依据地完成'} or reasoning.get('kind') != '新情境推理' or probe.get('task_kind', '未标注') == '未标注':
                 verdict.update(status='证据不足', explanation='无法可靠确认新情境中的推理，不能仅因答案正确而判定理解。')
+            elif comparison.get('kind') == '仅表面替换' or (teacher_steps and task_steps and teacher_steps == task_steps):
+                verdict.update(status='尚未验证', explanation='题目只替换已演示例子的表面信息，回答正确仍不足以确认独立迁移。')
+            elif not compared or comparison.get('kind') != '实质任务变化':
+                verdict.update(status='证据不足', explanation='没有对照课堂已演示任务核实实质变化；仅凭正确答案不能确认独立迁移。')
         elif verdict['status'] == '存在误解' and not verdict['citations']:
             verdict.update(status='证据不足', explanation='没有课堂依据，无法可靠判断是否存在误解。')
 
 
-def validate_diagnosis(diagnosis, snapshot):
+def validate_diagnosis(diagnosis, snapshot, *, require_current=False):
+    if require_current and not diagnosis.get('summary'):
+        raise ValueError('教学分析没有返回总体评价，不能把空对象当作分析成功；可重试。')
+    if diagnosis.get('summary'):
+        validate_citations(diagnosis['summary']['citations'], snapshot, learning_only=True)
     findings = diagnosis['strengths'] + diagnosis['weaknesses']
     ids = [f['id'] for f in findings]
     if len(ids) != len(set(ids)):
         raise ValueError('教学诊断编号重复')
     for finding in findings:
         validate_citations(finding['citations'], snapshot)
+        validate_citations(finding.get('followup_citations', []), snapshot, learning_only=True)
         if not any(snapshot['evidence'][c['event_id']]['kind'] in ('transcript', 'reply', 'review_completed')
                    for c in finding['citations']):
             raise ValueError('教学诊断必须引用实际教师或学生发言')
+        # State and teacher statements cannot stand in for delivered student answers.
+        text = finding['observation']
+        if re.search(r'学生(?:回答|表示|说|仍|已经|没有理解|未理解|误解|困惑|掌握|理解了)', text):
+            if not any(snapshot['evidence'][c['event_id']]['kind'] == 'reply' for c in finding['citations']):
+                raise ValueError('学生表现判断缺少实际课堂学生发言，不能以教师讲授或课后模拟代替')
     weaknesses = {f['id'] for f in diagnosis['weaknesses']}
     linked = [s['finding_id'] for s in diagnosis['suggestions']]
     if set(linked) - weaknesses or len(linked) != len(set(linked)):
@@ -162,6 +187,12 @@ def validate_diagnosis(diagnosis, snapshot):
     supported = []
     for finding in diagnosis['weaknesses']:
         cited = {c['event_id'] for c in finding['citations']}
+        if finding.get('basis') == '教学内容或检查机会':
+            validate_citations(finding['citations'], snapshot, learning_only=True)
+            if not any(snapshot['evidence'][eid]['kind'] == 'transcript' for eid in cited):
+                raise ValueError('教学改进必须有实际教师讲授依据')
+            supported.append(finding)
+            continue
         for q in snapshot['settlement']['questions']:
             mention_ids = {m['event_id'] for m in snapshot['settlement'].get('question_mentions', []) if m['question_id'] == q['id']}
             explanation_orders = [e['order'] for e in snapshot['evidence'].values()
@@ -180,13 +211,14 @@ def validate_diagnosis(diagnosis, snapshot):
     diagnosis['suggestions'] = [s for s in diagnosis['suggestions'] if s['finding_id'] in kept]
 
 
-def markdown(view):
+def _detailed_markdown(view):
     snapshot = view['snapshot']; summary = snapshot['settlement']
     lines = ['# Learn From You · 课后反馈报告 V2', '', f"课堂：{snapshot['session_id']}", '',
              f"主题：{snapshot['lesson'].get('topic', '未提供')}", '', LIMITATION, '', '## 本次试讲结算', '']
-    for item in summary['metrics'].values():
+    for item in reader_view(view)['metrics'].values():
         value = '无法统计' if item['value'] is None else str(item['value'])
-        lines += [f"- {item['label']}：{value}。口径：{item['method']}"]
+        description = f"（{item['display']}）" if item['display'] != value else ''
+        lines += [f"- {item['label']}：{value}{description}。口径：{item['method']}"]
     knowledge_labels = {'understood':'当前理解', 'tentative':'暂定理解', 'conflict':'存在冲突', 'unclear':'信息缺失'}
     lines += ['', '主要知识点：'] + [f"- {k['text']}（{knowledge_labels.get(k['status'], k['status'])}）" for k in summary['knowledge_points']]
     if not summary['knowledge_points']: lines += ['- 无可靠已处理知识记录。']
@@ -234,7 +266,11 @@ def markdown(view):
     lines += ['', '## 课堂证据', '']
     for evidence in snapshot['evidence'].values():
         at = f"{evidence['at']} 秒" if evidence['at'] is not None else f"第 {evidence['order']} 个记录"
-        lines += [f"### {evidence['event_id']} · {at}", evidence['text']]
+        anchor = 'report-evidence-' + re.sub(r'[^a-zA-Z0-9_-]', '-', evidence['event_id'])
+        text=evidence['text']
+        if evidence['kind'] in ('state','finished','ready'):
+            text='课堂开始记录。' if evidence['kind']=='ready' else '模拟认知状态记录，不能作为真实学生理解证据。完整原始状态保留在本地课堂记录及页面详细依据中。'
+        lines += [f'<a id="{anchor}"></a>', f"### {evidence['event_id']} · {at}", text]
         if 'raw_text' in evidence:
             lines += ['原始转写：' + evidence['raw_text'], '实际学习文本：' + evidence['text']]
             if evidence.get('review_event_id'): lines += ['审核事件：' + evidence['review_event_id']]
@@ -244,6 +280,52 @@ def markdown(view):
     for phase, stage in view['stages'].items(): lines += [f"- {phase_labels[phase]}：{stage_labels[stage['status']]}" + ((' · ' + stage['error']) if stage.get('error') else '')]
     lines += ['', '引用校验不能完全证明语义支持。模拟模型样例不是付费真实模型验收。']
     return '\n'.join(lines) + '\n'
+
+
+def markdown(view):
+    reader = reader_view(view)
+    def cites(items):
+        ids = list(dict.fromkeys(c['event_id'] for c in items))
+        refs=[]
+        for eid in ids:
+            evidence=view['snapshot']['evidence'][eid]
+            speaker='AI 学生' if evidence['kind']=='reply' else '教师'
+            at=f"{evidence['at']} 秒" if evidence.get('at') is not None else f"记录 {evidence['order']}"
+            anchor='report-evidence-'+re.sub(r'[^a-zA-Z0-9_-]','-',eid)
+            refs.append(f'[{speaker} · {at}](#{anchor})')
+        return ['课堂依据：'+'、'.join(refs)] if refs else []
+    lines = ['# 课后教学反馈', '', '主题：' + view['snapshot']['lesson'].get('topic', '未提供'), '',
+             '## 课堂总体评价', '', reader['summary']]
+    lines += cites(reader['summary_citations'])
+    if reader['diagnosis_failed']:
+        # Show a meaningful cause up front; exact schema diagnostics are in folded details.
+        error = reader['error']
+        cause = '模型输出不符合报告结构要求' if '结构' in error else error
+        lines += ['', '失败原因：' + cause, '重试方式：在报告页面点击“重试未完成分析”。']
+    if view.get('diagnosis'):
+        lines += ['', '## 本次试讲的优点', '']
+        for f in reader['strengths']:
+            lines += ['- ' + f['observation'], '  教学作用（分析）：' + f['interpretation']] + cites(f['citations'])
+        if not reader['strengths']: lines += ['现有依据不足以提炼明确优点。']
+        lines += ['', '## 最值得改进的两个问题（本次试讲的不足）', '']
+        for i, f in enumerate(reader['issues'], 1):
+            lines += [f"### {i}. {f['observation']}", f['interpretation'],
+                      '下次应该怎么改：' + (f['suggestion']['action'] if f['suggestion'] else '尚未生成有依据的具体动作，不能用套话补位。')]
+            lines += cites(f['citations'])
+        if not reader['issues']: lines += ['未发现证据充分的主要改进问题；这不代表所有教学维度均已验证。']
+    lines += ['', '## 学生理解情况', '', reader['student']]
+    if reader['verification_counts']:
+        lines += ['课后 AI 模拟检查：' + '；'.join(f'{k} {v} 题' for k,v in reader['verification_counts'].items()) + '。']
+    else: lines += ['课后 AI 模拟检查尚未完成或没有可靠题目。']
+    lines += ['', LIMITATION, '', '<details>', '<summary>详细依据：课堂原文、复述与作答、统计及生成状态（展开核查）</summary>', '']
+    details = _detailed_markdown(view)
+    details = details[details.index('## 本次试讲结算'):]
+    # Feedback is already presented above; retain additional legacy findings only as audit data.
+    start = details.index('## 本次试讲的优点')
+    end = details.index('## 课堂证据')
+    details = details[:start] + details[end:]
+    lines += [details.rstrip(), '', '</details>', '']
+    return '\n'.join(lines)
 
 
 class ReportService:
@@ -297,6 +379,7 @@ class ReportService:
         if view.get('verification') and view.get('answers') and view.get('recall'):
             validate_verification(view['verification'], view['recall'], view['answers'], view['snapshot'])
         if view.get('diagnosis'): validate_diagnosis(view['diagnosis'], view['snapshot'])
+        view['reader'] = reader_view(view)
         return view
 
     def start(self, sid):
@@ -313,16 +396,31 @@ class ReportService:
 
     async def _run(self, sid):
         view = self.views[sid]; snapshot = view['snapshot']
-        async def quiet_emit(kind, data): pass
+        async def audit_emit(kind, data):
+            # Local-only diagnosis trace: no authentication headers or repeated input dumps.
+            record = {**data}
+            if kind == 'llm_request':
+                record = {key:data[key] for key in ('phase', 'attempt')}
+                record['model'] = data['body']['model']
+                view.setdefault('model_usage', []).append({'phase':record['phase'], 'attempt':record['attempt']})
+            elif kind == 'llm_output' and view.get('model_usage'):
+                view['model_usage'][-1].update(usage=data.get('usage', {}), seconds=data.get('seconds'), model=data.get('model'))
+            text = json.dumps({'type':kind, 'data':record}, ensure_ascii=False)
+            if config.API_KEY: text = text.replace(config.API_KEY, '[REDACTED]')
+            with self._path(sid).with_suffix('.events.jsonl').open('a', encoding='utf-8') as f:
+                f.write(text + '\n')
         client = None
         try:
             async with self.lock:
-                client = self.client_factory(quiet_emit)
+                client = self.client_factory(audit_emit)
                 classroom = {'lesson': snapshot['lesson'], 'state': snapshot['state'],
                     'sources': [{key: s[key] for key in ('id', 'text', 'kind', 'event_id')} for s in snapshot['learning_sources']],
                     'evidence': {eid: {key: value for key, value in e.items() if key not in ('raw_text', 'review_event_id')}
                                  for eid, e in snapshot['evidence'].items() if e['kind'] != 'error'},
                     'questions': snapshot['questions']}
+                # Full teacher/reply text stays available, redundant state JSON does not.
+                classroom['evidence'] = {eid:e for eid,e in classroom['evidence'].items()
+                                         if e['kind'] in ('transcript', 'reply')}
                 # Unprocessed transcripts remain visible for audit, never in model learning context.
                 unprocessed_ids = {s['event_id'] for s in snapshot['sources'] if not s['processed']}
                 classroom['evidence'] = {eid: e for eid, e in classroom['evidence'].items() if eid not in unprocessed_ids and e['kind'] != 'review_completed'}
@@ -348,7 +446,7 @@ class ReportService:
                             prompt, payload, schema = report_prompts.VERIFY, {**classroom, 'public_questions': public,
                                 'verification_tasks': view['recall']['probes'], 'student_answers': view['answers']}, Verification
                         else:
-                            prompt, payload, schema = report_prompts.DIAGNOSE, {**classroom, 'verification': view['verification'],
+                            prompt, payload, schema = report_prompts.DIAGNOSE, {**classroom, 'verification': self.get(sid)['verification'],
                                 'settlement': snapshot['settlement'], 'limitation': LIMITATION}, Diagnosis
                         async with asyncio.timeout(60):
                             result = await client.generate('report_v2_' + phase, prompt, payload, schema)
@@ -356,7 +454,7 @@ class ReportService:
                         if phase == 'recall': validate_recall(result, snapshot)
                         elif phase == 'answers': validate_answers(result, view['recall'], snapshot)
                         elif phase == 'verification': validate_verification(result, view['recall'], view['answers'], snapshot)
-                        else: validate_diagnosis(result, snapshot)
+                        else: validate_diagnosis(result, snapshot, require_current=True)
                         view[phase] = result
                         view['stages'][phase]['status'] = 'success'
                         # A recovered upstream phase changes dependent inputs. Never

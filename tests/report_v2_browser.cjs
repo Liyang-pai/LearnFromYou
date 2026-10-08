@@ -34,8 +34,12 @@ async function main() {
     await page.goto(base); await page.waitForFunction(() => Boolean(window.reportV2));
     await page.evaluate(data => window.reportV2.finished(data),{session_id:fixture.snapshot.session_id,settlement:fixture.snapshot.settlement});
     await page.getByText('报告已生成。',{exact:true}).waitFor();
+    assert.equal(await page.locator('#reportDetails').evaluate(el=>el.open),false);
+    assert((await page.locator('#reportAnalysis h3').first().innerText()).includes('课堂总体评价'));
+    assert.equal(await page.locator('#reportSummary').isVisible(),false,'stats should be folded by default');
     assert.equal(await page.locator('#reportSummary .report-metric').count(),Object.keys(fixture.snapshot.settlement.metrics).length);
-    assert((await page.locator('#reportAnalysis').innerText()).includes('模拟验证'));
+    assert((await page.locator('#reportAnalysis').innerText()).includes('AI 模拟'));
+    await page.locator('#reportDetails > summary').click();
     const verificationSection=page.locator('.report-section').filter({has:page.getByRole('heading',{name:'学生真的理解了吗',exact:true})});
     assert.equal(await verificationSection.locator('.report-citations button').count(),1,'same-event references must share one button');
     await page.locator('.report-citations button').first().click();
@@ -58,16 +62,22 @@ async function main() {
       fixture=JSON.parse(fs.readFileSync(process.env.REPORT_ACCEPTANCE_VIEW,'utf8'));
       await page.evaluate(data=>window.reportV2.finished(data),{session_id:fixture.snapshot.session_id,settlement:fixture.snapshot.settlement});
       await page.getByText('报告已生成。',{exact:true}).waitFor();
+      assert.equal(await page.locator('#reportDetails').evaluate(el=>el.open),false);
+      await page.locator('#reportV2').evaluate(el=>el.scrollIntoView());
+      await page.screenshot({path:path.join(root,'logs/report-quality-first-view.png')});
+      await page.locator('#reportDetails > summary').click();
       const summary=await page.locator('#reportSummary').innerText();
-      assert(summary.includes('暂缓处理，尚未解决') && summary.includes('未回应为零不表示全部解决'));
+      assert(summary.includes('未回应为零不表示全部解决'));
+      if (fixture.snapshot.settlement.questions.some(q=>q.status==='deferred')) assert(summary.includes('暂缓处理，尚未解决'));
       for (const metric of Object.values(fixture.snapshot.settlement.metrics)) {
-        assert(fixture.markdown.includes(`${metric.label}：${metric.value===null?'无法统计':metric.value}`));
-        assert(summary.includes(metric.label));
+        const readerMetric=Object.values(fixture.reader.metrics).find(item=>item.method===metric.method);
+        assert(fixture.markdown.includes(`${readerMetric.label}：${metric.value===null?'无法统计':metric.value}`));
+        assert(summary.includes(readerMetric.label));
       }
       const buttons=page.locator('.report-citations button');
       assert(await buttons.count()>=5);
       for (let i=0;i<await buttons.count();i++) {
-        const button=buttons.nth(i), id=(await button.innerText()).split(' · ')[1];
+        const button=buttons.nth(i), id=await button.getAttribute('data-event-id');
         await button.click();
         const row=page.locator('.report-highlight');
         assert((await row.getAttribute('id')).endsWith(id.replace(/[^a-zA-Z0-9_-]/g,'-')));
@@ -76,16 +86,40 @@ async function main() {
       }
       assert(!(await page.locator('#reportAnalysis').innerText()).includes('tentative'));
       assert(!(await page.locator('#reportAnalysis').innerText()).includes('有理解证据'));
+      // Report payload and teacher-facing Markdown use one reader projection.
+      assert((await page.locator('#reportAnalysis').innerText()).includes(fixture.reader.summary));
+      assert(fixture.markdown.includes(fixture.reader.summary));
+      for (const issue of fixture.reader.issues) {
+        assert((await page.locator('#reportAnalysis').innerText()).includes(issue.suggestion.action));
+        assert(fixture.markdown.includes(issue.suggestion.action));
+      }
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-mobile.png'),fullPage:true});
       await page.setViewportSize({width:1440,height:1000});
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-desktop.png'),fullPage:true});
       await page.locator('#reportEvidence details').evaluateAll(rows=>rows.forEach(row=>row.open=false));
+      await page.locator('#reportDetails').evaluate(el=>el.open=false);
       await page.locator('#reportV2').evaluate(el=>el.scrollIntoView());
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-summary.png')});
       await page.locator('#reportAnalysis').evaluate(el=>el.scrollIntoView());
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-analysis.png')});
       console.log('PASS actual acceptance replay: all citation buttons/highlights, question states, conservative legacy verdicts, frontend/Markdown metrics');
     }
+    // Explicit generation failure must be prominent and expose retry, never imply no problem.
+    const originalFixture=fixture;
+    fixture={...fixture,status:'partial',diagnosis:null,reader:{...fixture.reader,summary:'教学分析生成失败，这不表示没有教学问题。',diagnosis_failed:true},
+      stages:{...fixture.stages,diagnosis:{status:'failed',error:'报告两次结构校验失败'}}};
+    await page.locator('#reportReload').click();
+    await page.locator('#reportAnalysis').getByText('教学分析生成失败，这不表示没有教学问题。',{exact:true}).waitFor();
+    assert.equal(await page.locator('#reportAnalysis').getByRole('button',{name:'重试未完成分析'}).count(),1);
+    assert(!(await page.locator('#reportAnalysis').innerText()).includes('暂无有依据的建议'));
+    fixture=originalFixture;
+    // Opening a persisted report from its URL must use GET only and retain saved feedback.
+    const reportMethods=[];
+    page.on('request',req=>{ if(new URL(req.url()).pathname.endsWith('/report-v2')) reportMethods.push(req.method()); });
+    await page.goto(base+'/?report='+fixture.snapshot.session_id);
+    await page.getByText('报告已生成。',{exact:true}).waitFor();
+    assert.deepEqual(reportMethods,['GET']);
+    assert.equal(await page.locator('#reportDetails').evaluate(el=>el.open),false);
     // Hold an old response, reset for a new classroom, then release it.
     let unblock, waiting;
     delayed=new Promise(resolve => { unblock=resolve; }); waiting=new Promise(resolve => { release=resolve; });

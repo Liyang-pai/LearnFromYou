@@ -72,7 +72,13 @@ class ExampleModel:
                 'task_checks': [{'task': case['question'], 'outcome': '有依据地完成', 'answer_quote': case['answer'],
                                 'explanation': case['explanation'], 'citations': [citation]}],
                 'reasoning_check': {'kind': '新情境推理' if case['reasoning'] == '解释或应用' else '仅换名换数或复述',
-                                    'answer_quote': case['answer'], 'explanation': case['explanation'], 'citations': [citation]}}]}
+                                    'answer_quote': case['answer'], 'explanation': case['explanation'], 'citations': [citation],
+                                    'comparison': {'kind':'实质任务变化' if case['reasoning']=='解释或应用' else '仅表面替换',
+                                                   'difference':'题目需要组合两次蓝盒处理，课堂只演示一次处理。' if case['reasoning']=='解释或应用' else '作答只是复述课堂原算式，没有新的判断任务。',
+                                                   'answer_quote':case['answer'],'citations':[citation],
+                                                   'teacher_steps':['计算一次'] if case['reasoning']=='解释或应用' else ['陈述规则'],
+                                                   'task_steps':['计算一次','计算一次'] if case['reasoning']=='解释或应用' else ['陈述规则'],
+                                                   'task_quote':case['question']}}}]}
         else:
             if case.get('doubt'):
                 data = {'strengths': [], 'weaknesses': [{'id': 'f1', 'observation': '教师表示引用改变稍后再讲，学生随后追问删除操作。',
@@ -85,6 +91,10 @@ class ExampleModel:
             else:
                 data = {'strengths': [], 'weaknesses': [], 'suggestions': []}
             # A classroom-relative evaluator cannot independently prove a factual error.
+            summaries={'111111111111':'教师给出蓝盒加一规则和一次处理例子，课后模拟作答处理了两次计算；只支持这道任务，不能证明真实掌握。',
+                       '222222222222':'教师给出了二乘三等于七的讲法，模拟回答照搬原句；不能以复述证明理解或知识正确。',
+                       '333333333333':'教师说明链表通过引用连接，删除的引用改变明确暂缓；学生实际提出的删除疑问尚未解决。'}
+            data['summary']={'text':summaries[case['sid']],'citations':[citation]}
         return output_type.model_validate(data)
 
 

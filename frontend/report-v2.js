@@ -14,16 +14,18 @@
   function reset() {
     state.token++; state.sid = ''; state.view = null; clearTimeout(state.timer);
     el('reportV2').classList.add('hidden');
-    for (const id of ['reportSummary','reportAnalysis','reportEvidence','reportStages']) el(id).replaceChildren();
+    for (const id of ['reportSummary','reportAnalysis','reportEvidence','reportStages','reportStudentDetails']) el(id).replaceChildren();
+    el('reportDetails').open = false;
     el('reportDownload').disabled = true;
   }
-  function settlement(summary) {
+  function settlement(summary, reader) {
     const target = el('reportSummary'); target.replaceChildren();
     const grid = node('div', undefined, 'report-metrics');
-    for (const item of Object.values(summary.metrics)) {
+    for (const item of Object.values(reader?.metrics || summary.metrics)) {
       const card = node('div', undefined, 'report-metric');
-      card.append(node('span', item.label), node('strong', item.value === null ? '无法统计' : String(item.value)));
+      card.append(node('span', item.label), node('strong', item.display || (item.value === null ? '无法统计' : String(item.value))));
       const method = node('details'); method.append(node('summary','统计口径'), node('p',item.method,'hint'));
+      if (item.state === 'not_occurred') method.append(node('p','记录中的次数：' + item.value,'hint'));
       card.append(method); grid.append(card);
     }
     target.append(grid, node('p', summary.incomplete ? '反馈可能不完整：存在未处理讲授或录音识别缺口，不能算作学生已经学到。请核对是否已重讲。' : '课堂已完成收尾。当前理解是课堂推断，不是独立验证。', summary.incomplete ? 'report-warning' : 'hint'));
@@ -45,6 +47,7 @@
     const row = document.getElementById(evidenceKey(id)); if (!row) return;
     document.querySelectorAll('.report-highlight').forEach(n => n.classList.remove('report-highlight'));
     row.open = true; row.classList.add('report-highlight');
+    for (let parent=row.parentElement; parent; parent=parent.parentElement) if (parent.tagName === 'DETAILS') parent.open=true;
     const body = row.querySelector('[data-evidence-text]'), text = state.view.snapshot.evidence[id].text;
     const quotes = Array.isArray(quote) ? quote : [quote];
     const ranges = quotes.filter(Boolean).map(q => [text.indexOf(q), text.indexOf(q)+q.length]).filter(r => r[0]>=0).sort((a,b)=>a[0]-b[0]);
@@ -63,17 +66,51 @@
     const grouped = new Map();
     for (const c of items || []) { if (!grouped.has(c.event_id)) grouped.set(c.event_id,new Set()); grouped.get(c.event_id).add(c.quote); }
     for (const [id,quotes] of grouped) {
-      const button = node('button','查看证据 · ' + id,'small'); button.type = 'button';
+      const source=state.view?.snapshot.evidence[id];
+      const speaker=source?.kind === 'reply' ? 'AI 学生' : '教师';
+      const at=source?.at == null ? '记录 '+source?.order : source.at+' 秒';
+      const button = node('button','查看原话 · '+speaker+' · '+at,'small'); button.type = 'button';
+      button.setAttribute('data-event-id',id);
       button.onclick = () => locate(id,[...quotes]); refs.append(button);
     }
     parent.append(refs);
   }
-  function section(title) {
-    const n = node('section',undefined,'report-section'); n.append(node('h3',title)); el('reportAnalysis').append(n); return n;
+  function section(title, target=el('reportAnalysis')) {
+    const n = node('section',undefined,'report-section'); n.append(node('h3',title)); target.append(n); return n;
   }
   function analysis(view) {
     el('reportAnalysis').replaceChildren();
-    const recall = section('学生说，我学到了什么');
+    el('reportStudentDetails').replaceChildren();
+    const reader = view.reader;
+    const overall = section('课堂总体评价');
+    overall.append(node('p',reader?.summary || (view.diagnosis ? '旧版报告未生成总体评价；请查阅下列逐项评价。' : '教学分析尚未完成，不能据此判断没有教学问题。')));
+    citations(overall,reader?.summary_citations);
+    if (view.stages?.diagnosis?.status === 'failed') {
+      const error=view.stages.diagnosis.error;
+      overall.append(node('p','教学分析生成失败：' + (error.includes('结构') ? '模型输出不符合报告结构要求，具体错误见详细依据。' : error),'report-warning'));
+      const retry=node('button','重试未完成分析'); retry.type='button'; retry.onclick=()=>el('reportGenerate').click(); overall.append(retry);
+    }
+    if (view.diagnosis) {
+      const strengths=section('本次试讲的优点');
+      for (const finding of reader?.strengths || view.diagnosis.strengths) {
+        const block=node('div',undefined,'report-item'); block.append(node('p',finding.observation),node('p','教学作用（分析）：'+finding.interpretation,'hint'));
+        citations(block,finding.citations); strengths.append(block);
+      }
+      if (!view.diagnosis.strengths.length) strengths.append(node('p','现有依据不足以提炼明确优点。'));
+      const issues=section('最值得改进的两个问题（本次试讲的不足）');
+      const findings=reader?.issues || view.diagnosis.weaknesses.slice(0,2).map(f=>({...f,suggestion:view.diagnosis.suggestions.find(s=>s.finding_id===f.id)}));
+      for (const [i,finding] of findings.entries()) {
+        const block=node('div',undefined,'report-item');
+        block.append(node('h4',`${i+1}. ${finding.observation}`),node('p',finding.interpretation),node('p','下次应该怎么改：'+(finding.suggestion?.action || '尚未生成有依据的具体动作，不能用套话补位。')));
+        citations(block,finding.citations); issues.append(block);
+      }
+      if (!findings.length) issues.append(node('p','未发现证据充分的主要改进问题；这不代表所有教学维度均已验证。'));
+    }
+    const understanding=section('学生理解情况');
+    understanding.append(node('p',reader?.student || '课堂学生与课后作答均为 AI 模拟，没有真实学生理解证据。'));
+    const counts=reader?.verification_counts || {};
+    understanding.append(node('p',Object.keys(counts).length ? '课后 AI 模拟检查：'+Object.entries(counts).map(([k,v])=>`${k} ${v} 题`).join('；')+'。' : '课后 AI 模拟检查尚未完成或没有可靠题目。'));
+    const recall = section('学生说，我学到了什么',el('reportStudentDetails'));
     recall.append(node('p','这是模拟学生的表达，不能仅凭复述就认为已经理解。','hint'));
     if (!view.recall) recall.append(node('p','尚未生成或生成失败，暂不展示复述。'));
     else for (const [key,title] of [['explained','我的理解'],['doubts','我实际表达过的疑问'],['uncertain','尚未确认的理解（模拟推断）']]) {
@@ -81,7 +118,7 @@
       for (const item of view.recall[key]) { const block = node('div',undefined,'report-item'); block.append(node('p',item.text)); citations(block,item.citations); recall.append(block); }
       if (!view.recall[key].length) recall.append(node('p','暂无有依据的内容。','hint'));
     }
-    const verification = section('学生真的理解了吗');
+    const verification = section('学生真的理解了吗',el('reportStudentDetails'));
     verification.append(node('p','模拟验证只提供课堂内解释或应用的证据，不能证明真实掌握或知识客观正确。','hint'));
     const answers = new Map((view.answers?.answers || []).map(a => [a.id,a]));
     const results = new Map((view.verification?.results || []).map(r => [r.id,r]));
@@ -91,21 +128,6 @@
       citations(block,[...probe.citations,...(answer?.citations || []),...(result?.citations || [])]); verification.append(block);
     }
     if (!view.recall?.probes.length) verification.append(node('p','尚无可靠验证题，不推断已经理解。'));
-    for (const [key,title] of [['strengths','本次试讲的优点'],['weaknesses','本次试讲的不足']]) {
-      const target = section(title);
-      for (const finding of view.diagnosis?.[key] || []) {
-        const block = node('div',undefined,'report-item'); block.append(node('p','观察事实：' + finding.observation),node('p','AI 推断：' + finding.interpretation,'hint'));
-        citations(block,finding.citations); target.append(block);
-      }
-      if (!(view.diagnosis?.[key] || []).length) target.append(node('p','没有足够证据作出判断，或分析尚未完成。'));
-    }
-    const suggestions = section('下次应该怎么改');
-    for (const suggestion of view.diagnosis?.suggestions || []) {
-      const block = node('div',undefined,'report-item'), finding = view.diagnosis.weaknesses.find(f => f.id === suggestion.finding_id);
-      block.append(node('strong',suggestion.priority + ' · 下次尝试'),node('p',suggestion.action),node('p','针对：' + finding.observation,'hint'));
-      citations(block,finding.citations); suggestions.append(block);
-    }
-    if (!view.diagnosis?.suggestions.length) suggestions.append(node('p','暂无有依据的建议。'));
   }
   function evidence(snapshot) {
     const target = el('reportEvidence'); target.replaceChildren();
@@ -122,7 +144,7 @@
     }
   }
   function render(view) {
-    state.view = view; settlement(view.snapshot.settlement); analysis(view); evidence(view.snapshot);
+    state.view = view; settlement(view.snapshot.settlement,view.reader); analysis(view); evidence(view.snapshot);
     el('reportStatus').textContent = statusNames[view.status] || '报告状态未知';
     el('reportGenerate').disabled = view.status === 'generating' || view.status === 'ready';
     el('reportGenerate').textContent = ['partial','failed'].includes(view.status) ? '重试未完成分析' : '生成学生复述与反馈';
@@ -160,4 +182,9 @@
     setTimeout(() => URL.revokeObjectURL(url),1000);
   };
   window.reportV2 = {reset,finished,locate,get hasReport() { return Boolean(state.sid); }};
+  // Reopen one persisted report via its ID; this only performs GET, never regeneration.
+  const savedReport=new URLSearchParams(location.search).get('report');
+  if (savedReport && /^[a-f0-9]{12}$/.test(savedReport)) {
+    finished({session_id:savedReport}); el('reportV2').scrollIntoView({block:'start'});
+  }
 })();

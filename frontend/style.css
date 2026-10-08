@@ -21,4 +21,7 @@
 .report-warning {color:#ffc989}
 .report-v2 mark {background:#ffd98b; color:#152238}
 .report-v2 button {max-width:100%}
+.report-v2 > details {border-top:1px solid var(--line); padding-top:16px; margin-top:16px}
+.report-v2 > details > summary {cursor:pointer; font-weight:600}
+.report-v2 .report-metric strong {font-size:1.1rem}
 @media(max-width:600px) {.report-metrics {grid-template-columns:1fr 1fr} .report-metric {padding:10px}}
