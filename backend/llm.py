@@ -26,7 +26,7 @@ class ModelClient:
         ]
         for attempt in range(2):
             body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 3500}
+                    "temperature": 0.25, "max_tokens": 5000 if phase in ('report_v2_recall', 'report_v2_diagnosis') else 3500}
             await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
             started = time.monotonic()
             try:
@@ -34,6 +34,8 @@ class ModelClient:
                                                 headers={"Authorization": "Bearer " + config.API_KEY})
                 response.raise_for_status()
                 envelope = response.json()
+                if phase.startswith('report_v2_') and envelope['choices'][0].get('finish_reason') == 'length':
+                    raise ModelError('报告输出达到长度上限，未保存该阶段；请缩短课堂或检查模型输出限制。')
                 raw = envelope["choices"][0]["message"]["content"]
             except httpx.HTTPStatusError as e:
                 raise ModelError(f"模型服务返回 HTTP {e.response.status_code}，请检查密钥、额度或模型配置") from None

@@ -1,0 +1,285 @@
+{
+  "snapshot": {
+    "version": 2,
+    "session_id": "333333333333",
+    "lesson": {
+      "topic": "链表删除讲解不完整"
+    },
+    "state": {
+      "version": 1,
+      "knowledge": [
+        {
+          "id": "k1",
+          "text": "链表节点通过引用连接。",
+          "status": "understood",
+          "sources": [
+            "t1"
+          ]
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "topic": "链表删除",
+          "text": "删除中间节点时，为什么要看前一个节点？",
+          "status": "asked",
+          "sources": [
+            "t1"
+          ],
+          "resolution_sources": [],
+          "attempts": 1
+        }
+      ]
+    },
+    "sources": [
+      {
+        "id": "t1",
+        "text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "raw_text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "mode": "text",
+        "question_count": 0,
+        "event_id": "333333333333:e000002",
+        "kind": "teacher",
+        "processed": true
+      }
+    ],
+    "learning_sources": [
+      {
+        "id": "t1",
+        "text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "raw_text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "mode": "text",
+        "question_count": 0,
+        "event_id": "333333333333:e000002",
+        "kind": "teacher",
+        "processed": true
+      }
+    ],
+    "evidence": {
+      "333333333333:e000001": {
+        "event_id": "333333333333:e000001",
+        "kind": "ready",
+        "order": 1,
+        "at": 0,
+        "time": null,
+        "text": ""
+      },
+      "333333333333:e000002": {
+        "event_id": "333333333333:e000002",
+        "kind": "transcript",
+        "order": 2,
+        "at": 10,
+        "time": null,
+        "text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "raw_text": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。",
+        "source_id": "t1"
+      },
+      "333333333333:e000003": {
+        "event_id": "333333333333:e000003",
+        "kind": "reply",
+        "order": 3,
+        "at": 20,
+        "time": null,
+        "text": "删除中间节点时，为什么要看前一个节点？",
+        "question_id": "q1"
+      },
+      "333333333333:e000004": {
+        "event_id": "333333333333:e000004",
+        "kind": "state",
+        "order": 4,
+        "at": 25,
+        "time": null,
+        "text": "{\"version\": 1, \"knowledge\": [{\"id\": \"k1\", \"text\": \"链表节点通过引用连接。\", \"status\": \"understood\", \"sources\": [\"t1\"]}], \"questions\": [{\"id\": \"q1\", \"topic\": \"链表删除\", \"text\": \"删除中间节点时，为什么要看前一个节点？\", \"status\": \"asked\", \"sources\": [\"t1\"], \"resolution_sources\": [], \"attempts\": 1}]}"
+      },
+      "333333333333:e000005": {
+        "event_id": "333333333333:e000005",
+        "kind": "finished",
+        "order": 5,
+        "at": 40,
+        "time": null,
+        "text": "{\"version\": 1, \"knowledge\": [{\"id\": \"k1\", \"text\": \"链表节点通过引用连接。\", \"status\": \"understood\", \"sources\": [\"t1\"]}], \"questions\": [{\"id\": \"q1\", \"topic\": \"链表删除\", \"text\": \"删除中间节点时，为什么要看前一个节点？\", \"status\": \"asked\", \"sources\": [\"t1\"], \"resolution_sources\": [], \"attempts\": 1}]}"
+      }
+    },
+    "questions": [
+      {
+        "id": "q1",
+        "topic": "链表删除",
+        "text": "删除中间节点时，为什么要看前一个节点？",
+        "status": "asked",
+        "sources": [
+          "t1"
+        ],
+        "resolution_sources": [],
+        "attempts": 1
+      }
+    ],
+    "settlement": {
+      "metrics": {
+        "duration_seconds": {
+          "value": 40,
+          "label": "试讲总时长（秒）",
+          "method": "ready 到 finished 的经过时间，包含停顿与结束等待，不是纯讲授时长。"
+        },
+        "teacher_segments": {
+          "value": 1,
+          "label": "教师有效发言片段",
+          "method": "按唯一 t 来源计数，含未处理文本；VAD 短段不等于自然发言轮次。"
+        },
+        "teacher_questions": {
+          "value": 0,
+          "label": "教师提问次数",
+          "method": "仅累加教师明确标注的提问次数；任一片段未标注则无法统计，不通过关键词猜测。"
+        },
+        "student_replies": {
+          "value": 1,
+          "label": "AI 学生发言次数",
+          "method": "只计实际 reply 事件，候选、重试、模型输出不计。"
+        },
+        "student_questions": {
+          "value": 1,
+          "label": "学生提出的疑问数",
+          "method": "实际交付 question 的唯一 question_id；同疑问重复追问仅计一个。"
+        },
+        "responded_questions": {
+          "value": 0,
+          "label": "有教师回应证据的疑问",
+          "method": "已提出疑问的 resolution_sources 指向有效教师来源；这是系统可观察的回应证据，不证明理解。"
+        },
+        "unanswered_questions": {
+          "value": 1,
+          "label": "未记录明确回应的疑问",
+          "method": "已提出且没有 resolution_sources 的疑问；不等于确定教师从未回应。"
+        },
+        "resolved_questions": {
+          "value": 0,
+          "label": "系统标记已解决的疑问",
+          "method": "已实际提出疑问中，最终状态为 resolved 的数量；不是独立验证。"
+        },
+        "verified_understanding": {
+          "value": null,
+          "label": "课堂理解已验证数量",
+          "method": "普通课堂未独立验证；课后模拟验证另列，不更改学生认知。"
+        }
+      },
+      "knowledge_points": [
+        {
+          "id": "k1",
+          "text": "链表节点通过引用连接。",
+          "status": "understood",
+          "sources": [
+            "t1"
+          ]
+        }
+      ],
+      "questions": [
+        {
+          "id": "q1",
+          "topic": "链表删除",
+          "text": "删除中间节点时，为什么要看前一个节点？",
+          "status": "asked",
+          "sources": [
+            "t1"
+          ],
+          "resolution_sources": [],
+          "attempts": 1
+        }
+      ],
+      "unprocessed_sources": [],
+      "processing_errors": [],
+      "audio_gap_events": [],
+      "incomplete": false,
+      "limitations": [
+        "当前理解是课堂推断；沉默不是理解证据。",
+        "错误记录包括已恢复的历史错误，不全部等同于最终失败。"
+      ]
+    },
+    "source_hash": "d9985f7dda6b1173988a8c0185b908325507d9e4e071d25bf4c4a552de7cbfe3"
+  },
+  "status": "ready",
+  "stages": {
+    "recall": {
+      "status": "success",
+      "error": ""
+    },
+    "answers": {
+      "status": "skipped",
+      "error": ""
+    },
+    "verification": {
+      "status": "skipped",
+      "error": ""
+    },
+    "diagnosis": {
+      "status": "success",
+      "error": ""
+    }
+  },
+  "recall": {
+    "explained": [
+      {
+        "text": "我能说出链表中的节点相互连接，但老师还没讲删除时怎样改变连接。",
+        "knowledge_ids": [
+          "k1"
+        ],
+        "question_ids": [],
+        "citations": [
+          {
+            "event_id": "333333333333:e000002",
+            "quote": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。"
+          }
+        ]
+      }
+    ],
+    "doubts": [
+      {
+        "text": "我还有这个疑问：删除中间节点时，为什么要看前一个节点？",
+        "knowledge_ids": [],
+        "question_ids": [
+          "q1"
+        ],
+        "citations": [
+          {
+            "event_id": "333333333333:e000002",
+            "quote": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。"
+          }
+        ]
+      }
+    ],
+    "uncertain": [],
+    "probes": []
+  },
+  "answers": {
+    "answers": []
+  },
+  "verification": {
+    "results": []
+  },
+  "diagnosis": {
+    "strengths": [],
+    "weaknesses": [
+      {
+        "id": "f1",
+        "observation": "教师表示引用改变稍后再讲，学生随后追问删除操作。",
+        "interpretation": "当前课堂还没有足够规则支持学生解释删除过程。",
+        "citations": [
+          {
+            "event_id": "333333333333:e000002",
+            "quote": "链表是节点通过引用连接的结构。现在讲到删除，但具体怎样改变引用稍后再讲。"
+          },
+          {
+            "event_id": "333333333333:e000003",
+            "quote": "删除中间节点时，为什么要看前一个节点？"
+          }
+        ]
+      }
+    ],
+    "suggestions": [
+      {
+        "finding_id": "f1",
+        "priority": "优先",
+        "action": "下次用 A → B → C 展示删除 B 前后的连接，让学生先指出哪个引用需要改变，再解释理由。这是未来例子，不是本次已讲内容。"
+      }
+    ]
+  },
+  "data_origin": "固定模拟课堂及模拟模型输出，不是真实课堂或真实 API 验收"
+}

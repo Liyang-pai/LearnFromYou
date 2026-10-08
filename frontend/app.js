@@ -22,9 +22,9 @@ function syncControls() {
   const uploadBusy = Boolean(window.lessonUpload?.busy);
   $('start').disabled = running || starting || !asrReady || asrBusy || asrDownloading || debugBusy;
   $('changeModel').disabled = running || starting || ending || asrBusy || debugBusy;
-  for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
+  for (const id of ['mic','stopSpeech','end','teacherText','teacherQuestionCount','sendText']) $(id).disabled = !running || ending;
   $('mic').disabled ||= uploadBusy || micStarting || micStopping;
-  for (const id of ['teacherText','sendText']) $(id).disabled ||= uploadBusy;
+  for (const id of ['teacherText','teacherQuestionCount','sendText']) $(id).disabled ||= uploadBusy;
   for (const id of ['topic','points','prerequisites','level','asrReview']) $(id).disabled = running || starting || ending;
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
   window.asrDebug?.sync();
@@ -153,6 +153,7 @@ function handle(event) {
       $('studentMood').textContent = '这节课结束了。我的当前理解保留在下方。';
       append($('events'),recordNode('结束记录',JSON.stringify(d,null,2),true),true);
       if(d.unprocessed_sources.length) showError('部分课堂内容尚未处理：' + d.unprocessed_sources.join('、') + '。原文已保存在本次记录中。');
+      window.reportV2?.finished(d);
       break;
   }
   showActivity();
@@ -173,6 +174,7 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
+  window.reportV2?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
@@ -248,7 +250,7 @@ $('mic').onclick = () => recording ? stopMic() : startMic();
 $('stopSpeech').onclick = () => send({type:'stop_speech'});
 $('mute').onchange = () => { if(running) send({type:'mute',value:$('mute').checked}); };
 $('tts').onchange = () => { if(running) send({type:'tts',value:$('tts').checked}); };
-$('textForm').onsubmit = e => { e.preventDefault(); const text = $('teacherText').value.trim(); if(!text || !running || window.lessonUpload?.busy || ending) return; send({type:'text',text}); bubble(text,true); $('teacherText').value = ''; };
+$('textForm').onsubmit = e => { e.preventDefault(); const text = $('teacherText').value.trim(); if(!text || !running || window.lessonUpload?.busy || ending) return; const count = $('teacherQuestionCount').value; send({type:'text',text,question_count:count === '' ? null : Number(count)}); bubble(text,true); $('teacherText').value = ''; $('teacherQuestionCount').value = ''; };
 $('end').onclick = async () => { if(ending) return; ending = true; syncControls(); await window.lessonUpload?.stop(); await stopMic(); send({type:'end'}); $('sessionStatus').textContent = '正在结束试讲'; };
 $('retry').onclick = () => { send({type:'retry'}); $('error').classList.add('hidden'); };
 $('dismiss').onclick = () => $('error').classList.add('hidden');
@@ -283,6 +285,7 @@ window.lessonUpload = new AudioFileInput('lessonUpload', {
 function showPage(models, updateURL = true) {
   $('lessonPage').classList.toggle('hidden', models);
   $('modelsPage').classList.toggle('hidden', !models);
+  $('reportV2').classList.toggle('hidden', models || !window.reportV2?.hasReport);
   for (const [id, active] of [['modelsTab', models], ['classroomTab', !models]]) {
     $(id).classList.toggle('selected', active);
     if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current');
