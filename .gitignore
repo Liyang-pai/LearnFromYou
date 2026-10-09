@@ -1,6 +1,7 @@
 .env
 .env.*
 !.env.example
+.venv
 .venv/
 /asr/models/
 logs/
