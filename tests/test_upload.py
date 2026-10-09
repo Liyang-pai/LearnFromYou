@@ -22,7 +22,7 @@ def upload_event(total=4096, rate=16000):
 
 
 @pytest.mark.parametrize("change", [
-    {"total_samples": 0}, {"total_samples": True}, {"total_samples": 9600001},
+    {"total_samples": 0}, {"total_samples": True}, {"total_samples": 57600001},
     {"upload_id": ""}, {"filename": ""}, {"input_source": "unknown"},
 ])
 def test_metadata_rejected_before_model_acquisition(debug_service, change):
@@ -33,6 +33,12 @@ def test_metadata_rejected_before_model_acquisition(debug_service, change):
             ws.send_json({'type': 'start', **upload_event(), **change})
             receive(ws, 'error')
         assert not models.busy and not engines
+
+
+@pytest.mark.parametrize("seconds", [601, 2400, 3600])
+def test_extended_upload_duration_accepted(seconds):
+    upload = AudioUpload(upload_event(total=16000 * seconds), 16000)
+    assert upload.total_samples == 16000 * seconds
 
 
 def test_upload_drains_tail_with_source_and_cancellation(debug_service):
