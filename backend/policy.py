@@ -1,7 +1,7 @@
 """Deterministic rules: the model proposes; this module controls state and speech."""
 import re
 from difflib import SequenceMatcher
-from .schemas import StudentState, StudentResult, Question
+from .schemas import StudentState, StudentResult, Question, KnowledgeRevision
 
 
 def invited(text: str) -> bool:
@@ -25,7 +25,32 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
 
     for item in result.knowledge_updates:
         check(item.sources)
+        old = known.get(item.id)
+        if item.id in item.supersedes:
+            if old is None:
+                raise ValueError("纠正必须关联到已有知识条目")
+            # A same-ID correction already archives the previous version below.
+            item = item.model_copy(update={"supersedes": [id for id in item.supersedes if id != item.id]})
+        if old and old != item:
+            next_state.knowledge_history.append(KnowledgeRevision(
+                version=state.version + 1, previous=old.model_copy(deep=True), replacement_id=item.id))
+        for old_id in item.supersedes:
+            if old_id not in known:
+                raise ValueError("纠正必须关联到已有的其他知识条目")
+            replaced = known[old_id]
+            if replaced.status != "conflict":
+                next_state.knowledge_history.append(KnowledgeRevision(
+                    version=state.version + 1, previous=replaced.model_copy(deep=True), replacement_id=item.id))
+                known[old_id] = replaced.model_copy(update={"status": "conflict"})
         known[item.id] = item
+    events = {event.id: event for event in next_state.recent_events}
+    for event in result.event_updates:
+        check(event.sources)
+        if not set(event.sources) & current_ids:
+            raise ValueError("新课堂事件需要本轮教师来源，不能重复添加历史事件")
+        events.pop(event.id, None)
+        events[event.id] = event
+    next_state.recent_events = list(events.values())[-20:]
     for update in result.question_updates:
         check(update.sources)
         check(update.resolution_sources)
@@ -94,4 +119,3 @@ def speech_block(*, muted, stale, busy, speaking, silence, required_pause, candi
     if not addressed and candidate.kind != "question":
         return "未被点名，继续听课"
     return None
-

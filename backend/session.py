@@ -272,12 +272,13 @@ class Session:
 
     def payload(self, batch):
         relevant = {s for k in self.state.knowledge for s in k.sources}
+        relevant |= {s for revision in self.state.knowledge_history for s in revision.previous.sources}
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
         return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.level,
                 "explicit_prerequisites": self.prerequisites,
-                "current_state": self.state.model_dump(), "new_teacher_segments": [teacher_source(s) for s in batch],
+                "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
                 "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
 

@@ -11,7 +11,7 @@ const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原�
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
 let audioUploadAvailable = null;
-const labels = {tentative:'暂定理解',understood:'当前理解',unclear:'信息缺失',conflict:'存在冲突',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
+const labels = {tentative:'暂定理解',understood:'课堂推断理解',unclear:'信息缺失',conflict:'冲突或失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
 function showError(message, retry = false) {
@@ -56,12 +56,12 @@ function showState(state) {
   $('stateVersion').textContent = state.version;
   $('stateJson').textContent = JSON.stringify(state, null, 2);
   const holder = $('stateCards'); holder.textContent = ''; holder.classList.remove('empty');
-  for (const [name, items] of [['当前认知',state.knowledge],['问题与解答',state.questions]]) {
+  for (const [name, items] of [['当前认知',state.knowledge],['问题与解答',state.open_questions ?? state.questions ?? []],['近期课堂事件',state.recent_events ?? []]]) {
     const heading = document.createElement('div'); heading.className = 'state-title'; heading.textContent = name; holder.append(heading);
     if (!items.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
     for (const item of items) {
       const row = document.createElement('div'); row.className = 'state-item ' + item.status;
-      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = labels[item.status];
+      const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = labels[item.status] || '课堂事件';
       const text = document.createElement('span'); text.textContent = item.text;
       const meta = document.createElement('small'); meta.textContent = `${item.id} · 来源 ${item.sources.join('、')}${item.attempts !== undefined ? ' · 已提问 ' + item.attempts + ' 次' : ''}${item.resolution_sources?.length ? ' · 解答来源 ' + item.resolution_sources.join('、') : ''}`;
       row.append(tag,text,meta); holder.append(row);

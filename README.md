@@ -135,7 +135,13 @@ Windows PowerShell 使用 `.venv\Scripts\python.exe` 替换下面的 `./.venv/bi
 
 程序检查来源是否存在，无法仅凭引用编号证明一句话完全由课堂支持。Prompt 也不能让预训练模型真正忘记知识；需继续用未讲内容、错误但自洽的讲解和特殊术语做回归测试。
 
-“当前理解”表示学生当前的认知，不代表标准答案或永久掌握。本版不提供教师评分、多学生、视觉、长期记忆或账号系统。
+“课堂推断理解”（understood）根据课堂行为推断，不代表标准答案或永久掌握。本版不提供教师评分、多学生、视觉、长期记忆或账号系统。
+
+认知状态分为 `knowledge`（定义、概念、规则、方法等）、`open_questions`（问题生命周期，保留 resolved 以防重复追问）和 `recent_events`（开场、任务、回答请求、结束等，最多最近 20 条）。语义分类由现有课堂 LLM 调用一次完成，不增加分类调用。旧 `questions` 输入仍可读取，新的状态日志输出 `open_questions`。
+
+知识的 tentative 是初步认知，understood 是课堂推断理解，unclear 是缺少必要信息，conflict 是冲突或失效。同 ID 修订保存旧版本；不同 ID 的纠正使用 `supersedes` 指向旧知识。旧版本保存在 `knowledge_history`，原始课堂日志不改写。传给课堂模型的当前知识集合仅含 tentative/understood，冲突、缺失和历史记录分开提供，提示模型遵循教师后续明确纠正。
+
+真实星星运算文字回放：后台加载最新代码且课堂空闲时运行 `.venv\Scripts\python.exe scripts/verify_cognition.py`。需自行提供原始日志 `logs/3e206b001729.jsonl`；脚本回放教学片段并检查未讲规则、未完整纠正、普通课堂回答及结束事件，会调用实际模型并消耗 API 额度，不重新验证原始音频的 ASR 效果。详细机制与验证边界见 [V1 认知状态改造说明](docs/V1认知状态改造说明.md)。
 
 
 ## Windows 语音播报
