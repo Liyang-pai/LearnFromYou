@@ -17,7 +17,7 @@ class AudioFileInput {
     this.elements.Start.disabled = this.busy || !this.audio || Boolean(reason);
     this.elements.Stop.disabled = !this.busy || this.phase === 'finishing';
     this.elements.Start.title = reason || '';
-    if (!this.busy) this.elements.Status.textContent = [this.message || '选择 WAV、MP3 或 M4A，最大 50 MiB、最长 10 分钟。', reason].filter(Boolean).join(' ');
+    if (!this.busy) this.elements.Status.textContent = [this.message || '支持 WAV、MP3 或 M4A，最大 700 MiB、最长 60 分钟。建议音频10分钟以内，长音频或大文件解码时会占用较多内存，可能导致页面卡顿或处理失败', reason].filter(Boolean).join(' ');
   }
   status(phase, message) {
     this.phase = phase; this.message = message; this.elements.Status.textContent = message;
@@ -28,8 +28,8 @@ class AudioFileInput {
     this.file = file || null; this.audio = null;
     this.elements.Progress.value = 0;
     if (!file) { this.status('idle', '请选择音频文件。'); return; }
-    if (!file.size || file.size > 50 * 1024 * 1024) {
-      this.status('error', '音频不能为空，且文件大小不得超过 50 MiB。'); return;
+    if (!file.size || file.size > 700 * 1024 * 1024) {
+      this.status('error', '音频不能为空，且文件大小不得超过 700 MiB。'); return;
     }
     const current = ++this.generation;
     this.busy = true; this.status('decoding', `正在解析 ${file.name}……`);
@@ -38,7 +38,7 @@ class AudioFileInput {
       context = new AudioContext();
       const decoded = await context.decodeAudioData(await file.arrayBuffer());
       if (current !== this.generation) return;
-      if (!decoded.length || !decoded.numberOfChannels || !Number.isFinite(decoded.duration) || decoded.duration > 600) throw new Error('音频不能为空，且时长不得超过 10 分钟。');
+      if (!decoded.length || !decoded.numberOfChannels || !Number.isFinite(decoded.duration) || decoded.duration > 3600) throw new Error('音频不能为空，且时长不得超过 60 分钟。');
       if (decoded.sampleRate < 8000 || decoded.sampleRate > 96000) throw new Error('不支持此音频采样率，请转换为 PCM WAV 或 MP3。');
       const samples = new Float32Array(decoded.length);
       for (let channel = 0; channel < decoded.numberOfChannels; channel++) {

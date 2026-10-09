@@ -3,7 +3,7 @@ import re
 
 
 class AudioUpload:
-    MAX_SECONDS = 600
+    MAX_SECONDS = 3600
     FRAME_SAMPLES = 2048
 
     def __init__(self, event, sample_rate):
@@ -13,7 +13,7 @@ class AudioUpload:
         upload_id = event.get("upload_id")
         filename = event.get("filename")
         if type(total) is not int or not 0 < total <= sample_rate * self.MAX_SECONDS:
-            raise ValueError("上传音频不能为空，且时长不得超过 10 分钟")
+            raise ValueError("上传音频不能为空，且时长不得超过 60 分钟")
         if not isinstance(upload_id, str) or not re.fullmatch(r"[A-Za-z0-9_-]{1,80}", upload_id):
             raise ValueError("上传标识无效")
         if not isinstance(filename, str) or not filename.strip() or len(filename) > 255:

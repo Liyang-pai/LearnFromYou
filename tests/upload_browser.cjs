@@ -49,16 +49,19 @@ async function main() {
         const file = {name:'stereo.wav',size:10,arrayBuffer:async()=>new ArrayBuffer(10)};
         await upload.select(file);
         const mono = Array.from(upload.audio.samples);
-        decoded = {...decoded, duration:600.1}; await upload.select(file);
+        decoded = {...decoded, duration:3600};
+        await upload.select({...file,size:700*1024*1024});
+        const boundaryAccepted = upload.phase === 'ready';
+        decoded = {...decoded, duration:3600.1}; await upload.select(file);
         const overlong = upload.phase === 'error' && !upload.audio;
-        await upload.select({...file,size:50*1024*1024+1});
+        await upload.select({...file,size:700*1024*1024+1});
         const oversized = upload.phase === 'error' && !upload.audio;
         await upload.select({...file,size:0});
-        return {mono,overlong,oversized,empty:upload.phase === 'error' && !upload.audio};
+        return {mono,boundaryAccepted,overlong,oversized,empty:upload.phase === 'error' && !upload.audio};
       } finally { window.AudioContext = RealContext; }
     });
     assert.deepEqual(checks.mono.map(n=>Math.round(n*10)), [0,4,6]);
-    assert(checks.overlong && checks.oversized && checks.empty);
+    assert(checks.boundaryAccepted && checks.overlong && checks.oversized && checks.empty);
     console.log('PASS stereo downmix and empty/size/duration validation');
 
     // Stop during a slow ACK, without dropping the already-sent frame or sending the remainder.

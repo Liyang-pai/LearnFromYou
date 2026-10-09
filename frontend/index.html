@@ -56,7 +56,7 @@
             <input id="lessonUploadFile" type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4">
             <div class="upload-controls"><button id="lessonUploadStart" disabled>开始音频测试</button><button id="lessonUploadStop" disabled>停止上传</button></div>
             <progress id="lessonUploadProgress" value="0" max="100" aria-label="课堂音频处理进度"></progress>
-            <p id="lessonUploadStatus" class="hint" role="status" aria-live="polite">请先创建试讲并暂停麦克风。支持 WAV、MP3、M4A，最大 50 MiB、最长 10 分钟。</p>
+            <p id="lessonUploadStatus" class="hint" role="status" aria-live="polite">支持 WAV、MP3 或 M4A，最大 700 MiB、最长 60 分钟。建议音频10分钟以内，长音频或大文件解码时会占用较多内存，可能导致页面卡顿或处理失败</p>
           </div>
           <p id="reviewNotice" class="review-notice hidden" role="status" aria-live="polite"></p>
           <details class="text-test"><summary>用文字测试同一条学习链路</summary><form id="textForm"><textarea id="teacherText" rows="2" maxlength="5000" placeholder="输入教师讲授或提问，如：你目前理解了什么？" disabled></textarea><button id="sendText" disabled>发送讲授</button></form></details>
@@ -87,7 +87,7 @@
           <input id="debugUploadFile" type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4">
           <div class="upload-controls"><button id="debugUploadStart" disabled>开始音频测试</button><button id="debugUploadStop" disabled>停止上传</button></div>
           <progress id="debugUploadProgress" value="0" max="100" aria-label="ASR 音频处理进度"></progress>
-          <p id="debugUploadStatus" class="hint" role="status" aria-live="polite">支持 WAV、MP3、M4A，以浏览器解码结果为准；最大 50 MiB、最长 10 分钟。</p>
+          <p id="debugUploadStatus" class="hint" role="status" aria-live="polite">支持 WAV、MP3 或 M4A，最大 700 MiB、最长 60 分钟。建议音频10分钟以内，长音频或大文件解码时会占用较多内存，可能导致页面卡顿或处理失败</p>
         </div>
         <p id="asrDebugError" class="model-error hidden" role="alert"></p>
         <div class="stats asr-debug-stats"><span>测试模型 <b id="asrDebugModel">—</b></span><span>转写段数 <b id="asrDebugCount">0</b></span><span>接收录音 <b id="asrDebugDuration">0s</b></span><span>识别总耗时 <b id="asrDebugSeconds">0s</b></span></div>
