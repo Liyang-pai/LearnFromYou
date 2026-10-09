@@ -15,7 +15,6 @@ from .policy import apply_result, invited, mark_delivered, speech_block
 from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, Preparation, StudentResult, StudentState
 from .speech import Speaker
-from .assessment import assess, generate_question, KINDS
 
 
 class Session:
@@ -67,8 +66,6 @@ class Session:
         self.started = time.monotonic()
         self.log = None
         self.llm = ModelClient(self.emit)
-        self.assessments = []
-        self.assessment_task = None
 
     async def emit(self, kind, data):
         event = {"type": kind, "time": datetime.now(timezone.utc).isoformat(),
@@ -108,66 +105,9 @@ class Session:
             self.tasks.append(asyncio.create_task(self.review_loop()))
         await self.emit("ready", {"session_id": self.id, "asr_model": self.asr_model, "scope": self.preparation.model_dump(),
             "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump(),
-            "asr_review": self.asr_review, "assessment_available": True})
-
-    async def start_assessment(self, kind):
-        if not self.ready or self.closed or self.finishing:
-            raise ValueError("请先创建试讲，结束中的课堂不能测验")
-        if self.assessment_task and not self.assessment_task.done():
-            raise ValueError("测验正在进行，请等待结果")
-        if self.audio_enabled or self.active:
-            raise ValueError("请先暂停麦克风，再检验学生理解")
-        if self.pending or self.processing or self.asr_pending or not self.teaching_queue.empty():
-            raise ValueError("课堂内容尚未消化完成，请等待认知更新后再测验")
-        if kind not in KINDS:
-            raise ValueError("请选择复述、应用或边界题")
-        teacher_ids = sorted(self.processed_ids)
-        if not teacher_ids:
-            raise ValueError("请先讲授至少一段内容，等待学生认知更新后再测验")
-        previous = next((r for r in reversed(self.assessments) if r["question"]["kind"] == kind), None)
-        if previous and set(teacher_ids) <= set(previous["teacher_source_ids"]):
-            raise ValueError("请先补充讲解并等待认知更新，再用新题检验")
-        sources = [dict(s) for key, s in self.sources.items() if key.startswith("p") or key in self.processed_ids]
-        state, revision = self.state.model_copy(deep=True), self.revision
-        self.candidate = None
-        await self.stop_speech("开始理解测验")
-        self.assessment_task = asyncio.create_task(self._run_assessment(kind, state, sources, revision, teacher_ids))
-
-    async def _run_assessment(self, kind, state, sources, revision, teacher_ids):
-        try:
-            await self.emit("assessment_status", {"busy": True, "message": "正在根据课堂内容自动出题并检查依据"})
-            question = await generate_question(self.llm, kind, self.lesson, state, sources, self.assessments)
-            if self.revision != revision or self.finishing or self.closed or self.audio_enabled or self.active:
-                await self.emit("assessment_discarded", {"message": "出题期间课堂内容发生变化，本次未提交，请待新内容消化后重试"})
-                return
-            await self.emit("assessment_status", {"busy": True, "question": question.public(), "message": "学生正在独立作答，随后评估课堂依据"})
-            answer, evaluation = await assess(self.llm, question, self.lesson, state, sources)
-            if self.revision != revision or self.finishing or self.closed or self.audio_enabled or self.active:
-                await self.emit("assessment_discarded", {"message": "测验期间课堂内容发生变化，本次结果未提交，请待新内容消化后重试"})
-                return
-            result = {"id": f"a{len(self.assessments) + 1}", "question": question.public(),
-                      "answer": answer.model_dump(), "evaluation": evaluation.model_dump(),
-                      "state_version": state.version, "teacher_source_ids": teacher_ids,
-                      "learning_target": question.learning_target, "criteria": [c.text for c in question.criteria],
-                      "round": 1 + sum(r["question"]["kind"] == question.kind for r in self.assessments)}
-            self.assessments.append(result)
-            await self.emit("assessment_result", result)
-        except (ModelError, ValueError) as exc:
-            await self.emit("error", {"message": str(exc), "code": "assessment_failure"})
-        except Exception:
-            await self.emit("error", {"message": "测验处理失败，本题未提交，请重试", "code": "assessment_failure"})
-        finally:
-            await self.emit("assessment_status", {"busy": False})
-
-    async def cancel_assessment(self):
-        if self.assessment_task and not self.assessment_task.done():
-            self.assessment_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self.assessment_task
+            "asr_review": self.asr_review})
 
     async def start_audio(self, rate, upload=None):
-        if self.assessment_task and not self.assessment_task.done():
-            raise ValueError("理解测验正在进行，请等待结果后再开启麦克风")
         if not 8000 <= rate <= 96000:
             raise ValueError("不支持的麦克风采样率")
         if self.upload or (upload and self.audio):
@@ -394,8 +334,6 @@ class Session:
             await self.try_speak(silence)
 
     async def try_speak(self, silence):
-        if self.assessment_task and not self.assessment_task.done():
-            return
         if not self.candidate or self.finishing:
             return
         c = self.candidate
@@ -449,7 +387,6 @@ class Session:
 
     async def finish(self):
         self.finishing = True
-        await self.cancel_assessment()
         await self.stop_speech("试讲结束")
         await self.stop_audio()
         await self.flush("session_end")
@@ -460,7 +397,7 @@ class Session:
             await asyncio.sleep(.1)
         remaining = [s for s in self.sources if s.startswith("t") and s not in self.processed_ids]
         await self.emit("finished", {"state": self.state.model_dump(), "unprocessed_sources": remaining,
-                                     "session_id": self.id, "log_file": f"logs/{self.id}.jsonl", "assessments": self.assessments})
+                                     "session_id": self.id, "log_file": f"logs/{self.id}.jsonl"})
         await self.close()
 
     async def close(self):
@@ -472,7 +409,6 @@ class Session:
 
     async def _close_resources(self):
         self.closed = True
-        await self.cancel_assessment()
         await self.speaker.stop()
         for task in self.tasks + ([self.tts_task] if self.tts_task else []):
             task.cancel()

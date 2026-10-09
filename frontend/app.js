@@ -1,13 +1,12 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let socket, running = false, starting = false, recording = false, ending = false;
-let micGeneration = 0;
 let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
 let sentAudioFrames = 0;
 let micStarting = false, micStopping = false;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
-const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', assessment_question:'课堂自动出题', assessment_audit:'题目依据检查', assessment_answer:'测验独立作答', assessment_evaluation:'测验独立评估'};
+const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新'};
 const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原文', bypassed:'文字输入 · 无需审核', disabled:'审核已关闭'};
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
@@ -28,8 +27,6 @@ function syncControls() {
   for (const id of ['teacherText','sendText']) $(id).disabled ||= uploadBusy;
   for (const id of ['topic','points','prerequisites','level','asrReview']) $(id).disabled = running || starting || ending;
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
-  if (window.assessment?.busy || micStarting) $('mic').disabled = true;
-  window.assessment?.sync();
   window.asrDebug?.sync();
   window.lessonUpload?.sync();
 }
@@ -83,7 +80,6 @@ function showActivity() {
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
   window.lessonUpload?.handle(event);
-  window.assessment?.handle(event);
   switch (event.type) {
     case 'ready':
       $('asrReview').checked = d.asr_review !== false;
@@ -170,7 +166,6 @@ async function connect() {
     if(running || starting) showError('本机服务连接已断开；请检查服务并重新创建试讲。');
     running = false; starting = false; ending = false;
     glossaryBusy = reviewBusy = studentBusy = studentFailed = false; stopMic(false); syncControls();
-    window.assessment?.disconnected();
   };
   await new Promise((resolve,reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('无法连接本机服务')); });
 }
@@ -178,7 +173,6 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
-  window.assessment?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
@@ -187,18 +181,13 @@ $('lessonForm').addEventListener('submit',async e => {
   catch(e) { starting = false; syncControls(); showError(e.message); }
 });
 async function startMic() {
-  if (!running || ending || recording || micStarting || micStopping || window.lessonUpload?.busy || window.assessment?.busy) return;
-  const generation = ++micGeneration;
+  if (!running || ending || recording || micStarting || micStopping || window.lessonUpload?.busy) return;
   micStarting = true; syncControls();
   $('mic').disabled = true;
   try {
     context = new AudioContext(); await context.resume();
-    if (generation !== micGeneration || !running || ending) return;
-    const captured = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
-    if (generation !== micGeneration || !running || ending) { captured.getTracks().forEach(track => track.stop()); return; }
-    stream = captured;
+    stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}});
     await context.audioWorklet.addModule('/static/audio-worklet.js');
-    if (generation !== micGeneration || !running || ending) return;
     source = context.createMediaStreamSource(stream);
     worklet = new AudioWorkletNode(context,'capture-processor');
     silentGain = context.createGain(); silentGain.gain.value = 0;
@@ -230,13 +219,11 @@ async function startMic() {
     }, 1200);
     $('micHint').textContent = '麦克风已开启。停顿后出现最终转写；学生在静音时也会继续听课。建议戴耳机。';
   } catch(e) {
-    if (generation !== micGeneration) return;
     showError(e.name === 'NotAllowedError' ? '麦克风权限未开放，请在浏览器地址栏允许麦克风后重试。' : '麦克风无法启动：' + e.message);
     await stopMic(false);
-  } finally {
-    if (generation === micGeneration) micStarting = false;
-    syncControls();
   }
+  micStarting = false;
+  syncControls();
 }
 function rms(samples) {
   let sum = 0; for (let i = 0; i < samples.length; i++) sum += samples[i] * samples[i];
@@ -244,7 +231,6 @@ function rms(samples) {
 }
 async function stopMic(notify = true) {
   if (notify && running && (recording || micStarting)) micStopping = true;
-  micGeneration += 1; micStarting = false;
   if(worklet && recording) {
     await Promise.race([new Promise(resolve => { flushed = resolve; worklet.port.postMessage('flush'); }),new Promise(resolve => setTimeout(resolve,200))]);
   }

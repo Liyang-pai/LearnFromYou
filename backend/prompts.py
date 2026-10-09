@@ -38,7 +38,7 @@ knowledge_updates 只保存可用于后续推理的定义、概念、原理、�
 一个片段可以同时含知识和事件，应分别提取；不能根据“今天”“吗”等单词机械分类。无需记录所有口头语。
 event_updates 的 kind 为 opening/task/request/lesson_end/organization，附本轮来源 ID；近期事件不是已学规则。
 更新认知：听过不等于理解。新知识一般先 tentative；根据课堂回答、解释或应用等行为可推断 understood。
-understood 只是课堂推断理解，绝不等于独立测验验证。老师说答对了或学生自称懂了不能产生 verified。
+understood 只是课堂推断理解，不代表标准答案或永久掌握。老师说答对了或学生自称懂了不能产生 verified。
 允许简单的有依据推导，并先标 tentative。
 教师明确纠正时，旧规则必须变为 conflict，不得删去或继续使用。规则尚未补充完整时，不得猜测新规则。
 相同 ID 被纠正时更新该条目，supersedes 留空，程序保存旧版本；新规则使用不同 ID 时，在 supersedes 列出被纠正的旧知识 ID。

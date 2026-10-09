@@ -1,13 +1,14 @@
-"""State contract/policy tests; semantic classification is separately tested live."""
+"""验证认知状态、修订关系及普通课堂协议；语义分类效果另行实测。"""
 import asyncio
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
-from backend.assessment import classroom_payload, assess
 from backend.policy import apply_result
 from backend.schemas import ClassroomEvent, Knowledge, StudentResult, StudentState
-from test_assessment import AssessmentModel, fixture_question, SOURCES as ASSESSMENT_SOURCES
+from backend.session import Session
+from test_models import manager, install, FakeEngine
 
 
 SOURCES = {
@@ -73,7 +74,6 @@ def test_d_correction_retains_history_but_old_rule_is_not_current(same_id):
     assert state.learning_context()['knowledge'] == [corrected.model_dump()]
     if not same_id:
         assert state.knowledge[0].status == 'conflict'
-    assert classroom_payload(state, [])['current_state']['knowledge'] == [corrected.model_dump()]
 
 
 def test_incomplete_correction_does_not_require_an_invented_new_rule():
@@ -89,15 +89,6 @@ def test_e_verified_is_not_a_model_writable_status():
         rule(status='verified')
     state, _ = apply_result(StudentState(), StudentResult(knowledge_updates=[rule()]), SOURCES, {'t2'})
     assert state.knowledge[0].status == 'understood'
-
-
-def test_passed_assessment_does_not_guess_knowledge_mapping():
-    state = StudentState(knowledge=[rule()])
-    before = state.model_dump()
-    from backend.schemas import Lesson
-    _, evaluation = asyncio.run(assess(AssessmentModel(), fixture_question(), Lesson(topic='链表'), state, ASSESSMENT_SOURCES))
-    assert evaluation.verdict == 'passed'
-    assert state.model_dump() == before
 
 
 def test_bad_event_source_rejects_whole_result_atomically():
@@ -125,3 +116,109 @@ def test_same_id_self_reference_is_normalized_without_losing_history():
 def test_self_reference_cannot_invent_an_existing_knowledge():
     with pytest.raises(ValueError):
         apply_result(StudentState(), StudentResult(knowledge_updates=[rule(supersedes=['k_star'])]), SOURCES, {'t2'})
+
+
+def test_classroom_payload_keeps_revision_sources_and_filters_current_knowledge():
+    old = rule(text=SOURCES['t1']['text'], sources=['t1'])
+    state, _ = apply_result(StudentState(knowledge=[old]), StudentResult(
+        knowledge_updates=[rule(), rule(id='k_missing', status='unclear')],
+        question_updates=[{'id': 'q1', 'topic': '旧规则', 'text': '规则是什么？',
+                           'status': 'resolved', 'sources': ['t3'], 'resolution_sources': ['t2']}]),
+        SOURCES, {'t2'})
+    # t1 已不在最近八条中，也没有被当前知识直接引用，仍应通过修订历史保留。
+    sources = {f't{i}': {'id': f't{i}', 'text': f'已采用的课堂内容{i}', 'mode': 'text',
+                         'revision': i, 'at': i, 'raw_text': '不应发给学生的审核原文'}
+               for i in range(1, 13)}
+    session = SimpleNamespace(state=state, sources=sources, processed_ids=set(sources) - {'t12'},
+                              preparation=SimpleNamespace(scope=['星星运算']),
+                              lesson=SimpleNamespace(level='初学者'), prerequisites=[], history=[])
+    before = state.model_dump()
+    payload = Session.payload(session, [sources['t12']])
+    assert payload['current_state']['knowledge'] == [rule().model_dump()]
+    assert payload['current_state']['inactive_knowledge'][0]['id'] == 'k_missing'
+    assert payload['current_state']['knowledge_history'][0]['previous'] == old.model_dump()
+    assert payload['current_state']['open_questions'][0]['status'] == 'resolved'
+    assert 't1' in {s['id'] for s in payload['teacher_sources']}
+    assert payload['new_teacher_segments'][0]['id'] == 't12'
+    assert all('raw_text' not in s for s in payload['teacher_sources'] + payload['new_teacher_segments'])
+    assert state.model_dump() == before
+
+
+@pytest.mark.parametrize('asr_review', [False, True])
+def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, monkeypatch, tmp_path, asr_review):
+    from fastapi.testclient import TestClient
+    from backend import app as service
+    from backend.schemas import Preparation, ReviewGlossary
+
+    phases = []
+
+    class ClassroomModel:
+        def __init__(self, emit):
+            pass
+
+        async def generate(self, phase, system, payload, output_type):
+            phases.append(phase)
+            if phase == 'preparation':
+                return Preparation(scope=['星星运算'], boundary_note='仅从课堂学习')
+            if phase == 'review_glossary':
+                return ReviewGlossary(terms=['星星运算'])
+            assert phase == 'student'
+            source_id = payload['new_teacher_segments'][-1]['id']
+            if source_id == 't1':
+                return StudentResult(knowledge_updates=[rule(text=SOURCES['t1']['text'], sources=['t1'])])
+            if source_id == 't2':
+                return StudentResult(knowledge_updates=[rule()], addressed=True,
+                    candidate={'kind': 'answer', 'text': '3加3再减1，得到5。', 'sources': ['t2']})
+            assert payload['current_state']['knowledge'] == [rule().model_dump()]
+            assert payload['current_state']['knowledge_history'][0]['previous']['sources'] == ['t1']
+            return StudentResult(event_updates=[ClassroomEvent(
+                id='e_end', kind='lesson_end', text='今天学习结束。', sources=[source_id])])
+
+        async def close(self):
+            pass
+
+    def receive(ws, kind):
+        for _ in range(40):
+            event = ws.receive_json()
+            assert event['type'] != 'error', event
+            if event['type'] == kind:
+                return event['data']
+        pytest.fail('没有收到事件：' + kind)
+
+    asyncio.run(install(manager))
+    manager.select('first')
+    monkeypatch.setattr(manager, '_create_engine', lambda model: FakeEngine(model.id))
+    monkeypatch.setattr(service, 'models', manager)
+    monkeypatch.setattr(service, 'active_session', None)
+    monkeypatch.setattr('backend.session.ModelClient', ClassroomModel)
+    monkeypatch.setattr('backend.config.DIRECT_PAUSE', 0)
+    with TestClient(service.app) as client:
+        page = client.get('/')
+        assert page.status_code == 200
+        assert 'assessment' not in page.text
+        assert 'lessonUploadFile' in page.text and 'asrReview' in page.text
+        monkeypatch.setattr('backend.config.ROOT', tmp_path)
+        with client.websocket_connect('/ws/session') as ws:
+            ws.send_json({'type': 'start', 'lesson': {'topic': '星星运算'},
+                          'tts': False, 'asr_review': asr_review})
+            ready = receive(ws, 'ready')
+            assert 'assessment_available' not in ready
+            assert ready['asr_review'] == asr_review
+            assert ready['state']['open_questions'] == []
+            ws.send_json({'type': 'text', 'text': SOURCES['t1']['text']})
+            assert receive(ws, 'state')['state']['version'] == 1
+            ws.send_json({'type': 'text', 'text': SOURCES['t2']['text'] + '请回答3星星3。'})
+            corrected = receive(ws, 'state')['state']
+            assert corrected['knowledge'] == [rule().model_dump()]
+            assert corrected['knowledge_history'][0]['previous']['sources'] == ['t1']
+            assert receive(ws, 'reply')['text'] == '3加3再减1，得到5。'
+            ws.send_json({'type': 'text', 'text': SOURCES['t4']['text']})
+            final = receive(ws, 'state')['state']
+            assert final['recent_events'][0]['kind'] == 'lesson_end'
+            assert len(final['knowledge']) == 1
+            ws.send_json({'type': 'end'})
+            finished = receive(ws, 'finished')
+            assert finished['state'] == final and not finished['unprocessed_sources']
+            assert 'assessments' not in finished
+    assert phases == ['preparation'] + (['review_glossary'] if asr_review else []) + ['student'] * 3
+    assert not manager.busy
