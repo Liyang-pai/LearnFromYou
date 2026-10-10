@@ -103,8 +103,35 @@ class Suggestion(StrictModel):
     action: str = Field(min_length=1, max_length=300)
 
 
+class TeachingPoint(StrictModel):
+    text: str = Field(min_length=1, max_length=120)
+    citations: list[Citation] = Field(min_length=1, max_length=3)
+
+
+class ReviewDimension(StrictModel):
+    name: Literal['内容准确性', '结构衔接', '解释与例子', '互动检查', '表达节奏']
+    status: Literal['有依据', '待核查', '缺少依据']
+    text: str = Field(min_length=1, max_length=120)
+    citations: list[Citation] = Field(default_factory=list, max_length=3)
+
+
+class Practice(StrictModel):
+    action: str = Field(min_length=1, max_length=180)
+    check: str = Field(min_length=1, max_length=120)
+
+
+class FindingWithdrawal(StrictModel):
+    finding_id: str = Field(pattern=r'^f[1-6]$')
+    reason: str = Field(min_length=1, max_length=200)
+    citations: list[Citation] = Field(min_length=1, max_length=3)
+
+
 class Diagnosis(StrictModel):
     summary: TeachingSummary | None = None
+    key_points: list[TeachingPoint] = Field(default_factory=list, max_length=6)
+    dimensions: list[ReviewDimension] = Field(default_factory=list, max_length=5)
+    practice: Practice | None = None
     strengths: list[Finding] = Field(default_factory=list, max_length=3)
     weaknesses: list[Finding] = Field(default_factory=list, max_length=3)
     suggestions: list[Suggestion] = Field(default_factory=list, max_length=3)
+    withdrawals: list[FindingWithdrawal] = Field(default_factory=list, max_length=6)

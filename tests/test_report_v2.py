@@ -37,6 +37,8 @@ class SimulatedModel:
             data = {'summary':{'text':'教师明确讲述了节点组成，提供了解释依据；模拟检查不能证明真实学生掌握。','citations':[citation]},
                     'strengths': [{'id': 'f1', 'observation': '教师明确讲述了节点组成。', 'interpretation': '这提供了可追溯的解释依据。', 'citations': [citation]}],
                     'weaknesses': [], 'suggestions': []}
+            data['dimensions']=[{'name':name,'status':'缺少依据','text':'固定测试数据未评价该维度。','citations':[]}
+                for name in ('内容准确性','结构衔接','解释与例子','互动检查','表达节奏')]
         return output_type.model_validate(data)
 
     async def close(self): pass
@@ -65,7 +67,7 @@ def test_generation_isolated_idempotent_and_exports(tmp_path, monkeypatch):
     assert set(answer_input['public_questions'][0]) == {'id', 'question'}
     assert not {'recall', 'verification', 'reference_answer', 'criteria', 'knowledge_id'} & answer_input.keys()
     assert service.get(SID)['snapshot'] == original
-    exported = markdown(service.get(SID))
+    exported = markdown(service.get(SID), include_details=True)
     for section in ('课堂总体评价', '本次试讲结算', '学生说，我学到了什么', '学生真的理解了吗', '本次试讲的优点', '本次试讲的不足', '课堂证据'):
         assert section in exported
     assert SID+':e000002' in exported and '原始转写' in exported and '模拟验证' in exported
@@ -125,6 +127,40 @@ def test_no_new_knowledge_or_missing_questions_in_recall():
     item['knowledge_ids'] = ['k1']
     with pytest.raises(ValueError, match='遗漏'):
         validate_recall({'explained': [item], 'doubts': [], 'uncertain': [], 'probes': []}, snapshot)
+
+
+@pytest.mark.parametrize('legacy_present', [False, True])
+def test_snapshot_accepts_main_open_questions_and_does_not_revive_legacy(legacy_present):
+    events = classroom(question=True)
+    state = events[-1]['data']['state']
+    state['open_questions'] = deepcopy(state['questions'])
+    if not legacy_present:
+        del state['questions']
+    assert build_snapshot(SID, events)['questions'][0]['id'] == 'q1'
+    state['open_questions'] = []
+    assert build_snapshot(SID, events)['questions'] == []
+
+
+@pytest.mark.parametrize('match_kind', ['exact', 'unrelated', 'ambiguous'])
+def test_recall_can_recover_only_unique_literal_question_id(match_kind):
+    from backend.report_v2 import validate_recall
+    snapshot = build_snapshot(SID, classroom(question=True))
+    question = snapshot['questions'][0]
+    for q in snapshot['settlement']['questions']:
+        q['expressed'] = False
+    text = '我有点疑惑：' + question['text'] if match_kind != 'unrelated' else '我还有另外一个问题。'
+    if match_kind == 'ambiguous':
+        snapshot['questions'].append({**question, 'id': 'q2'})
+    plan = {'explained': [], 'doubts': [{'text': text, 'knowledge_ids': [],
+        'question_ids': [], 'citations': [{'event_id': SID+':e000002',
+        'quote': snapshot['sources'][0]['text']}]}], 'uncertain': [], 'probes': []}
+    if match_kind == 'exact':
+        validate_recall(plan, snapshot)
+        assert plan['doubts'] == []
+        assert plan['uncertain'][0]['question_ids'] == ['q1']
+    else:
+        with pytest.raises(ValueError, match='遗漏'):
+            validate_recall(plan, snapshot)
 
 
 def test_wrong_quote_and_unprocessed_evidence_rejected():
@@ -377,7 +413,8 @@ def test_websocket_to_settlement_and_report_http_pipeline(tmp_path, monkeypatch)
                 time.sleep(.01)
             assert view['status']=='ready'
             assert view['snapshot']==before
-            assert '学生说，我学到了什么' in view['markdown']
+            assert '本节讲授要点' in view['markdown'] and '课堂证据' not in view['markdown']
+            assert '学生说，我学到了什么' in view['record_markdown']
             assert len(calls)==4
 
 

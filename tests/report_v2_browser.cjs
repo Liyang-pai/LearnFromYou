@@ -35,13 +35,14 @@ async function main() {
     await page.evaluate(data => window.reportV2.finished(data),{session_id:fixture.snapshot.session_id,settlement:fixture.snapshot.settlement});
     await page.getByText('报告已生成。',{exact:true}).waitFor();
     assert.equal(await page.locator('#reportDetails').evaluate(el=>el.open),false);
-    assert((await page.locator('#reportAnalysis h3').first().innerText()).includes('课堂总体评价'));
+    assert((await page.locator('#reportAnalysis h3').first().innerText()).includes('本节讲授要点'));
     assert.equal(await page.locator('#reportSummary').isVisible(),false,'stats should be folded by default');
     assert.equal(await page.locator('#reportSummary .report-metric').count(),Object.keys(fixture.snapshot.settlement.metrics).length);
     assert((await page.locator('#reportAnalysis').innerText()).includes('AI 模拟'));
     await page.locator('#reportDetails > summary').click();
     const verificationSection=page.locator('.report-section').filter({has:page.getByRole('heading',{name:'学生真的理解了吗',exact:true})});
     assert.equal(await verificationSection.locator('.report-citations button').count(),1,'same-event references must share one button');
+    await page.locator('details:has(> .report-citations)').first().locator('summary').click();
     await page.locator('.report-citations button').first().click();
     const highlighted=page.locator('.report-highlight');
     assert((await highlighted.getAttribute('id')).endsWith('e000002'));
@@ -71,9 +72,10 @@ async function main() {
       if (fixture.snapshot.settlement.questions.some(q=>q.status==='deferred')) assert(summary.includes('暂缓处理，尚未解决'));
       for (const metric of Object.values(fixture.snapshot.settlement.metrics)) {
         const readerMetric=Object.values(fixture.reader.metrics).find(item=>item.method===metric.method);
-        assert(fixture.markdown.includes(`${readerMetric.label}：${metric.value===null?'无法统计':metric.value}`));
+        assert((fixture.record_markdown || fixture.markdown).includes(`${readerMetric.label}：${metric.value===null?'无法统计':metric.value}`));
         assert(summary.includes(readerMetric.label));
       }
+      await page.locator('details:has(> .report-citations)').evaluateAll(rows=>rows.forEach(row=>row.open=true));
       const buttons=page.locator('.report-citations button');
       assert(await buttons.count()>=5);
       for (let i=0;i<await buttons.count();i++) {

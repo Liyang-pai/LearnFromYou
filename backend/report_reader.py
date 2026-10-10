@@ -50,8 +50,20 @@ def reader_view(view):
     counts = {}
     for result in (view.get('verification') or {}).get('results', []):
         counts[result['status']] = counts.get(result['status'], 0) + 1
-    return {'summary':summary, 'summary_citations':(diagnosis or {}).get('summary', {}).get('citations', []) if (diagnosis or {}).get('summary') else [],
+    points = (diagnosis or {}).get('key_points', [])
+    dimensions = (diagnosis or {}).get('dimensions', [])
+    practice = (diagnosis or {}).get('practice')
+    points_empty_message = ('讲授要点尚未生成，教学分析未完成。' if not diagnosis else
+                            '本次分析未提炼出讲授要点；可查看总体评价和完整记录。' if len(dimensions) == 5 else
+                            '旧报告尚未生成精炼要点；原始记录仍保留。')
+    report_ready = bool(diagnosis and stage.get('status') == 'success' and not failed)
+    generation_message = ('教学报告已生成，附加模拟验证尚未完成；可直接查看和导出报告。'
+                          if report_ready and view.get('status') in ('partial', 'failed') else '')
+    return {'summary':summary, 'key_points':points, 'dimensions':dimensions, 'practice':practice,
+            'points_empty_message':points_empty_message,
+            'report_ready':report_ready, 'generation_message':generation_message,
+            'summary_citations':(diagnosis or {}).get('summary', {}).get('citations', []) if (diagnosis or {}).get('summary') else [],
             'diagnosis_failed':failed, 'error':stage.get('error', ''),
             'strengths':[finding_refs(f) for f in (diagnosis or {}).get('strengths', [])[:3]],
-            'issues':[{**f, 'suggestion':suggestions.get(f['id'])} for f in issues[:2]],
+            'issues':[{**f, 'suggestion':suggestions.get(f['id'])} for f in issues[:3]],
             'student':student, 'verification_counts':counts, 'metrics':metrics}

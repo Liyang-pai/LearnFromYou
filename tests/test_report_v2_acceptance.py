@@ -113,7 +113,7 @@ def test_legacy_cache_projection_keeps_original_file_and_export_consistent(tmp_p
     assert projected['snapshot']['source_hash'] == snapshot['source_hash']
     assert projected['snapshot']['settlement']['metrics']['student_questions']['value'] == 2
     assert projected['verification']['results'][0]['status'] == '尚未验证'
-    exported = markdown(projected)
+    exported = markdown(projected, include_details=True)
     assert '学生独立疑问数量：2' in exported and '暂缓处理，尚未解决' in exported and '结论：尚未验证' in exported
 
 SID = 'aabbcc112233'

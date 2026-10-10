@@ -30,7 +30,25 @@ def validate_citations(items, snapshot, *, learning_only=False):
             raise ValueError('学生不能把未处理内容或自己的发言当作学到的知识')
 
 
+def validate_teaching_citations(items, snapshot):
+    """Teacher analysis may observe delivered replies, without treating them as learning sources."""
+    validate_citations(items, snapshot)
+    allowed = {s['event_id'] for s in snapshot['learning_sources']}
+    allowed.update(eid for eid, e in snapshot['evidence'].items() if e['kind'] == 'reply')
+    for citation in items:
+        if citation['event_id'] not in allowed:
+            raise ValueError('教学评价只能引用已处理讲授、前置知识或实际课堂学生发言，不能引用未处理内容或状态记录：' + citation['event_id'])
+
+
 def naturalize_recall(plan, snapshot):
+    # Recover a missing link only from one exact, non-empty question text.
+    # Never infer a paraphrase or resolve ambiguous duplicate questions.
+    for item in plan['doubts'] + plan['uncertain']:
+        if not item['question_ids']:
+            matches = [q['id'] for q in snapshot['questions']
+                       if q['text'].strip() and q['text'] in item['text']]
+            if len(matches) == 1:
+                item['question_ids'] = matches
     expressed = {q['id'] for q in snapshot['settlement']['questions'] if q.get('expressed')}
     for item in list(plan['doubts']):
         if not set(item['question_ids']).intersection(expressed):
@@ -53,7 +71,7 @@ def validate_recall(plan, snapshot):
     questions = {q['id']: q for q in snapshot['questions']}
     preserved = set()
     for group in ('explained', 'doubts', 'uncertain'):
-        for item in plan[group]:
+        for index, item in enumerate(plan[group]):
             if '我' not in item['text']:
                 raise ValueError('知识复述必须使用学生第一人称')
             if set(item['knowledge_ids']) - known.keys() or set(item['question_ids']) - questions.keys():
@@ -61,8 +79,11 @@ def validate_recall(plan, snapshot):
             # 学生原话可证明疑问或为复述提供上下文；每条知识仍须在下方绑定实际讲授来源。
             validate_citations(item['citations'], snapshot)
             cited_ids = {c['event_id'] for c in item['citations']}
-            if any(not cited_ids.intersection(source_events.get(s) for s in known[k]['sources']) for k in item['knowledge_ids']):
-                raise ValueError('复述证据与所引用的知识来源不对应')
+            unmatched = [k for k in item['knowledge_ids']
+                         if not cited_ids.intersection(source_events.get(s) for s in known[k]['sources'])]
+            if unmatched:
+                required = {k: [source_events[s] for s in known[k]['sources'] if s in source_events] for k in unmatched}
+                raise ValueError(f'复述证据与所引用的知识来源不对应：{group}[{index}]的knowledge_ids {unmatched}；对应可用event_id：{required}。请引用实际来源中的原文，或去掉本条未表达的重复知识编号，不编造引用。')
             if group == 'explained':
                 if not item['knowledge_ids'] or any(known[k]['status'] in ('unclear', 'conflict') for k in item['knowledge_ids']):
                     raise ValueError('不能把缺失或冲突知识写成已经能解释')
@@ -76,7 +97,7 @@ def validate_recall(plan, snapshot):
                 raise ValueError('学生复述不能直接复制教师原句')
     unresolved = {q['id'] for q in questions.values() if q['status'] != 'resolved'}
     if not unresolved <= preserved:
-        raise ValueError('学生复述遗漏了课堂仍未解决的疑问')
+        raise ValueError('学生复述遗漏了课堂仍未解决的疑问：' + '、'.join(sorted(unresolved - preserved)) + '；须在doubts或uncertain的question_ids填写对应编号。')
     ids, targets = set(), set()
     for probe in plan['probes']:
         if probe['id'] in ids or probe['knowledge_id'] in targets or probe['knowledge_id'] not in known:
@@ -160,16 +181,36 @@ def validate_verification(result, plan, answers, snapshot):
 
 
 def validate_diagnosis(diagnosis, snapshot, *, require_current=False):
+    for withdrawal in diagnosis.get('withdrawals', []):
+        if not withdrawal['reason'].strip():
+            raise ValueError('撤销评价必须说明原因')
+        validate_teaching_citations(withdrawal['citations'], snapshot)
     if require_current and not diagnosis.get('summary'):
         raise ValueError('教学分析没有返回总体评价，不能把空对象当作分析成功；可重试。')
     if diagnosis.get('summary'):
-        validate_citations(diagnosis['summary']['citations'], snapshot, learning_only=True)
+        validate_teaching_citations(diagnosis['summary']['citations'], snapshot)
+    for point in diagnosis.get('key_points', []):
+        validate_citations(point['citations'], snapshot, learning_only=True)
+        if not any(snapshot['evidence'][c['event_id']]['kind']=='transcript' for c in point['citations']):
+            raise ValueError('讲授要点必须引用实际教师讲授，不能只引用前置知识')
+    dimensions = diagnosis.get('dimensions', [])
+    names = [item['name'] for item in dimensions]
+    if len(names) != len(set(names)):
+        raise ValueError('评价维度重复')
+    if require_current and set(names) != {'内容准确性','结构衔接','解释与例子','互动检查','表达节奏'}:
+        raise ValueError('新报告必须覆盖五个教学维度；没有依据的维度请明确填写缺少依据')
+    if require_current and diagnosis['weaknesses'] and not diagnosis.get('practice'):
+        raise ValueError('有主要不足的报告必须给出下次练习和完成标准')
+    for item in dimensions:
+        validate_teaching_citations(item['citations'], snapshot)
+        if item['status'] != '缺少依据' and not item['citations']:
+            raise ValueError('评价维度必须有课堂依据，不能把无证据写成已评价')
     findings = diagnosis['strengths'] + diagnosis['weaknesses']
     ids = [f['id'] for f in findings]
     if len(ids) != len(set(ids)):
         raise ValueError('教学诊断编号重复')
     for finding in findings:
-        validate_citations(finding['citations'], snapshot)
+        validate_teaching_citations(finding['citations'], snapshot)
         validate_citations(finding.get('followup_citations', []), snapshot, learning_only=True)
         if not any(snapshot['evidence'][c['event_id']]['kind'] in ('transcript', 'reply', 'review_completed')
                    for c in finding['citations']):
@@ -178,7 +219,9 @@ def validate_diagnosis(diagnosis, snapshot, *, require_current=False):
         text = finding['observation']
         if re.search(r'学生(?:回答|表示|说|仍|已经|没有理解|未理解|误解|困惑|掌握|理解了)', text):
             if not any(snapshot['evidence'][c['event_id']]['kind'] == 'reply' for c in finding['citations']):
-                raise ValueError('学生表现判断缺少实际课堂学生发言，不能以教师讲授或课后模拟代替')
+                replies = [eid for eid, e in snapshot['evidence'].items() if e['kind'] == 'reply']
+                available = '、'.join(replies[:6]) or '无实际学生发言'
+                raise ValueError(f"{finding['id']}的observation“{text}”：学生表现判断缺少实际课堂学生发言。请在该项citations引用支持此事实的reply，不能以教师讲授或课后模拟代替。本课堂reply：{available}。若只评价教师行为，请去掉无依据的学生表现断言；不能机械添加无关引用。")
     weaknesses = {f['id'] for f in diagnosis['weaknesses']}
     linked = [s['finding_id'] for s in diagnosis['suggestions']]
     if set(linked) - weaknesses or len(linked) != len(set(linked)):
@@ -188,7 +231,6 @@ def validate_diagnosis(diagnosis, snapshot, *, require_current=False):
     for finding in diagnosis['weaknesses']:
         cited = {c['event_id'] for c in finding['citations']}
         if finding.get('basis') == '教学内容或检查机会':
-            validate_citations(finding['citations'], snapshot, learning_only=True)
             if not any(snapshot['evidence'][eid]['kind'] == 'transcript' for eid in cited):
                 raise ValueError('教学改进必须有实际教师讲授依据')
             supported.append(finding)
@@ -207,8 +249,23 @@ def validate_diagnosis(diagnosis, snapshot, *, require_current=False):
             if cited.intersection(mention_ids) and relevant and teacher_evidence:
                 supported.append(finding); break
     kept = {f['id'] for f in supported}
+    if require_current and kept != weaknesses:
+        raise ValueError('不足的依据类型与引用不匹配：学生疑问必须引用实际学生发言；教师例子或讲法问题应归为教学内容或检查机会。请核对后续解释，不得静默删除问题和对应建议。')
+    if require_current and set(linked) != weaknesses:
+        raise ValueError('每个主要不足必须有对应的具体改进动作')
     diagnosis['weaknesses'] = supported
     diagnosis['suggestions'] = [s for s in diagnosis['suggestions'] if s['finding_id'] in kept]
+
+
+def validate_diagnosis_repair(previous, corrected, snapshot):
+    """A correction must preserve findings or explicitly retract them with evidence."""
+    before = {f['id'] for f in previous['strengths'] + previous['weaknesses']}
+    after = {f['id'] for f in corrected['strengths'] + corrected['weaknesses']}
+    withdrawals = corrected.get('withdrawals', [])
+    ids = [w['finding_id'] for w in withdrawals]
+    if len(ids) != len(set(ids)) or set(ids) != before - after:
+        raise ValueError('修正报告不能静默删除评价；保留原编号，或在withdrawals逐项注明撤销原因和课堂依据。')
+    validate_diagnosis(corrected, snapshot, require_current=True)
 
 
 def _detailed_markdown(view):
@@ -275,6 +332,9 @@ def _detailed_markdown(view):
             lines += ['原始转写：' + evidence['raw_text'], '实际学习文本：' + evidence['text']]
             if evidence.get('review_event_id'): lines += ['审核事件：' + evidence['review_event_id']]
     lines += ['', '## 生成状态与限制', '', '状态：' + view['status']]
+    for withdrawal in diagnosis.get('withdrawals', []):
+        lines += [f"- 修正时撤销 {withdrawal['finding_id']}：{withdrawal['reason']} · 依据：" +
+                  '、'.join(c['event_id'] for c in withdrawal['citations'])]
     phase_labels = {'recall':'学生知识复述', 'answers':'学生独立作答', 'verification':'理解验证', 'diagnosis':'教学反馈'}
     stage_labels = {'pending':'尚未生成', 'generating':'生成中', 'success':'已生成', 'skipped':'无可靠题目，尚未验证', 'failed':'未完成'}
     for phase, stage in view['stages'].items(): lines += [f"- {phase_labels[phase]}：{stage_labels[stage['status']]}" + ((' · ' + stage['error']) if stage.get('error') else '')]
@@ -282,9 +342,11 @@ def _detailed_markdown(view):
     return '\n'.join(lines) + '\n'
 
 
-def markdown(view):
+def markdown(view, *, include_details=False):
     reader = reader_view(view)
     def cites(items):
+        if not include_details:
+            return []
         ids = list(dict.fromkeys(c['event_id'] for c in items))
         refs=[]
         for eid in ids:
@@ -295,7 +357,9 @@ def markdown(view):
             refs.append(f'[{speaker} · {at}](#{anchor})')
         return ['课堂依据：'+'、'.join(refs)] if refs else []
     lines = ['# 课后教学反馈', '', '主题：' + view['snapshot']['lesson'].get('topic', '未提供'), '',
-             '## 课堂总体评价', '', reader['summary']]
+             '## 本节讲授要点', '']
+    lines += ['- ' + item['text'] for item in reader['key_points']] or [reader['points_empty_message']]
+    lines += ['', '## 课堂总体评价', '', reader['summary']]
     lines += cites(reader['summary_citations'])
     if reader['diagnosis_failed']:
         # Show a meaningful cause up front; exact schema diagnostics are in folded details.
@@ -303,20 +367,27 @@ def markdown(view):
         cause = '模型输出不符合报告结构要求' if '结构' in error else error
         lines += ['', '失败原因：' + cause, '重试方式：在报告页面点击“重试未完成分析”。']
     if view.get('diagnosis'):
+        if reader['dimensions']:
+            lines += ['', '## 教学维度简评', '']
+            lines += [f"- {item['name']}（{item['status']}）：{item['text']}" for item in reader['dimensions']]
         lines += ['', '## 本次试讲的优点', '']
         for f in reader['strengths']:
             lines += ['- ' + f['observation'], '  教学作用（分析）：' + f['interpretation']] + cites(f['citations'])
         if not reader['strengths']: lines += ['现有依据不足以提炼明确优点。']
-        lines += ['', '## 最值得改进的两个问题（本次试讲的不足）', '']
+        lines += ['', '## 优先改进的问题（本次试讲的不足）', '']
         for i, f in enumerate(reader['issues'], 1):
             lines += [f"### {i}. {f['observation']}", f['interpretation'],
                       '下次应该怎么改：' + (f['suggestion']['action'] if f['suggestion'] else '尚未生成有依据的具体动作，不能用套话补位。')]
             lines += cites(f['citations'])
         if not reader['issues']: lines += ['未发现证据充分的主要改进问题；这不代表所有教学维度均已验证。']
+        if reader['practice']:
+            lines += ['', '## 下次练习', '', reader['practice']['action'], '完成标准：' + reader['practice']['check']]
     lines += ['', '## 学生理解情况', '', reader['student']]
     if reader['verification_counts']:
         lines += ['课后 AI 模拟检查：' + '；'.join(f'{k} {v} 题' for k,v in reader['verification_counts'].items()) + '。']
     else: lines += ['课后 AI 模拟检查尚未完成或没有可靠题目。']
+    if not include_details:
+        return '\n'.join(lines) + '\n'
     lines += ['', LIMITATION, '', '<details>', '<summary>详细依据：课堂原文、复述与作答、统计及生成状态（展开核查）</summary>', '']
     details = _detailed_markdown(view)
     details = details[details.index('## 本次试讲结算'):]
@@ -378,13 +449,21 @@ class ReportService:
         if view.get('recall'): naturalize_recall(view['recall'], view['snapshot'])
         if view.get('verification') and view.get('answers') and view.get('recall'):
             validate_verification(view['verification'], view['recall'], view['answers'], view['snapshot'])
-        if view.get('diagnosis'): validate_diagnosis(view['diagnosis'], view['snapshot'])
+        if view.get('diagnosis'):
+            before = {f['id'] for f in view['diagnosis']['weaknesses']}
+            validate_diagnosis(view['diagnosis'], view['snapshot'])
+            if before != {f['id'] for f in view['diagnosis']['weaknesses']}:
+                view['status'] = 'partial'
+                view['stages']['diagnosis'] = {'status':'failed', 'error':'旧报告存在依据不匹配的问题，教学分析不完整；可重试修正。'}
         view['reader'] = reader_view(view)
         return view
 
     def start(self, sid):
         view = self.get(sid)
         if view['status'] == 'ready' or (sid in self.tasks and not self.tasks[sid].done()): return view
+        if view['stages']['diagnosis']['status'] == 'failed':
+            self.views[sid]['stages']['diagnosis'] = deepcopy(view['stages']['diagnosis'])
+            self.views[sid]['diagnosis'] = None
         self.views[sid]['status'] = 'generating'
         self.tasks[sid] = asyncio.create_task(self._run(sid))
         return self.get(sid)
@@ -447,9 +526,29 @@ class ReportService:
                                 'verification_tasks': view['recall']['probes'], 'student_answers': view['answers']}, Verification
                         else:
                             prompt, payload, schema = report_prompts.DIAGNOSE, {**classroom, 'verification': self.get(sid)['verification'],
-                                'settlement': snapshot['settlement'], 'limitation': LIMITATION}, Diagnosis
+                                'settlement': snapshot['settlement'], 'limitation': LIMITATION,
+                                'input_modes': {s['event_id']:s.get('mode', 'unknown') for s in snapshot['learning_sources'] if s['kind']=='teacher'}}, Diagnosis
                         async with asyncio.timeout(60):
                             result = await client.generate('report_v2_' + phase, prompt, payload, schema)
+                            if phase in ('recall', 'diagnosis'):
+                                try:
+                                    if phase == 'recall':
+                                        validate_recall(result.model_dump(), snapshot)
+                                    else:
+                                        validate_diagnosis(result.model_dump(), snapshot, require_current=True)
+                                except ValueError as exc:
+                                    await audit_emit(phase + '_validation_error', {'error':str(exc)})
+                                    # One semantic correction only; transport/timeouts do not retry.
+                                    previous = result.model_dump()
+                                    instruction = ('修正上一份复述中指出的编号或证据错误，保持课堂学习边界。知识编号须对应本条引用的实际来源；所有未解决疑问在doubts或uncertain中携带question_ids。不能编造引用或用外部知识补齐；返回完整JSON。'
+                                        if phase == 'recall' else
+                                        '修正上一份报告中校验指出的问题；保留合法的事实、引用和对应建议及原finding编号。已回应的疑问不能写成未解决；如实际问题是缺少理解检查，请基于教师发言归为教学内容或检查机会。确需撤销无依据评价时，在withdrawals逐项填写finding_id、reason和课堂citations，不保留错误断言。返回完整 JSON，不静默删除问题来绕过校验。')
+                                    result = await client.generate('report_v2_' + phase, prompt,
+                                        {**payload, 'validation_feedback':str(exc),
+                                         'previous_output':previous,
+                                         'repair_instruction':instruction}, schema)
+                                    if phase == 'diagnosis':
+                                        validate_diagnosis_repair(previous, result.model_dump(), snapshot)
                         result = schema.model_validate(result).model_dump()
                         if phase == 'recall': validate_recall(result, snapshot)
                         elif phase == 'answers': validate_answers(result, view['recall'], snapshot)

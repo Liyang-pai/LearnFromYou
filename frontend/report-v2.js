@@ -17,6 +17,7 @@
     for (const id of ['reportSummary','reportAnalysis','reportEvidence','reportStages','reportStudentDetails']) el(id).replaceChildren();
     el('reportDetails').open = false;
     el('reportDownload').disabled = true;
+    el('reportRecordDownload').disabled = true;
   }
   function settlement(summary, reader) {
     const target = el('reportSummary'); target.replaceChildren();
@@ -73,7 +74,8 @@
       button.setAttribute('data-event-id',id);
       button.onclick = () => locate(id,[...quotes]); refs.append(button);
     }
-    parent.append(refs);
+    if (!grouped.size) return;
+    const details=node('details'); details.append(node('summary','查看依据'),refs); parent.append(details);
   }
   function section(title, target=el('reportAnalysis')) {
     const n = node('section',undefined,'report-section'); n.append(node('h3',title)); target.append(n); return n;
@@ -82,6 +84,12 @@
     el('reportAnalysis').replaceChildren();
     el('reportStudentDetails').replaceChildren();
     const reader = view.reader;
+    const points=section('本节讲授要点');
+    if (reader?.key_points?.length) {
+      const list=node('ul');
+      for (const point of reader.key_points) list.append(node('li',point.text));
+      points.append(list);
+    } else points.append(node('p',reader?.points_empty_message || '讲授要点尚未生成。','hint'));
     const overall = section('课堂总体评价');
     overall.append(node('p',reader?.summary || (view.diagnosis ? '旧版报告未生成总体评价；请查阅下列逐项评价。' : '教学分析尚未完成，不能据此判断没有教学问题。')));
     citations(overall,reader?.summary_citations);
@@ -91,20 +99,28 @@
       const retry=node('button','重试未完成分析'); retry.type='button'; retry.onclick=()=>el('reportGenerate').click(); overall.append(retry);
     }
     if (view.diagnosis) {
+      if (reader?.dimensions?.length) {
+        const dimensions=section('教学维度简评');
+        for (const item of reader.dimensions) dimensions.append(node('p',`${item.name} · ${item.status}：${item.text}`));
+      }
       const strengths=section('本次试讲的优点');
       for (const finding of reader?.strengths || view.diagnosis.strengths) {
         const block=node('div',undefined,'report-item'); block.append(node('p',finding.observation),node('p','教学作用（分析）：'+finding.interpretation,'hint'));
         citations(block,finding.citations); strengths.append(block);
       }
       if (!view.diagnosis.strengths.length) strengths.append(node('p','现有依据不足以提炼明确优点。'));
-      const issues=section('最值得改进的两个问题（本次试讲的不足）');
-      const findings=reader?.issues || view.diagnosis.weaknesses.slice(0,2).map(f=>({...f,suggestion:view.diagnosis.suggestions.find(s=>s.finding_id===f.id)}));
+      const issues=section('优先改进的问题（本次试讲的不足）');
+      const findings=reader?.issues || view.diagnosis.weaknesses.slice(0,3).map(f=>({...f,suggestion:view.diagnosis.suggestions.find(s=>s.finding_id===f.id)}));
       for (const [i,finding] of findings.entries()) {
         const block=node('div',undefined,'report-item');
         block.append(node('h4',`${i+1}. ${finding.observation}`),node('p',finding.interpretation),node('p','下次应该怎么改：'+(finding.suggestion?.action || '尚未生成有依据的具体动作，不能用套话补位。')));
         citations(block,finding.citations); issues.append(block);
       }
       if (!findings.length) issues.append(node('p','未发现证据充分的主要改进问题；这不代表所有教学维度均已验证。'));
+      if (reader?.practice) {
+        const practice=section('下次练习');
+        practice.append(node('p',reader.practice.action),node('p','完成标准：'+reader.practice.check));
+      }
     }
     const understanding=section('学生理解情况');
     understanding.append(node('p',reader?.student || '课堂学生与课后作答均为 AI 模拟，没有真实学生理解证据。'));
@@ -145,10 +161,13 @@
   }
   function render(view) {
     state.view = view; settlement(view.snapshot.settlement,view.reader); analysis(view); evidence(view.snapshot);
-    el('reportStatus').textContent = statusNames[view.status] || '报告状态未知';
+    el('reportStatus').textContent = view.reader?.generation_message || statusNames[view.status] || '报告状态未知';
     el('reportGenerate').disabled = view.status === 'generating' || view.status === 'ready';
-    el('reportGenerate').textContent = ['partial','failed'].includes(view.status) ? '重试未完成分析' : '生成学生复述与反馈';
-    el('reportDownload').disabled = !view.markdown; el('reportStages').replaceChildren();
+    el('reportGenerate').textContent = ['partial','failed'].includes(view.status) ? '重试未完成分析' : '生成教学报告';
+    const reportReady = view.reader?.report_ready ?? Boolean(view.diagnosis && view.stages?.diagnosis?.status === 'success');
+    if (reportReady && ['partial','failed'].includes(view.status)) el('reportGenerate').textContent = '补充模拟验证';
+    el('reportDownload').disabled = !view.markdown || !reportReady; el('reportStages').replaceChildren();
+    el('reportRecordDownload').disabled = !view.record_markdown;
     const labels = {pending:'尚未生成', generating:'生成中', success:'已生成', skipped:'无可靠题目，尚未验证', failed:'未完成'};
     for (const [phase,stage] of Object.entries(view.stages)) el('reportStages').append(node('p',`${phaseNames[phase]}：${labels[stage.status]}${stage.error ? ' · ' + stage.error : ''}`,'hint'));
   }
@@ -176,10 +195,16 @@
   el('reportGenerate').onclick = () => { clearTimeout(state.timer); el('reportGenerate').disabled = true; request('POST',state.token); };
   el('reportReload').onclick = () => { clearTimeout(state.timer); request('GET',state.token); };
   el('reportDownload').onclick = () => {
-    if (!state.view?.markdown) return;
+    if (!state.view?.markdown || el('reportDownload').disabled) return;
     const url = URL.createObjectURL(new Blob([state.view.markdown],{type:'text/markdown;charset=utf-8'}));
     const link = node('a'); link.href = url; link.download = `试讲报告V2-${state.sid}.md`; link.click();
     setTimeout(() => URL.revokeObjectURL(url),1000);
+  };
+  el('reportRecordDownload').onclick = () => {
+    if (!state.view?.record_markdown) return;
+    const url=URL.createObjectURL(new Blob([state.view.record_markdown],{type:'text/markdown;charset=utf-8'}));
+    const link=node('a'); link.href=url; link.download=`试讲完整记录-${state.sid}.md`; link.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
   window.reportV2 = {reset,finished,locate,get hasReport() { return Boolean(state.sid); }};
   // Reopen one persisted report via its ID; this only performs GET, never regeneration.

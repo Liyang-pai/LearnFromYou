@@ -82,7 +82,7 @@ async def models_page():
 async def get_report_v2(session_id: str):
     try:
         view = report_service.get(session_id)
-        return {**view, 'markdown': markdown(view)}
+        return {**view, 'markdown': markdown(view), 'record_markdown': markdown(view, include_details=True)}
     except FileNotFoundError:
         raise HTTPException(404, '没有本次已结束课堂的报告，请先结束课堂') from None
     except (ValueError, KeyError, TypeError):

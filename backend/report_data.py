@@ -127,7 +127,8 @@ def build_snapshot(session_id, events, lesson=None):
             evidence[eid] = {**base, 'text': data.get('message', '处理异常'), 'code': data.get('code')}
     teachers = [s for s in sources.values() if s['kind'] == 'teacher']
     learning = [s for s in sources.values() if s['processed']]
-    questions = {q['id']: deepcopy(q) for q in state.get('questions', [])}
+    # Main now emits open_questions; an explicitly empty new list is authoritative.
+    questions = {q['id']: deepcopy(q) for q in state.get('open_questions', state.get('questions', []))}
     counts = [s.get('question_count') for s in teachers]
     teacher_questions = sum(counts) if all(type(n) is int and 0 <= n <= 50 for n in counts) else None
     duration = None

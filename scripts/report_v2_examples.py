@@ -95,6 +95,10 @@ class ExampleModel:
                        '222222222222':'教师给出了二乘三等于七的讲法，模拟回答照搬原句；不能以复述证明理解或知识正确。',
                        '333333333333':'教师说明链表通过引用连接，删除的引用改变明确暂缓；学生实际提出的删除疑问尚未解决。'}
             data['summary']={'text':summaries[case['sid']],'citations':[citation]}
+            data['dimensions']=[{'name':name,'status':'缺少依据','text':'固定模拟样例未评价该维度。','citations':[]}
+                for name in ('内容准确性','结构衔接','解释与例子','互动检查','表达节奏')]
+            if data['weaknesses']:
+                data['practice']={'action':data['suggestions'][0]['action'],'check':'模拟学生能说明节点连接改变的理由。'}
         return output_type.model_validate(data)
 
 

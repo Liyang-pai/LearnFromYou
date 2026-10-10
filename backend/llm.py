@@ -25,8 +25,10 @@ class ModelClient:
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ]
         for attempt in range(2):
+            token_limit = (6000 if phase == 'report_v2_verification' else
+                           5000 if phase in ('report_v2_recall', 'report_v2_diagnosis') else 3500)
             body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 5000 if phase in ('report_v2_recall', 'report_v2_diagnosis') else 3500}
+                    "temperature": 0.25, "max_tokens": token_limit}
             await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
             started = time.monotonic()
             try:
@@ -42,7 +44,8 @@ class ModelClient:
             except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
                 raise ModelError("模型服务连接失败或返回格式异常；课堂内容已保留，可重试") from None
             await self.emit("llm_output", {"phase": phase, "attempt": attempt + 1, "raw": raw,
-                "seconds": round(time.monotonic() - started, 3), "usage": envelope.get("usage", {}), 'model':envelope.get('model', config.MODEL)})
+                "seconds": round(time.monotonic() - started, 3), "usage": envelope.get("usage", {}),
+                'finish_reason':envelope['choices'][0].get('finish_reason'), 'model':envelope.get('model', config.MODEL)})
             if phase.startswith('report_v2_') and envelope['choices'][0].get('finish_reason') == 'length':
                 raise ModelError('报告输出达到长度上限，未保存该阶段；请缩短课堂或检查模型输出限制。')
             try:

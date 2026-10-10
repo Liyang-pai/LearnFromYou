@@ -76,7 +76,7 @@
     <section id="reportV2" class="card report-v2 hidden" aria-labelledby="reportHeading">
       <h2 id="reportHeading">本次课后反馈报告</h2>
       <p class="hint">先看教学评价，再按需核查依据。生成会将课堂文本发送给已配置的模型服务并产生 API 用量。</p>
-      <div class="report-actions"><button id="reportGenerate" class="primary">生成学生复述与反馈</button><button id="reportReload">重新查看</button><button id="reportDownload" disabled>导出 Markdown</button></div>
+      <div class="report-actions"><button id="reportGenerate" class="primary">生成教学报告</button><button id="reportReload">重新查看</button><button id="reportDownload" disabled>导出报告</button><button id="reportRecordDownload" disabled>导出完整记录</button></div>
       <p id="reportStatus" role="status" aria-live="polite"></p>
       <div id="reportAnalysis"></div>
       <details id="reportDetails"><summary>详细依据：课堂原文、模拟复述与作答、统计及生成状态</summary>
@@ -112,7 +112,7 @@
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
   <script src="/static/audio-file.js?v=20261007-upload-1" defer></script>
-  <script src="/static/report-v2.js?v=20261008-report-v2" defer></script>
+  <script src="/static/report-v2.js?v=20261010-report-completion-fix" defer></script>
   <script src="/static/app.js?v=20261008-report-v2" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
