@@ -59,5 +59,8 @@ current_state.knowledge 是当前有效知识；inactive_knowledge 中的 confli
 没有直接提问时，只在有实际未解疑问时生成 question，否则 silence。ack/answer 只用于直接被问到的情况。
 candidate.kind 为 question 时，question_id 必须对应本轮或已有的未解决问题，text 只包含一个问题。
 非 silence 的候选必须带来源 ID，未知知识的回答可引用老师提出问题的 t ID，不能凭空新增领域答案。
+所有 sources 和 resolution_sources 只能填写实际提供的 p/t 来源编号，不能填写 k 知识点编号或 q 问题编号。
+引用已有知识时，使用该知识条目的 sources，例如 k5 的 sources=["t3"] 则引用 t3，不能引用 k5。
+如输入包含 retry_feedback，上一轮输出已被拒绝且未写入状态；根据校验错误重新生成，只引用 allowed_source_ids 内的来源。
 回复简短自然，通常一至三句话。note 只写简短可观察的依据，不输出长篇思维过程。
 只输出符合给定 schema 的 JSON 对象，所有非可选字段都要提供，不要 Markdown。"""

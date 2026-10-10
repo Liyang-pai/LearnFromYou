@@ -15,6 +15,8 @@ from .policy import apply_result, invited, mark_delivered, speech_block
 from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, Preparation, StudentResult, StudentState
 from .speech import Speaker
+from .report_data import REPORT_EVENTS, build_snapshot
+from .report_v2 import report_service
 
 
 class Session:
@@ -65,15 +67,30 @@ class Session:
         self._close_task = None
         self.started = time.monotonic()
         self.log = None
+        self.event_sequence = 0
+        self.report_events = []
         self.llm = ModelClient(self.emit)
 
     async def emit(self, kind, data):
-        event = {"type": kind, "time": datetime.now(timezone.utc).isoformat(),
-                 "elapsed": round(time.monotonic() - self.started, 3), "data": data}
+        self.event_sequence += 1
+        event = {"id": f"{self.id}:e{self.event_sequence:06d}", "type": kind, "time": datetime.now(timezone.utc).isoformat(),
+                  "elapsed": round(time.monotonic() - self.started, 3), "data": data}
+        if kind == "finished":
+            lesson_text = json.dumps(self.lesson.model_dump(), ensure_ascii=False)
+            if config.API_KEY:
+                lesson_text = lesson_text.replace(config.API_KEY, '[REDACTED]')
+            snapshot = build_snapshot(self.id, self.report_events + [event], json.loads(lesson_text))
+            event['data']['settlement'] = snapshot['settlement']
+            try:
+                report_service.register(snapshot)
+            except OSError:
+                event['data']['report_notice'] = '报告暂存文件写入失败，基础结算仍可查看；请检查文件权限。'
         serialized = json.dumps(event, ensure_ascii=False)
         if config.API_KEY:
             serialized = serialized.replace(config.API_KEY, "[REDACTED]")
         event = json.loads(serialized)
+        if kind in REPORT_EVENTS:
+            self.report_events.append(event)
         if self.log:
             self.log.write(serialized + "\n")
             self.log.flush()
@@ -195,12 +212,14 @@ class Session:
                 self.asr_pending -= 1
                 self.asr_queue.task_done()
 
-    async def add_transcript(self, text, mode="text", metrics=None, source=None):
+    async def add_transcript(self, text, mode="text", metrics=None, source=None, question_count=None):
         text = text.strip()
         if not text:
             return
         if len(text) > 5000:
             raise ValueError("单次文本测试请限制在 5000 字内")
+        if question_count is not None and (type(question_count) is not int or not 0 <= question_count <= 50):
+            raise ValueError('提问次数必须是 0 到 50 的整数，或留空表示未标注')
         if mode == "text":
             self.last_voice = time.monotonic()
             await self.stop_speech("收到新的教师文本")
@@ -210,6 +229,8 @@ class Session:
                 "mode": mode, "revision": self.revision, "at": round(time.monotonic() - self.started, 3),
                 "raw_text": text, "corrected_text": None, "review_seconds": 0,
                 "review_status": "bypassed" if mode == "text" else ("pending" if self.asr_review else "disabled")}
+        if mode == 'text':
+            item['question_count'] = question_count
         if source:
             item.update(source)
         self.sources[item["id"]] = item
@@ -291,11 +312,15 @@ class Session:
                 count += 1
             self.processing = True
             target_revision = batch[-1]["revision"]
+            retry_error = None
             while True:
                 try:
-                    result = await self.llm.generate("student", prompts.STUDENT, self.payload(batch), StudentResult)
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
+                    payload = self.payload(batch)
+                    if retry_error:
+                        payload['retry_feedback'] = {'error': retry_error, 'allowed_source_ids': sorted(allowed)}
+                    result = await self.llm.generate("student", prompts.STUDENT, payload, StudentResult)
                     next_state, candidate = apply_result(self.state, result, allowed, ids)
                     self.state = next_state
                     self.processed_ids |= ids
@@ -307,6 +332,7 @@ class Session:
                     self.failed_batch = None
                     break
                 except (ModelError, ValueError) as e:
+                    retry_error = str(e) if isinstance(e, ValueError) else None
                     self.failed_batch = batch
                     self.retry_event.clear()
                     await self.emit("error", {"message": str(e), "code": "model_failure", "retryable": True,

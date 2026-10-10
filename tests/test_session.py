@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 from backend import config
 from backend.llm import ModelError
 from backend.schemas import Lesson, Preparation, StudentResult
@@ -85,4 +86,52 @@ def test_new_input_invalidates_previous_candidate(tmp_path, monkeypatch):
             await session.try_speak(10)
             assert not [e for e in events if e['type']=='reply']
         finally:await session.close()
+    asyncio.run(run())
+
+
+def test_invalid_source_retry_receives_feedback_without_committing_bad_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+
+    class InvalidSourceModel(FakeModel):
+        def __init__(self):
+            super().__init__()
+            self.payloads = []
+
+        async def generate(self, phase, system, payload, output_type):
+            if phase == 'preparation':
+                return await super().generate(phase, system, payload, output_type)
+            self.payloads.append(deepcopy(payload))
+            if len(self.payloads) == 1:
+                return StudentResult.model_validate({
+                    'knowledge_updates': [{'id': 'k1', 'text': '列表可修改',
+                                           'status': 'tentative', 'sources': ['t1']}],
+                    'addressed': True,
+                    'candidate': {'kind': 'answer', 'text': '我会选择列表。', 'sources': ['k1']}})
+            feedback = payload.get('retry_feedback', {})
+            assert feedback.get('allowed_source_ids') == ['t1']
+            assert '不存在的课堂来源' in feedback.get('error', '')
+            return await super().generate(phase, system, payload, output_type)
+
+    async def run():
+        events = []
+        async def emit(event):
+            events.append(event)
+        session = Session(emit, None)
+        await session.llm.close()
+        model = InvalidSourceModel()
+        session.llm = model
+        try:
+            await session.start(Lesson(topic='列表与元组'), tts=False, asr_review=False)
+            await session.add_transcript('列表可修改，你会选择哪个？')
+            await session.flush()
+            await until(lambda: session.failed_batch is not None)
+            assert session.state.version == 0
+            assert session.processed_ids == set()
+            assert not any(e['type'] == 'reply' for e in events)
+            session.retry_event.set()
+            await until(lambda: session.state.version == 1)
+            assert session.processed_ids == {'t1'}
+            assert len(model.payloads) == 2
+        finally:
+            await session.close()
     asyncio.run(run())

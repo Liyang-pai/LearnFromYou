@@ -12,6 +12,11 @@ def normalize(text: str) -> str:
     return re.sub(r"[\W_]", "", text).lower()
 
 
+def question_key(text: str) -> str:
+    """仅去掉请求解释的常见外壳，不能把同主题的不同内容视为同一疑问。"""
+    return re.sub(r'能否|能再|请再|请|再|解释|一下|是什么|吗|呢|什么是', '', normalize(text))
+
+
 def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str]):
     """Validate everything before committing anything; source validity isn't semantic proof."""
     next_state = state.model_copy(deep=True)
@@ -61,7 +66,7 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
             for existing in questions.values():
                 same_topic = normalize(existing.topic) == normalize(update.topic)
                 same_question = SequenceMatcher(None, normalize(existing.text), normalize(update.text)).ratio() > .82
-                if same_topic or same_question:
+                if same_question or (same_topic and question_key(existing.text) == question_key(update.text)):
                     old = existing
                     aliases[update.id] = existing.id
                     break

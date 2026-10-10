@@ -1,0 +1,417 @@
+{
+  "snapshot": {
+    "version": 2,
+    "session_id": "222222222222",
+    "lesson": {
+      "topic": "乘法讲解错误样例"
+    },
+    "state": {
+      "version": 1,
+      "knowledge": [
+        {
+          "id": "k1",
+          "text": "二乘三等于七。",
+          "status": "understood",
+          "sources": [
+            "t1"
+          ]
+        }
+      ],
+      "questions": []
+    },
+    "sources": [
+      {
+        "id": "t1",
+        "text": "今天我们把二乘三的结果记为七。",
+        "raw_text": "今天我们把二乘三的结果记为七。",
+        "mode": "text",
+        "question_count": 0,
+        "event_id": "222222222222:e000002",
+        "kind": "teacher",
+        "processed": true
+      }
+    ],
+    "learning_sources": [
+      {
+        "id": "t1",
+        "text": "今天我们把二乘三的结果记为七。",
+        "raw_text": "今天我们把二乘三的结果记为七。",
+        "mode": "text",
+        "question_count": 0,
+        "event_id": "222222222222:e000002",
+        "kind": "teacher",
+        "processed": true
+      }
+    ],
+    "evidence": {
+      "222222222222:e000001": {
+        "event_id": "222222222222:e000001",
+        "kind": "ready",
+        "order": 1,
+        "at": 0,
+        "time": null,
+        "text": ""
+      },
+      "222222222222:e000002": {
+        "event_id": "222222222222:e000002",
+        "kind": "transcript",
+        "order": 2,
+        "at": 10,
+        "time": null,
+        "text": "今天我们把二乘三的结果记为七。",
+        "raw_text": "今天我们把二乘三的结果记为七。",
+        "source_id": "t1"
+      },
+      "222222222222:e000003": {
+        "event_id": "222222222222:e000003",
+        "kind": "state",
+        "order": 3,
+        "at": 25,
+        "time": null,
+        "text": "{\"version\": 1, \"knowledge\": [{\"id\": \"k1\", \"text\": \"二乘三等于七。\", \"status\": \"understood\", \"sources\": [\"t1\"]}], \"questions\": []}"
+      },
+      "222222222222:e000004": {
+        "event_id": "222222222222:e000004",
+        "kind": "finished",
+        "order": 4,
+        "at": 40,
+        "time": null,
+        "text": "{\"version\": 1, \"knowledge\": [{\"id\": \"k1\", \"text\": \"二乘三等于七。\", \"status\": \"understood\", \"sources\": [\"t1\"]}], \"questions\": []}"
+      }
+    },
+    "questions": [],
+    "settlement": {
+      "metrics": {
+        "duration_seconds": {
+          "value": 40,
+          "label": "试讲总时长（秒）",
+          "method": "ready 到 finished 的经过时间，包含停顿与结束等待，不是纯讲授时长。"
+        },
+        "teacher_segments": {
+          "value": 1,
+          "label": "教师有效发言片段",
+          "method": "按唯一 t 来源计数，含未处理文本；VAD 短段不等于自然发言轮次。"
+        },
+        "teacher_questions": {
+          "value": 0,
+          "label": "教师提问次数",
+          "method": "仅累加教师明确标注的提问次数；任一片段未标注则无法统计，不通过关键词猜测。"
+        },
+        "student_replies": {
+          "value": 0,
+          "label": "AI 学生发言次数",
+          "method": "只计实际 reply 事件，候选、重试、模型输出不计。"
+        },
+        "verified_understanding": {
+          "value": null,
+          "label": "课堂理解已验证数量",
+          "method": "普通课堂未独立验证；课后模拟验证另列，不更改学生认知。"
+        },
+        "student_questions": {
+          "value": 0,
+          "label": "学生独立疑问数量",
+          "method": "检查全部学生发言，复用唯一疑问对象；无法可靠关联的显式疑问不强行合并，数量显示无法统计。"
+        },
+        "question_occurrences": {
+          "value": 0,
+          "label": "学生疑问出现次数",
+          "method": "按发言中的疑问计数，同一发言关联同一疑问仅计一次；重复追问可多次出现，含未能关联的疑问片段。"
+        },
+        "responded_questions": {
+          "value": 0,
+          "label": "已记录教师回应的疑问",
+          "method": "疑问提出之后的解释来源或同疑问暂缓回应；回应不等于解释、解决或理解。"
+        },
+        "explained_questions": {
+          "value": 0,
+          "label": "已记录内容解释的疑问",
+          "method": "提出后有效 resolution_sources，排除仅暂缓处理的来源；解释仍不证明理解。"
+        },
+        "unanswered_questions": {
+          "value": 0,
+          "label": "已关联疑问中未记录回应",
+          "method": "仅统计已关联对象；未回应为零不表示全部解决，未关联疑问另列限制。"
+        },
+        "resolved_questions": {
+          "value": 0,
+          "label": "系统标记已解决的疑问",
+          "method": "最终 resolved 状态，仅为系统标记，不是独立验证。"
+        },
+        "unresolved_questions": {
+          "value": 0,
+          "label": "系统尚未标记解决的疑问",
+          "method": "包括已回应但暂缓或仍未解决的疑问，与未记录回应分开统计。"
+        }
+      },
+      "knowledge_points": [
+        {
+          "id": "k1",
+          "text": "二乘三等于七。",
+          "status": "understood",
+          "sources": [
+            "t1"
+          ]
+        }
+      ],
+      "questions": [],
+      "unprocessed_sources": [],
+      "processing_errors": [],
+      "audio_gap_events": [],
+      "incomplete": false,
+      "limitations": [
+        "当前理解是课堂推断；沉默不是理解证据。",
+        "错误记录包括已恢复的历史错误，不全部等同于最终失败。",
+        "疑问状态分别记录提出、回应、内容解释、系统解决；课堂理解未独立验证。未回应为零不表示全部解决。"
+      ],
+      "question_mentions": [],
+      "unmatched_questions": []
+    },
+    "source_hash": "2d12b27fdffc6b4550a84361cffcff90d16406f1d632ae6990848ee7a18110e8"
+  },
+  "status": "ready",
+  "stages": {
+    "recall": {
+      "status": "success",
+      "error": ""
+    },
+    "answers": {
+      "status": "success",
+      "error": ""
+    },
+    "verification": {
+      "status": "success",
+      "error": ""
+    },
+    "diagnosis": {
+      "status": "success",
+      "error": ""
+    }
+  },
+  "recall": {
+    "explained": [
+      {
+        "text": "我记得老师今天把二乘三讲成七，我当前的理解也仍是这个结果。",
+        "knowledge_ids": [
+          "k1"
+        ],
+        "question_ids": [],
+        "citations": [
+          {
+            "event_id": "222222222222:e000002",
+            "quote": "今天我们把二乘三的结果记为七。"
+          }
+        ]
+      }
+    ],
+    "doubts": [],
+    "uncertain": [],
+    "probes": [
+      {
+        "id": "v1",
+        "knowledge_id": "k1",
+        "question": "请说说今天这个算式的结果和你的依据。",
+        "citations": [
+          {
+            "event_id": "222222222222:e000002",
+            "quote": "今天我们把二乘三的结果记为七。"
+          }
+        ],
+        "task_kind": "发现错误",
+        "required_tasks": [
+          "请说说今天这个算式的结果和你的依据。"
+        ]
+      }
+    ]
+  },
+  "answers": {
+    "answers": [
+      {
+        "id": "v1",
+        "text": "今天我们把二乘三的结果记为七。",
+        "citations": [
+          {
+            "event_id": "222222222222:e000002",
+            "quote": "今天我们把二乘三的结果记为七。"
+          }
+        ]
+      }
+    ]
+  },
+  "verification": {
+    "results": [
+      {
+        "id": "v1",
+        "status": "尚未验证",
+        "reasoning": "机械复述",
+        "explanation": "回答仅有复述证据，尚不能确认解释或应用。",
+        "citations": [
+          {
+            "event_id": "222222222222:e000002",
+            "quote": "今天我们把二乘三的结果记为七。"
+          }
+        ],
+        "task_checks": [
+          {
+            "task": "请说说今天这个算式的结果和你的依据。",
+            "outcome": "有依据地完成",
+            "answer_quote": "今天我们把二乘三的结果记为七。",
+            "explanation": "模拟检查员的过强结论将被程序降级；回答只重复课堂错误说法。",
+            "citations": [
+              {
+                "event_id": "222222222222:e000002",
+                "quote": "今天我们把二乘三的结果记为七。"
+              }
+            ]
+          }
+        ],
+        "reasoning_check": {
+          "kind": "仅换名换数或复述",
+          "answer_quote": "今天我们把二乘三的结果记为七。",
+          "explanation": "模拟检查员的过强结论将被程序降级；回答只重复课堂错误说法。",
+          "citations": [
+            {
+              "event_id": "222222222222:e000002",
+              "quote": "今天我们把二乘三的结果记为七。"
+            }
+          ],
+          "comparison": {
+            "kind": "仅表面替换",
+            "difference": "作答只是复述课堂原算式，没有新的判断任务。",
+            "answer_quote": "今天我们把二乘三的结果记为七。",
+            "citations": [
+              {
+                "event_id": "222222222222:e000002",
+                "quote": "今天我们把二乘三的结果记为七。"
+              }
+            ],
+            "teacher_steps": [
+              "陈述规则"
+            ],
+            "task_steps": [
+              "陈述规则"
+            ],
+            "task_quote": "请说说今天这个算式的结果和你的依据。"
+          }
+        }
+      }
+    ]
+  },
+  "diagnosis": {
+    "summary": {
+      "text": "教师给出了二乘三等于七的讲法，模拟回答照搬原句；不能以复述证明理解或知识正确。",
+      "citations": [
+        {
+          "event_id": "222222222222:e000002",
+          "quote": "今天我们把二乘三的结果记为七。"
+        }
+      ]
+    },
+    "strengths": [],
+    "weaknesses": [],
+    "suggestions": []
+  },
+  "reader": {
+    "summary": "教师给出了二乘三等于七的讲法，模拟回答照搬原句；不能以复述证明理解或知识正确。",
+    "summary_citations": [
+      {
+        "event_id": "222222222222:e000002",
+        "quote": "今天我们把二乘三的结果记为七。"
+      }
+    ],
+    "diagnosis_failed": false,
+    "error": "",
+    "strengths": [],
+    "issues": [],
+    "student": "没有课堂学生发言，真实学生的理解证据不足。教师自问自答不能代替学生作答。 课后复述与作答属于 AI 模拟，单题正确不代表整个知识点掌握。",
+    "verification_counts": {
+      "尚未验证": 1
+    },
+    "metrics": {
+      "duration_seconds": {
+        "value": 40,
+        "label": "会话经过时间（秒）",
+        "method": "ready 到 finished 的经过时间，包含停顿与结束等待，不是纯讲授时长。",
+        "state": "observed",
+        "display": "40"
+      },
+      "teacher_segments": {
+        "value": 1,
+        "label": "教师文本片段数",
+        "method": "按唯一 t 来源计数，含未处理文本；VAD 短段不等于自然发言轮次。",
+        "state": "observed",
+        "display": "1"
+      },
+      "teacher_questions": {
+        "value": 0,
+        "label": "教师提问次数",
+        "method": "仅累加教师明确标注的提问次数；任一片段未标注则无法统计，不通过关键词猜测。",
+        "state": "observed",
+        "display": "0"
+      },
+      "student_replies": {
+        "value": 0,
+        "label": "AI 学生发言次数",
+        "method": "只计实际 reply 事件，候选、重试、模型输出不计。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "verified_understanding": {
+        "value": null,
+        "label": "课堂理解已验证数量",
+        "method": "普通课堂未独立验证；课后模拟验证另列，不更改学生认知。",
+        "state": "not_measured",
+        "display": "未进行课堂独立验证"
+      },
+      "student_questions": {
+        "value": 0,
+        "label": "学生独立疑问数量",
+        "method": "检查全部学生发言，复用唯一疑问对象；无法可靠关联的显式疑问不强行合并，数量显示无法统计。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "question_occurrences": {
+        "value": 0,
+        "label": "学生疑问出现次数",
+        "method": "按发言中的疑问计数，同一发言关联同一疑问仅计一次；重复追问可多次出现，含未能关联的疑问片段。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "responded_questions": {
+        "value": 0,
+        "label": "已记录教师回应的疑问",
+        "method": "疑问提出之后的解释来源或同疑问暂缓回应；回应不等于解释、解决或理解。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "explained_questions": {
+        "value": 0,
+        "label": "已记录内容解释的疑问",
+        "method": "提出后有效 resolution_sources，排除仅暂缓处理的来源；解释仍不证明理解。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "unanswered_questions": {
+        "value": 0,
+        "label": "已关联疑问中未记录回应",
+        "method": "仅统计已关联对象；未回应为零不表示全部解决，未关联疑问另列限制。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "resolved_questions": {
+        "value": 0,
+        "label": "系统标记已解决的疑问",
+        "method": "最终 resolved 状态，仅为系统标记，不是独立验证。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      },
+      "unresolved_questions": {
+        "value": 0,
+        "label": "系统尚未标记解决的疑问",
+        "method": "包括已回应但暂缓或仍未解决的疑问，与未记录回应分开统计。",
+        "state": "not_occurred",
+        "display": "未发生课堂互动"
+      }
+    }
+  },
+  "data_origin": "固定模拟课堂及模拟模型输出，不是真实课堂或真实 API 验收"
+}

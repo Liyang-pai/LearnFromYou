@@ -16,6 +16,7 @@ from . import config
 from .llm import ModelError
 from .schemas import Lesson
 from .session import Session
+from .report_v2 import report_service, markdown
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
@@ -26,6 +27,7 @@ async def lifespan(app):
     try:
         yield
     finally:
+        await report_service.pause()
         if active_session:
             await active_session.close()
         await models.shutdown()
@@ -74,6 +76,29 @@ async def health():
 @app.get("/models")
 async def models_page():
     return FileResponse(config.ROOT / "frontend/index.html")
+
+
+@app.get('/api/sessions/{session_id}/report-v2')
+async def get_report_v2(session_id: str):
+    try:
+        view = report_service.get(session_id)
+        return {**view, 'markdown': markdown(view), 'record_markdown': markdown(view, include_details=True)}
+    except FileNotFoundError:
+        raise HTTPException(404, '没有本次已结束课堂的报告，请先结束课堂') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(400, '报告编号或缓存结构无效') from None
+
+
+@app.post('/api/sessions/{session_id}/report-v2', status_code=202)
+async def generate_report_v2(session_id: str):
+    if active_session and not active_session.closed:
+        raise HTTPException(409, '请先结束正在进行的课堂，再生成课后报告')
+    try:
+        return report_service.start(session_id)
+    except FileNotFoundError:
+        raise HTTPException(404, '没有本次已结束课堂的报告') from None
+    except (ValueError, KeyError, TypeError):
+        raise HTTPException(400, '报告编号或缓存结构无效') from None
 
 
 @app.get("/api/asr/models")
@@ -236,6 +261,7 @@ async def websocket(ws: WebSocket):
                     asr_review = event.get("asr_review", True)
                     if type(asr_review) is not bool:
                         raise ValueError("语音转文字审核选项必须为布尔值")
+                    await report_service.pause()
                     await ws.send_json({"type": "status", "data": {"message": "正在加载本机 ASR 模型"}})
                     engine, vad_path, model_id = await models.acquire()
                     owns_engine = True
@@ -254,7 +280,7 @@ async def websocket(ws: WebSocket):
                 elif kind == "text":
                     if session.upload:
                         raise ValueError("请先完成或停止音频上传，再发送文字")
-                    await session.add_transcript(str(event.get("text", "")))
+                    await session.add_transcript(str(event.get("text", "")), question_count=event.get('question_count'))
                     await session.flush("text_test")
                 elif kind == "flush":
                     await session.flush("manual")
