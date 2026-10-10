@@ -1,4 +1,4 @@
-// 使用真实无头浏览器和模拟报告，验证结算、证据定位、导出、故障与跨课堂隔离。
+// 使用真实无头浏览器和模拟报告，验证简洁报告、导出、故障与跨课堂隔离。
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
@@ -40,20 +40,24 @@ async function main() {
     assert.equal(await page.locator('#reportSummary .report-metric').count(),Object.keys(fixture.snapshot.settlement.metrics).length);
     assert((await page.locator('#reportAnalysis').innerText()).includes('AI 模拟'));
     await page.locator('#reportDetails > summary').click();
-    const verificationSection=page.locator('.report-section').filter({has:page.getByRole('heading',{name:'学生真的理解了吗',exact:true})});
-    assert.equal(await verificationSection.locator('.report-citations button').count(),1,'same-event references must share one button');
-    await page.locator('details:has(> .report-citations)').first().locator('summary').click();
-    await page.locator('.report-citations button').first().click();
-    const highlighted=page.locator('.report-highlight');
-    assert((await highlighted.getAttribute('id')).endsWith('e000002'));
-    assert(await highlighted.evaluate(el => el.open)); assert(await highlighted.locator('mark').count());
+    assert.equal(await page.locator('#reportEvidence,.report-citations').count(),0);
+    const smallDomSize=await page.locator('#reportV2 *').count();
+    for (let i=0;i<10000;i++) fixture.snapshot.evidence['long:'+i]={event_id:'long:'+i,kind:'transcript',text:'长课堂原文不应堆在报告页面。',order:i};
+    const originalMessage=fixture.reader?.generation_message;
+    fixture.reader={...fixture.reader,generation_message:'长记录报告已生成。'};
+    const longResponse=page.waitForResponse(response=>response.url().endsWith('/report-v2'));
+    await page.locator('#reportReload').click(); await longResponse;
+    await page.getByText('长记录报告已生成。',{exact:true}).waitFor();
+    assert.equal(await page.locator('#reportV2 *').count(),smallDomSize,'raw evidence count must not grow report DOM');
+    assert(!(await page.locator('#reportV2').innerText()).includes('长课堂原文不应堆在报告页面。'));
+    fixture.reader.generation_message=originalMessage || '报告已生成。';
     const downloadEvent = page.waitForEvent('download'); await page.locator('#reportDownload').click();
     const download = await downloadEvent; assert(download.suggestedFilename().endsWith('.md'));
     assert(fs.readFileSync(await download.path(),'utf8').includes('模拟数据'));
-    await page.screenshot({path:path.join(root,'docs/report-v2-examples/桌面预览.png'),fullPage:true});
+    await page.screenshot({path:path.join(root,'logs/report-without-evidence-desktop.png'),fullPage:true});
     await page.setViewportSize({width:390,height:844});
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-    await page.screenshot({path:path.join(root,'docs/report-v2-examples/手机预览.png'),fullPage:true});
+    await page.screenshot({path:path.join(root,'logs/report-without-evidence-mobile.png'),fullPage:true});
     fail=true; await page.locator('#reportReload').click();
     await page.waitForFunction(() => document.getElementById('reportStatus').textContent.includes('模拟服务暂时不可用'));
     assert.equal(await page.locator('#reportSummary .report-metric').count(),Object.keys(fixture.snapshot.settlement.metrics).length);
@@ -75,17 +79,7 @@ async function main() {
         assert((fixture.record_markdown || fixture.markdown).includes(`${readerMetric.label}：${metric.value===null?'无法统计':metric.value}`));
         assert(summary.includes(readerMetric.label));
       }
-      await page.locator('details:has(> .report-citations)').evaluateAll(rows=>rows.forEach(row=>row.open=true));
-      const buttons=page.locator('.report-citations button');
-      assert(await buttons.count()>=5);
-      for (let i=0;i<await buttons.count();i++) {
-        const button=buttons.nth(i), id=await button.getAttribute('data-event-id');
-        await button.click();
-        const row=page.locator('.report-highlight');
-        assert((await row.getAttribute('id')).endsWith(id.replace(/[^a-zA-Z0-9_-]/g,'-')));
-        const marked=await row.locator('mark').allTextContents();
-        assert(marked.length && marked.every(text=>fixture.snapshot.evidence[id].text.includes(text)));
-      }
+      assert.equal(await page.locator('#reportEvidence,.report-citations').count(),0);
       assert(!(await page.locator('#reportAnalysis').innerText()).includes('tentative'));
       assert(!(await page.locator('#reportAnalysis').innerText()).includes('有理解证据'));
       // Report payload and teacher-facing Markdown use one reader projection.
@@ -98,13 +92,12 @@ async function main() {
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-mobile.png'),fullPage:true});
       await page.setViewportSize({width:1440,height:1000});
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-desktop.png'),fullPage:true});
-      await page.locator('#reportEvidence details').evaluateAll(rows=>rows.forEach(row=>row.open=false));
       await page.locator('#reportDetails').evaluate(el=>el.open=false);
       await page.locator('#reportV2').evaluate(el=>el.scrollIntoView());
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-summary.png')});
       await page.locator('#reportAnalysis').evaluate(el=>el.scrollIntoView());
       await page.screenshot({path:path.join(root,'logs/report-v2-fixed-analysis.png')});
-      console.log('PASS actual acceptance replay: all citation buttons/highlights, question states, conservative legacy verdicts, frontend/Markdown metrics');
+      console.log('PASS actual acceptance replay: concise display without raw evidence, question states, conservative legacy verdicts, frontend/Markdown metrics');
     }
     // Explicit generation failure must be prominent and expose retry, never imply no problem.
     const originalFixture=fixture;
@@ -131,7 +124,7 @@ async function main() {
     assert(await page.locator('#reportV2').evaluate(el => el.classList.contains('hidden')));
     assert.equal(await page.locator('#reportSummary').innerText(),'');
     assert.deepEqual(errors,[]);
-    console.log('PASS browser: report sections, correct evidence highlight, UTF-8 Markdown download, desktop/mobile layout, failure retention/reload, stale-response isolation, no page errors');
+    console.log('PASS browser: report sections, long-record DOM size, UTF-8 Markdown download, desktop/mobile layout, failure retention/reload, stale-response isolation, no page errors');
   } finally {
     if (browser) await browser.close();
     if (server.exitCode === null) { server.kill(); await new Promise(resolve => server.once('exit',resolve)); }

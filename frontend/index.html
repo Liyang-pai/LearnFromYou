@@ -75,14 +75,13 @@
     </div>
     <section id="reportV2" class="card report-v2 hidden" aria-labelledby="reportHeading">
       <h2 id="reportHeading">本次课后反馈报告</h2>
-      <p class="hint">先看教学评价，再按需核查依据。生成会将课堂文本发送给已配置的模型服务并产生 API 用量。</p>
+      <p class="hint">总结讲授要点，发现教学问题，给出下次改进方案。生成会将课堂文本发送给已配置的模型服务并产生 API 用量。</p>
       <div class="report-actions"><button id="reportGenerate" class="primary">生成教学报告</button><button id="reportReload">重新查看</button><button id="reportDownload" disabled>导出报告</button><button id="reportRecordDownload" disabled>导出完整记录</button></div>
       <p id="reportStatus" role="status" aria-live="polite"></p>
       <div id="reportAnalysis"></div>
-      <details id="reportDetails"><summary>详细依据：课堂原文、模拟复述与作答、统计及生成状态</summary>
+      <details id="reportDetails"><summary>补充信息：模拟复述与作答、统计及生成状态</summary>
         <div id="reportStudentDetails"></div>
         <h3>本次试讲结算</h3><div id="reportSummary"></div>
-        <h3>课堂证据</h3><p class="hint">点击评价中的证据按钮，可以展开并高亮对应课堂原文。</p><div id="reportEvidence"></div>
         <h3>生成状态</h3><div id="reportStages"></div>
       </details>
     </section>
@@ -112,7 +111,7 @@
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
   <script src="/static/audio-file.js?v=20261007-upload-1" defer></script>
-  <script src="/static/report-v2.js?v=20261010-report-completion-fix" defer></script>
+  <script src="/static/report-v2.js?v=20261010-report-without-evidence" defer></script>
   <script src="/static/app.js?v=20261008-report-v2" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
