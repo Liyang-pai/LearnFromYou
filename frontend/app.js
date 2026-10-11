@@ -147,12 +147,16 @@ function handle(event) {
       else if (window.lessonUpload?.phase === 'starting' && window.lessonUpload.busy) window.lessonUpload.abort(d.message);
       else if (d.code === 'audio_backlog' || d.code === 'audio_failure') stopMic();
       if(d.retryable) $('sessionStatus').textContent = '处理暂停 · 可以重试'; break;
+    case 'report_unavailable':
+      window.teachingReport?.unavailable(d.session_id, d.message);
+      break;
     case 'finished':
       glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
       running = false; ending = false; showState(d.state); syncControls(); $('sessionStatus').textContent = '本次试讲已结束';
       $('studentMood').textContent = '这节课结束了。我的当前理解保留在下方。';
       append($('events'),recordNode('结束记录',JSON.stringify(d,null,2),true),true);
       if(d.unprocessed_sources.length) showError('部分课堂内容尚未处理：' + d.unprocessed_sources.join('、') + '。原文已保存在本次记录中。');
+      window.teachingReport?.open(d.session_id, true);
       break;
   }
   showActivity();
@@ -173,6 +177,7 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const topic = $('topic').value.trim(); if(!topic) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
+  window.teachingReport?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
