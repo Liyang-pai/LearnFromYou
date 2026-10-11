@@ -61,6 +61,14 @@
           <p id="reviewNotice" class="review-notice hidden" role="status" aria-live="polite"></p>
           <details class="text-test"><summary>用文字测试同一条学习链路</summary><form id="textForm"><textarea id="teacherText" rows="2" maxlength="5000" placeholder="输入教师讲授或提问，如：你目前理解了什么？" disabled></textarea><button id="sendText" disabled>发送讲授</button></form></details>
         </div>
+        <section id="teachingReport" class="card teaching-report hidden" aria-labelledby="teachingReportHeading">
+          <div class="section-heading"><span class="step">03</span><h2 id="teachingReportHeading">试讲教学报告</h2></div>
+          <p class="hint">讲了什么、讲得怎么样、最值得改什么、下次怎么练。结束试讲后自动生成，会使用已配置模型的 API 额度。</p>
+          <div class="controls"><button id="generateTeachingReport" class="primary">生成教学报告</button><button id="reloadTeachingReport">重新查看</button><button id="exportTeachingReport" disabled>导出报告</button></div>
+          <p id="teachingReportStatus" role="status" aria-live="polite"></p>
+          <div id="teachingReportBody"></div>
+          <p class="hint">报告基于课堂文本，不代表真实学生掌握。</p>
+        </section>
         <div class="card debug">
           <div class="debug-heading"><div><span class="eyebrow">让每一步都看得见</span><h2>课堂调试台</h2></div><button id="export" class="small">导出本次记录</button></div>
           <div class="stats"><span>转写 <b id="transcriptCount">0</b></span><span>教学片段 <b id="segmentCount">0</b></span><span>状态版本 <b id="stateVersion">0</b></span><span>最近模型耗时 <b id="llmTime">—</b></span><span>最近审核耗时 <b id="reviewTime">—</b></span></div>
@@ -100,6 +108,7 @@
   </main>
   <script src="/static/audio-file.js?v=20261007-upload-1" defer></script>
   <script src="/static/app.js?v=20261007-upload-1" defer></script>
+  <script src="/static/teaching-report.js?v=20261011-interaction" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
 </body>
