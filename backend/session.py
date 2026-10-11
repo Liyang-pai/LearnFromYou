@@ -397,7 +397,7 @@ class Session:
             await asyncio.sleep(.1)
         remaining = [s for s in self.sources if s.startswith("t") and s not in self.processed_ids]
         await self.emit("finished", {"state": self.state.model_dump(), "unprocessed_sources": remaining,
-                                     "session_id": self.id, "log_file": f"logs/{self.id}.jsonl"})
+                                     "session_id": self.id, "lesson": self.lesson.model_dump(), "log_file": f"logs/{self.id}.jsonl"})
         await self.close()
 
     async def close(self):

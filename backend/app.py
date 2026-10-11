@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
@@ -16,9 +16,11 @@ from . import config
 from .llm import ModelError
 from .schemas import Lesson
 from .session import Session
+from .teaching_report import ReportService, export_markdown
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
+reports = ReportService()
 
 
 @asynccontextmanager
@@ -28,6 +30,7 @@ async def lifespan(app):
     finally:
         if active_session:
             await active_session.close()
+        await reports.close()
         await models.shutdown()
 
 
@@ -79,6 +82,42 @@ async def models_page():
 @app.get("/api/asr/models")
 async def model_list():
     return await asyncio.to_thread(models.snapshot)
+
+
+def report_error(exc):
+    if isinstance(exc, FileNotFoundError):
+        return HTTPException(404, '未找到这次课堂记录')
+    return HTTPException(400, str(exc))
+
+
+@app.get('/api/teaching-report/{session_id}')
+async def teaching_report(session_id: str):
+    try:
+        return await asyncio.to_thread(reports.get, session_id)
+    except (ValueError, FileNotFoundError) as exc:
+        raise report_error(exc) from None
+
+
+@app.post('/api/teaching-report/{session_id}')
+async def generate_teaching_report(session_id: str):
+    try:
+        return await reports.start(session_id)
+    except (ValueError, FileNotFoundError) as exc:
+        raise report_error(exc) from None
+
+
+@app.get('/api/teaching-report/{session_id}/export')
+async def download_teaching_report(session_id: str):
+    try:
+        result = await asyncio.to_thread(reports.get, session_id)
+    except (ValueError, FileNotFoundError) as exc:
+        raise report_error(exc) from None
+    try:
+        text = export_markdown(result)
+    except ValueError as exc:
+        raise HTTPException(409, str(exc)) from None
+    return Response(text, media_type='text/markdown; charset=utf-8',
+                    headers={'Content-Disposition': f'attachment; filename="teaching-report-{session_id}.md"'})
 
 
 @app.post("/api/asr/models/{model_id}/download")
@@ -270,11 +309,22 @@ async def websocket(ws: WebSocket):
                     session.retry_event.set()
                     await session.emit("status", {"message": "正在重试，未处理内容仍按顺序保留"})
                 elif kind == "end":
-                    await session.finish()
-                    await models.release()
-                    owns_engine = False
-                    if active_session is session:
-                        active_session = None
+                    # A normal end must register the independent report even
+                    # when the browser disconnects during tail processing.
+                    with anyio.CancelScope(shield=True):
+                        await session.finish()
+                        await models.release()
+                        owns_engine = False
+                        if active_session is session:
+                            active_session = None
+                        try:
+                            await reports.start(session.id)
+                        except (ValueError, FileNotFoundError) as exc:
+                            try:
+                                await ws.send_json({'type': 'report_unavailable',
+                                                    'data': {'session_id': session.id, 'message': str(exc)}})
+                            except (WebSocketDisconnect, RuntimeError):
+                                pass
             except (ValueError, ValidationError, ModelError) as e:
                 if session and not session.closed:
                     await session.emit("error", {"message": str(e), "retryable": bool(session.failed_batch)})
