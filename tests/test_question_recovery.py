@@ -7,7 +7,6 @@ import httpx
 import pytest
 
 from backend import config, prompts
-from backend.llm import ModelError
 from backend.policy import MissingQuestionError, apply_result, student_result_validator
 from backend.schemas import Lesson, StudentResult, StudentState, Question
 from backend.session import Session
@@ -108,7 +107,7 @@ def test_repair_registers_question_and_commits_only_once(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
-@pytest.mark.parametrize('missing_id', ['q2', None])
+@pytest.mark.parametrize('missing_id', ['q2', None, ''])
 def test_second_missing_reference_silences_and_continues_next_batch(tmp_path, monkeypatch, missing_id):
     following = {'knowledge_updates': [{'id': 'k_next', 'text': '教师继续解释同类项合并。',
                   'status': 'tentative', 'sources': ['t4']}], 'candidate': {'kind': 'silence'}}

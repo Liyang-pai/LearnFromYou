@@ -121,6 +121,12 @@ function handle(event) {
     case 'warning':
       $('reviewNotice').textContent = d.message; $('reviewNotice').classList.remove('hidden');
       append($('events'),recordNode(`${stamp} · 提示`,d.message),true); break;
+    case 'student_validation_error':
+      // 这是自动修复的过程记录，不将课堂切换到暂停或手动重试状态。
+      append($('events'),recordNode(`${stamp} · 模型结果校验 · ${d.attempt === 1 ? '正在修复' : '未通过'}`,
+        JSON.stringify(d.errors,null,2),true),true); break;
+    case 'student_recovery':
+      append($('events'),recordNode(`${stamp} · ${d.message}`,JSON.stringify(d,null,2),true),true); break;
     case 'llm_request':
       if (d.phase === 'student') { studentBusy = true; studentFailed = false; }
       if (d.phase === 'preparation') $('sessionStatus').textContent = '正在分析课堂范围';
