@@ -1,0 +1,468 @@
+<mxfile host="Electron" page="3" pages="4">
+  <diagram id="1" name="01 功能流程">
+    <mxGraphModel dx="1200" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2270" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="LearnFromYou｜学生画像实时分析" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1250" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="课前独立生成一次 → 教师确认 → 注入学生上下文 → 课堂更新认知状态" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="50" y="78" width="1280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1" value="① 课前：生成并确认初始画像" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="75" y="140" width="420" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2" value="② 课堂：按画像听讲与提问" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="860" y="140" width="450" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="用户准备开始试讲" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;arcSize=50;" vertex="1" parent="1">
+          <mxGeometry x="120" y="210" width="320" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="input" value="填写教学主题（唯一必填）&#xa;填写后即可点击 AI 生成&#xa;年级、学科等信息均可选填" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="300" width="320" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="optional" value="可选：年级、学科、准备讲的知识点&#xa;学生水平默认普通；课型默认新课&#xa;更多：教材；学生基础合并到画像" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="420" width="320" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="generate" value="点击「生成学生画像」&#xa;首次生成 / 再次生成均走此入口" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="550" width="320" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="llm" value="独立调用 DeepSeek 画像生成器&#xa;生成画像；补全年级、学科&#xa;准备讲的知识点未填时一并生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1005.0" width="320" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="valid" value="调用成功且&#xa;JSON 字段有效？" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;shape=rhombus;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="175" y="1140.0" width="210" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="error" value="生成或校验失败&#xa;保留全部输入和现有画像 Prompt&#xa;不清空准备讲的知识点；允许重试" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="495" y="1145.0" width="270" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="preview" value="展示「学生画像」及教学设置&#xa;合并原「学生已经知道什么」「理解基础」&#xa;单独展示可编辑的「准备讲的知识点」" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1440.0" width="320" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="confirm" value="教师确认画像？" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;shape=rhombus;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="175" y="1600.0" width="210" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="edit" value="修改学生画像或教学设置&#xa;保留「准备讲的知识点」独立字段&#xa;再次生成回到覆盖确认入口" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="495" y="1605.0" width="270" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="save" value="非空检查通过后创建试讲&#xa;保存本次学生设定与教学范围&#xa;据此初始化课堂动态认知状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="2040" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="prompt" value="构建 AI 学生上下文&#xa;核心行为规则 + 已确认学生画像&#xa;准备讲的知识点仅表示教学范围&#xa;+ 当前认知状态 + 课堂对话" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="210" width="350" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="talk" value="教师讲话&#xa;作为 User 消息进入课堂历史" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="365" width="350" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="student" value="调用 AI 学生模型&#xa;依据画像、课堂证据与当前状态&#xa;判断理解障碍、矛盾及合理迁移" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="495" width="350" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="reaction" value="按现有交互规则输出&#xa;提问 / 回应 / 不发言&#xa;不因模型知道答案就默认学生懂了" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="645" width="350" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="state" value="由现有状态机制更新课堂认知&#xa;记录已讲内容、理解程度及待解疑问&#xa;不重新生成初始画像" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="795" width="350" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="endcheck" value="结束试讲？" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;shape=rhombus;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="945" y="960" width="210" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="保存课堂记录及最终认知状态&#xa;进入现有课后报告流程" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;arcSize=50;" vertex="1" parent="1">
+          <mxGeometry x="875" y="1115" width="350" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="回填规则&#xa;• 用户已填设置优先，AI 不得覆盖。&#xa;• 准备讲的知识点未填时由 AI 生成。&#xa;• 画像有内容时再次生成，先确认覆盖。&#xa;• 取消或失败，保留所有现有内容。&#xa;• 学生设定 Prompt 为空或仅空白，禁止创建。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="875" y="1245" width="420" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="start" target="input">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="input" target="optional">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="optional" target="generate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="generate" target="dirty">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="llm" target="valid">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="valid" target="merge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="valid" target="error">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="preview" target="confirm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="confirm" target="create_click">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="confirm" target="edit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="prompt" target="talk">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="talk" target="student">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="student" target="reaction">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="reaction" target="state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="state" target="endcheck">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="endcheck" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="retry" value="重试" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="error" target="generate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="790" y="1195.0" />
+              <mxPoint x="790" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="manual" value="手动调整" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="edit" target="preview">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="780" y="1645.0" />
+              <mxPoint x="780" y="1497.0" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="regen" value="重新生成" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="edit" target="generate">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="65" y="1645.0" />
+              <mxPoint x="65" y="590" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ready" value="开始试讲" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="save" target="prompt">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="2090" />
+              <mxPoint x="820" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="continue" value="否：继续课堂" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="endcheck" target="talk">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1325" y="1010" />
+              <mxPoint x="1325" y="405" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dirty" value="现有画像 Prompt&#xa;已填入内容？" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;shape=rhombus;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="175" y="665" width="210" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="discard" value="提示：重新生成将替换现有画像&#xa;是否放弃当前内容并重新生成？&#xa;「取消」 / 「放弃更改并生成」" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="495" y="655" width="285" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="cancel" value="取消本次生成&#xa;保留所有输入和现有画像 Prompt" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="495" y="815" width="285" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="resolve" value="组装生成输入（用户填写优先）&#xa;准备讲的知识点已填：作为约束保留&#xa;年级、学科为空：交给 AI 推断&#xa;其他未填设置使用既定默认值" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="830" width="320" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="merge" value="生成成功后回填并替换&#xa;保留用户已填字段；年级、学科补空&#xa;准备讲的知识点：用户填写则不覆盖&#xa;替换画像 Prompt（已有内容先确认）" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1280" width="320" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="dirty_yes" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="dirty" target="discard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="dirty_no" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="dirty" target="resolve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="discard_no" value="取消" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="discard" target="cancel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="discard_yes" value="确认放弃" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="discard" target="resolve">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="715" />
+              <mxPoint x="800" y="895" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="resolved" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="resolve" target="llm">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="merged" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="merge" target="preview">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="create_click" value="用户点击「创建试讲」&#xa;所有创建入口均执行非空检查" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="120" y="1745" width="320" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="profile_nonempty" value="学生设定 Prompt&#xa;去除首尾空白后非空？" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;shape=rhombus;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="155" y="1860" width="250" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="create_blocked" value="阻止创建试讲，保留当前输入&#xa;提示：「请先生成或填写学生设定，&#xa;再创建试讲。」" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff6df;strokeColor=#cca85b;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="495" y="1855" width="290" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="create_check" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="create_click" target="profile_nonempty">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="create_allow" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="profile_nonempty" target="save">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="create_deny" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="profile_nonempty" target="create_blocked">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="back_edit" value="补全学生设定" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="create_blocked" target="preview">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="800" y="1917" />
+              <mxPoint x="800" y="1497" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="2" name="02 Prompt 与状态关系">
+    <mxGraphModel dx="1200" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="t" value="Prompt 与状态关系｜两种调用，互不混用上下文" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="50" y="30" width="1100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="a" value="画像生成调用（课前一次）" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="65" y="125" width="440" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="学生对话调用（课堂多次）" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="675" y="125" width="440" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="genrules" value="画像生成 System&#xa;用户已填信息为约束，不得覆盖&#xa;知识点未填时生成教学范围&#xa;本课待讲内容不能视作已掌握" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="205" width="390" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="geninput" value="画像生成 User&#xa;教学主题 + 用户已填教学设置&#xa;准备讲的知识点：有则使用，无则生成&#xa;原已知知识与理解基础合并到画像" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="355" width="390" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="json" value="生成候选结果 → 校验 → 成功回填&#xa;准备讲的知识点：保留用户填写内容&#xa;学生画像：已有内容先确认再替换" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="515" width="390" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="fixed" value="确认后的学生画像（课堂内固定）&#xa;已有知识、理解基础及认知边界" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="710" width="390" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="sys" value="学生 System&#xa;① 既有行为及知识边界规则&#xa;② 确认后的学生画像&#xa;③ 准备讲的知识点：仅作教学范围&#xa;待讲知识不能提前进入已知状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="695" y="205" width="400" height="165" as="geometry" />
+        </mxCell>
+        <mxCell id="dynamic" value="课堂动态状态（随课堂更新）&#xa;已讲知识、理解程度、未解决疑问&#xa;作为现有系统的受控上下文传入" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf7ef;strokeColor=#70a782;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="695" y="415" width="400" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="history" value="课堂对话历史&#xa;User：教师讲话&#xa;Assistant：学生已有回复" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf3ff;strokeColor=#6998d1;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="695" y="585" width="400" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="request" value="合并为本轮学生 API 请求&#xa;由现有状态机制维护动态状态&#xa;继续下一轮课堂" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f1ecfc;strokeColor=#9a83c5;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="695" y="745" width="400" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="genrules" target="geninput">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="geninput" target="json">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="json" target="fixed">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4" value="注入数据" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="fixed" target="sys">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="575" y="755" />
+              <mxPoint x="575" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="sys" target="request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1140" y="275" />
+              <mxPoint x="1140" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;exitX=0;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="dynamic" target="request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="660" y="470" />
+              <mxPoint x="660" y="800" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="history" target="request">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="foot" value="画像 Prompt 只要已有内容，再次生成就提示覆盖；准备讲的知识点保留为独立字段，用户填写时不得覆盖。" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="60" y="885" width="1090" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="3" name="03 界面字段与覆盖规则">
+    <mxGraphModel grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1100" pageHeight="1100">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="heading" value="界面调整｜保留教学范围，合并学生基础" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=18;fontColor=#24334b;fontFamily=Microsoft YaHei;" vertex="1" parent="1">
+          <mxGeometry x="45" y="30" width="1020" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="old" value="现有四项&#xa;① 教学主题&#xa;② 准备讲的知识点&#xa;③ 学生已经知道什么&#xa;④ 理解基础" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="70" y="125" width="385" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="new" value="调整后的三项&#xa;① 教学主题（必填）&#xa;② 准备讲的知识点（选填，独立保留）&#xa;③ 学生画像（可生成、可编辑）&#xa;   包含已有知识与理解基础" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="610" y="125" width="420" height="175" as="geometry" />
+        </mxCell>
+        <mxCell id="mapping" value="下面两项合并" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=0;endArrow=block;endFill=1;strokeColor=#64748b;strokeWidth=1.5;fontSize=14;fontFamily=Microsoft YaHei;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="old" target="new">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="knowledge" value="准备讲的知识点｜生成与保留规则&#xa;用户填写 / 修改：作为生成约束，AI 不覆盖&#xa;用户未填写：AI 根据教学主题生成并回填&#xa;表示本次待讲范围，不代表学生已经学会" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="70" y="365" width="960" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="学生画像｜替换规则&#xa;原「学生已经知道什么」与「理解基础」合并到此&#xa;画像 Prompt 已有内容：再次生成前提示是否放弃更改&#xa;取消：保留原内容；确认：成功后替换，失败仍保留" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="70" y="545" width="960" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="migration" value="已有配置迁移&#xa;保留教学主题和准备讲的知识点&#xa;将旧「学生已经知道什么」「理解基础」合并到画像&#xa;不静默丢弃用户已填写的旧配置" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="70" y="735" width="960" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="creation_rule" value="创建试讲校验&#xa;学生设定 Prompt 为空或仅含空白字符：阻止创建，不创建课堂会话&#xa;提示：请先生成或填写学生设定，再创建试讲。&#xa;保留现有输入；用户生成或手动补全后，可再次创建" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f5f8;strokeColor=#94a3b8;fontColor=#24334b;fontSize=16;fontFamily=Microsoft YaHei;spacing=10;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="70" y="900" width="960" height="140" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="4" name="04 选项框内容">
+    <mxGraphModel dx="1854" dy="1329" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1420" pageHeight="1480" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;strokeColor=none;fontSize=25;fontStyle=1;" value="创建试讲｜选项框内容与默认值" vertex="1">
+          <mxGeometry height="60" width="1330" x="45" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="intro" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#eaf3ff;" value="只填写教学主题即可生成。年级、学科默认「由 AI 判断」；用户选择后，AI 不覆盖。" vertex="1">
+          <mxGeometry height="55" width="1330" x="45" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="h0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#dceaff;fontStyle=1;" value="字段" vertex="1">
+          <mxGeometry height="55" width="180" x="45" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="h1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#dceaff;fontStyle=1;" value="输入方式" vertex="1">
+          <mxGeometry height="55" width="205" x="225" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="h2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#dceaff;fontStyle=1;" value="可选项 / 输入内容" vertex="1">
+          <mxGeometry height="55" width="620" x="430" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="h3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#dceaff;fontStyle=1;" value="默认值与规则" vertex="1">
+          <mxGeometry height="55" width="325" x="1050" y="175" as="geometry" />
+        </mxCell>
+        <mxCell id="row0_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="教学主题" vertex="1">
+          <mxGeometry height="85" width="180" x="45" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="row0_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="单行文本输入" vertex="1">
+          <mxGeometry height="85" width="205" x="225" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="row0_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="自由填写，例如：欧姆定律、链表的基本概念" vertex="1">
+          <mxGeometry height="85" width="620" x="430" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="row0_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="必填；默认空&#xa;填写后即可点击生成" vertex="1">
+          <mxGeometry height="85" width="325" x="1050" y="230" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="年级" vertex="1">
+          <mxGeometry height="170" width="180" x="45" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="下拉选择&#xa;支持自定义" vertex="1">
+          <mxGeometry height="170" width="205" x="225" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="由 AI 判断（未指定）&#xa;小学：一年级、二年级、三年级、四年级、五年级、六年级&#xa;初中：七年级、八年级、九年级&#xa;高中：高一、高二、高三&#xa;大学：大一、大二、大三、大四&#xa;其他：自定义学段 / 学习阶段" vertex="1">
+          <mxGeometry height="170" width="620" x="430" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="row1_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="默认：由 AI 判断&#xa;用户已选：保持不变&#xa;未指定：AI 推断后回填" vertex="1">
+          <mxGeometry height="170" width="325" x="1050" y="315" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="学科" vertex="1">
+          <mxGeometry height="150" width="180" x="45" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="下拉选择&#xa;支持自定义" vertex="1">
+          <mxGeometry height="150" width="205" x="225" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="由 AI 判断（未指定）&#xa;语文、数学、英语、物理、化学、生物&#xa;历史、地理、道德与法治&#xa;科学、信息科技、美术、音乐、体育&#xa;其他：自定义学科（例如数据结构）" vertex="1">
+          <mxGeometry height="150" width="620" x="430" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="row2_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="默认：由 AI 判断&#xa;用户已选：保持不变&#xa;未指定：AI 推断后回填" vertex="1">
+          <mxGeometry height="150" width="325" x="1050" y="485" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="学生水平" vertex="1">
+          <mxGeometry height="100" width="180" x="45" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="单选框" vertex="1">
+          <mxGeometry height="100" width="205" x="225" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="基础薄弱　/　普通水平　/　基础扎实" vertex="1">
+          <mxGeometry height="100" width="620" x="430" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="row3_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="默认：普通水平&#xa;影响前置知识掌握程度&#xa;不直接设置提问频率" vertex="1">
+          <mxGeometry height="100" width="325" x="1050" y="635" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="课型" vertex="1">
+          <mxGeometry height="85" width="180" x="45" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="单选框" vertex="1">
+          <mxGeometry height="85" width="205" x="225" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="新课　/　复习课　/　综合应用课" vertex="1">
+          <mxGeometry height="85" width="620" x="430" y="737" as="geometry" />
+        </mxCell>
+        <mxCell id="row4_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="默认：新课&#xa;已选值不被 AI 覆盖" vertex="1">
+          <mxGeometry height="85" width="325" x="1050" y="735" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="准备讲的知识点" vertex="1">
+          <mxGeometry height="105" width="180" x="45" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="多行文本输入" vertex="1">
+          <mxGeometry height="105" width="205" x="225" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="独立保留，允许自由填写&#xa;例如：电流与电压的关系、公式及简单应用" vertex="1">
+          <mxGeometry height="105" width="620" x="430" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="row5_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="默认空，选填&#xa;用户填写：AI 不覆盖&#xa;未填写：AI 生成并回填" vertex="1">
+          <mxGeometry height="105" width="325" x="1050" y="820" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="学生画像&#xa;（学生设定 Prompt）" vertex="1">
+          <mxGeometry height="130" width="180" x="45" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="多行文本输入&#xa;可由 AI 生成" vertex="1">
+          <mxGeometry height="130" width="205" x="225" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="合并原「学生已经知道什么」与「理解基础」&#xa;包含已有知识、理解基础、知识边界和可能的理解困难&#xa;用户可检查并手动调整" vertex="1">
+          <mxGeometry height="130" width="620" x="430" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="row6_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#ffffff;" value="默认空&#xa;已有内容：再次生成先确认&#xa;为空或仅空白：不能创建试讲" vertex="1">
+          <mxGeometry height="130" width="325" x="1050" y="925" as="geometry" />
+        </mxCell>
+        <mxCell id="row7_0" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="教材版本" vertex="1">
+          <mxGeometry height="100" width="180" x="45" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="row7_1" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="文本输入&#xa;放入「更多设置」" vertex="1">
+          <mxGeometry height="100" width="205" x="225" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="row7_2" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="自由填写，例如：人教版、北师大版&#xa;不维护覆盖全部教材版本的下拉列表" vertex="1">
+          <mxGeometry height="100" width="620" x="430" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="row7_3" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#f7f9fc;" value="默认空，选填&#xa;已填内容作为生成约束&#xa;未填时不虚构具体版本" vertex="1">
+          <mxGeometry height="100" width="325" x="1050" y="1055" as="geometry" />
+        </mxCell>
+        <mxCell id="rules" parent="1" style="rounded=0;whiteSpace=wrap;html=0;align=left;verticalAlign=middle;fontSize=16;fontColor=#24334b;fontFamily=Microsoft YaHei;spacing=14;strokeColor=#cbd5e1;strokeWidth=1;fillColor=#eaf7ef;" value="统一交互规则&#xa;① 年级、学科的「其他」选项显示自定义输入框；「由 AI 判断」表示尚未指定。&#xa;② 本页不再提供独立的「已知知识」「理解基础」输入框，两者统一放入学生画像。&#xa;③ 画像已有内容时，提示是否放弃当前内容并重新生成；取消或生成失败均保留原内容。" vertex="1">
+          <mxGeometry height="150" width="1330" x="45" y="1185" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
