@@ -3,6 +3,7 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const http = require('node:http');
+const os = require('node:os');
 const path = require('node:path');
 const {chromium} = require('playwright');
 
@@ -30,9 +31,12 @@ async function main() {
     models:[], models_dir:'测试模型目录', engine_state:'idle', vad_ready:true}}));
   await page.route('**/api/student-profile', async route => {
     calls.push(route.request().postDataJSON());
-    if (mode === 'slow') {arrived(); await new Promise(resolve => release = resolve);}
-    if (mode === 'failure') return route.fulfill({status:502,json:{detail:'模拟生成失败'}});
-    if (mode === 'invalid') return route.fulfill({json:{...result,student_profile:' '}});
+    const requestMode = mode;
+    if (requestMode === 'slow') {arrived(); await new Promise(resolve => release = resolve);}
+    if (requestMode === 'failure') return route.fulfill({status:502,json:{detail:'模拟生成失败'}});
+    if (requestMode === 'invalid') return route.fulfill({json:{...result,student_profile:' '}});
+    if (requestMode === 'network') return route.abort('failed');
+    if (requestMode === 'timeout') await new Promise(resolve => setTimeout(resolve,100));
     await route.fulfill({json:result});
   });
   await page.routeWebSocket('**/ws/session', ws => ws.onMessage(raw => {
@@ -82,11 +86,16 @@ async function main() {
     assert.deepEqual(await snapshot(),original); assert.equal(calls.length,1);
     await button.click(); await page.keyboard.press('Escape'); await idle();
     assert.deepEqual(await snapshot(),original); assert.equal(calls.length,1);
-    for (const failure of ['failure','invalid']) {
+    for (const failure of ['failure','invalid','network','timeout']) {
+      if (failure === 'timeout') await page.evaluate(() => {
+        window.profileOriginalTimeout = window.setTimeout;
+        window.setTimeout = (fn,ms,...args) => window.profileOriginalTimeout(fn,ms === 95000 ? 10 : ms,...args);
+      });
       mode = failure; await button.click(); await confirm(); await idle();
       assert((await status.innerText()).includes('原有内容已保留'));
       assert.deepEqual(await snapshot(),original);
       assert(await page.locator('#retry').isHidden());
+      if (failure === 'timeout') await page.evaluate(() => {window.setTimeout = window.profileOriginalTimeout;});
     }
     console.log('PASS cancel, Escape, server failure and invalid response retain every field');
 
@@ -116,7 +125,7 @@ async function main() {
     await page.locator('#subjectCustom').fill(''); await button.click();
     assert.equal(calls.length,before);
     await page.locator('#subjectCustom').fill('电路基础');
-    const output = process.env.PROFILE_SCREENSHOT_DIR || '/tmp';
+    const output = process.env.PROFILE_SCREENSHOT_DIR || os.tmpdir();
     fs.mkdirSync(output,{recursive:true});
     await page.locator('.setup').screenshot({path:path.join(output,'student-profile-desktop.png')});
     await page.setViewportSize({width:390,height:844});
