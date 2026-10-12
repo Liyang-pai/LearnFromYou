@@ -20,12 +20,12 @@ function showError(message, retry = false) {
 function syncControls() {
   const debugBusy = Boolean(window.asrDebug?.busy || window.asrDebug?.upload?.busy);
   const uploadBusy = Boolean(window.lessonUpload?.busy);
-  $('start').disabled = running || starting || !asrReady || asrBusy || asrDownloading || debugBusy;
+  $('start').disabled = running || starting || ending || window.studentProfile?.busy || !asrReady || asrBusy || asrDownloading || debugBusy;
   $('changeModel').disabled = running || starting || ending || asrBusy || debugBusy;
   for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
   $('mic').disabled ||= uploadBusy || micStarting || micStopping;
   for (const id of ['teacherText','sendText']) $(id).disabled ||= uploadBusy;
-  for (const id of ['topic','points','prerequisites','level','asrReview']) $(id).disabled = running || starting || ending;
+  window.studentProfile?.sync(running || starting || ending);
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
   window.asrDebug?.sync();
   window.lessonUpload?.sync();
@@ -174,15 +174,15 @@ async function connect() {
   await new Promise((resolve,reject) => { socket.onopen = resolve; socket.onerror = () => reject(new Error('无法连接本机服务')); });
 }
 $('lessonForm').addEventListener('submit',async e => {
-  e.preventDefault(); if(starting || running || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
-  const topic = $('topic').value.trim(); if(!topic) return;
+  e.preventDefault(); if(starting || running || ending || window.studentProfile?.busy || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
+  const lesson = window.studentProfile.readLesson(); if(!lesson) return;
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
   window.teachingReport?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
   for(const id of ['transcripts','events','modelInputs','conversation']) $(id).textContent = '';
   $('error').classList.add('hidden'); $('scope').classList.add('hidden'); $('reviewNotice').classList.add('hidden'); syncControls();
-  try { await connect(); send({type:'start',lesson:{topic,points:$('points').value,prerequisites:$('prerequisites').value,level:$('level').value},muted:$('mute').checked,tts:$('tts').checked,asr_review:$('asrReview').checked}); }
+  try { await connect(); send({type:'start',lesson,muted:$('mute').checked,tts:$('tts').checked,asr_review:$('asrReview').checked}); }
   catch(e) { starting = false; syncControls(); showError(e.message); }
 });
 async function startMic() {

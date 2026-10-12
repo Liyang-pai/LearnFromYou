@@ -105,6 +105,7 @@ async function main() {
       await page.locator('#classroomTab').click();
       await page.locator('#topic').fill('工作时间与工作内容');
       await page.locator('#points').fill('上午九点至下午五点的工作安排');
+      await page.locator('#studentProfile').fill('理解日常语言，尚不知道这次具体的工作安排。');
       await page.locator('#tts').uncheck(); await page.locator('#mute').check();
       await page.locator('#start').click();
       await page.waitForFunction(() => running, {timeout:120000});

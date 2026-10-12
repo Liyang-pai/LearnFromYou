@@ -23,13 +23,32 @@
         <form id="lessonForm">
           <label for="topic">教学主题 <span>必填</span></label>
           <input id="topic" name="topic" placeholder="例如：链表的基本概念" maxlength="500" required>
-          <label for="points">准备讲的知识点</label>
-          <textarea id="points" rows="3" maxlength="3000" placeholder="例如：节点、连接方式、从哪里开始访问"></textarea>
-          <label for="prerequisites">学生已经知道什么</label>
-          <textarea id="prerequisites" rows="3" maxlength="2000" placeholder="只填写明确已知的内容，可留空。每行一条。"></textarea>
-          <label for="level">理解基础</label>
-          <input id="level" maxlength="300" value="普通初学者，保留日常语言与基本逻辑能力">
-          <p class="hint">教学主题是待学范围，不会自动写进学生的已知知识。</p>
+          <div class="profile-selects">
+            <div><label for="grade">年级</label><select id="grade"><option value="">由 AI 判断</option></select>
+              <label for="gradeCustom" class="hidden" id="gradeCustomLabel">自定义学段 / 学习阶段</label><input id="gradeCustom" class="hidden" maxlength="100" placeholder="例如：成人零基础"></div>
+            <div><label for="subject">学科</label><select id="subject"><option value="">由 AI 判断</option></select>
+              <label for="subjectCustom" class="hidden" id="subjectCustomLabel">自定义学科</label><input id="subjectCustom" class="hidden" maxlength="100" placeholder="例如：数据结构"></div>
+          </div>
+          <fieldset class="profile-options"><legend>学生水平</legend>
+            <label><input type="radio" name="studentLevel" value="weak">基础薄弱</label>
+            <label><input type="radio" name="studentLevel" value="normal" checked>普通水平</label>
+            <label><input type="radio" name="studentLevel" value="strong">基础扎实</label>
+          </fieldset>
+          <fieldset class="profile-options"><legend>课型</legend>
+            <label><input type="radio" name="lessonType" value="new" checked>新课</label>
+            <label><input type="radio" name="lessonType" value="review">复习课</label>
+            <label><input type="radio" name="lessonType" value="application">综合应用课</label>
+          </fieldset>
+          <label for="points">准备讲的知识点 <span>选填</span></label>
+          <textarea id="points" rows="3" maxlength="3000" placeholder="例如：节点、连接方式、从哪里开始访问。留空时由 AI 生成。"></textarea>
+          <details class="profile-more"><summary>更多设置</summary><label for="textbook">教材版本</label>
+            <input id="textbook" maxlength="200" placeholder="选填，例如：人教版、北师大版"></details>
+          <button id="generateProfile" type="button" class="full" disabled>生成学生画像 <span>✧</span></button>
+          <p class="hint">只填教学主题即可生成。已填写的教学设置会保留；生成的基础知识请检查后确认。</p>
+          <label for="studentProfile">学生画像 <span>创建前必填 · 可编辑</span></label>
+          <textarea id="studentProfile" rows="8" maxlength="3000" aria-describedby="profileStatus" placeholder="可由 AI 生成，也可直接填写已有知识、理解基础、知识边界和可能的理解困难。"></textarea>
+          <p id="profileStatus" class="hint profile-status" role="status" aria-live="polite">生成或填写画像后，点击「创建试讲」即确认当前设定。</p>
+          <p class="hint">教学主题和知识点仅表示待学范围，不会自动成为已知知识。本次课堂中画像保持固定。</p>
           <label class="toggle review-toggle" for="asrReview"><input id="asrReview" type="checkbox" checked>语音转文字审核</label>
           <p class="hint">根据课堂语境校正识别错误，保留原始转写。会增加等待时间；创建试讲后不可切换。文字输入不做审核。</p>
           <button id="start" class="primary full" type="submit" disabled>创建试讲 <span>↗</span></button>
@@ -106,7 +125,13 @@
     </section>
     <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
   </main>
+  <dialog id="profileOverwrite" aria-labelledby="profileOverwriteTitle" aria-describedby="profileOverwriteDescription">
+    <h2 id="profileOverwriteTitle">重新生成学生画像？</h2>
+    <p id="profileOverwriteDescription">重新生成将替换现有画像。取消或生成失败时，当前内容都会保留。</p>
+    <form method="dialog" class="profile-dialog-actions"><button value="cancel" autofocus>取消</button><button value="generate" class="primary">放弃更改并生成</button></form>
+  </dialog>
   <script src="/static/audio-file.js?v=20261007-upload-1" defer></script>
+  <script src="/static/student-profile.js?v=20261012-profile-1" defer></script>
   <script src="/static/app.js?v=20261007-upload-1" defer></script>
   <script src="/static/teaching-report.js?v=20261011-interaction" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
