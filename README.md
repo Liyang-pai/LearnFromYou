@@ -10,13 +10,26 @@
 
 | 项目 | 是否必须 | 说明 |
 | --- | --- | --- |
-| Python 3.11+ | 必须 | 推荐使用独立虚拟环境。当前开发环境为 Python 3.13。 |
+| Python 3.11–3.13 | 必须 | 推荐标准版 Python 3.13。Windows x64 缺少兼容版本时启动脚本自动安装；macOS 需自行安装。虚拟环境由脚本自动创建。 |
 | 本地 ASR 模型 | 必须 | GitHub 不包含任何模型文件。启动网页后，在「ASR 模型」页面下载并选择；支持安装多个。详情见 `asr/README.md`。 |
 | DeepSeek 或兼容 LLM API 密钥 | 必须 | 将密钥写入本地 `.env`，不会上传或提交到 GitHub。 |
 | Chrome 麦克风权限 | 试讲时必须 | 选择真实麦克风，不要选择 `Background Music (Virtual)` 等无教师语音的虚拟设备。 |
 | 耳机 | 建议 | 降低学生语音播报被重新识别为教师语音的概率。 |
 
 ## 从零安装
+
+普通使用者下载项目 ZIP 并解压后，按系统选择启动文件即可，无需手动创建虚拟环境或运行 pip：
+
+- **Windows x64**：双击 `启动试讲.bat`。脚本优先复用可用的项目环境和 Python；未找到兼容版本时，自动下载并安装官网标准版 **Python 3.13.16 x64**。安装前核对官网 SHA-256 和 Python Software Foundation 有效数字签名，按当前用户安装到 `%LOCALAPPDATA%\LearnFromYou\Python313`，不修改 PATH、不安装 Python 启动器、不自动重启电脑。
+- **macOS Apple Silicon / Intel**：先从 [Python 3.13 官网发布页](https://www.python.org/downloads/release/python-31316/) 选择 macOS installer 安装标准版 Python 3.13，再双击 `启动试讲.command`。macOS 脚本不自动安装 Python。
+
+首次启动会在项目内创建 `.venv` 并安装 `requirements.txt` 中的依赖，需要联网，请保持启动窗口开启。后续会检查版本约束、依赖一致性和模块加载；环境完整时不访问安装源、不自动升级依赖。依赖缺失或损坏时会安装或修复；虚拟环境不可用时先保留为 `.venv.backup-时间戳`，再重建。不要将另一台电脑或另一种系统的 `.venv` 一起分发。
+
+Windows 安装器来自 [Python 3.13.16 官方发布页](https://www.python.org/downloads/release/python-31316/)，版本与 SHA-256 固定在脚本中，不会在每次启动时追踪最新版本。安装日志位于 `%LOCALAPPDATA%\LearnFromYou\downloads`。下载、校验、安装或依赖检查失败时，脚本显示错误并停止；处理网络或目录权限问题后重新双击即可。若安装器提示需要重启，请手动重启后再启动。也可以自行安装兼容版本，再重新双击。
+
+**启动环境自动配置不包含 API 密钥和 ASR 模型。** 首次使用仍需把 `.env.example` 复制为 `.env` 并填写密钥，然后在网页「ASR 模型」页面下载、选择模型。已有 `.env`、模型和课堂日志不会被脚本覆盖。
+
+开发者也可以手动安装：
 
 ```sh
 git clone https://github.com/Liyang-pai/LearnFromYou.git
@@ -47,7 +60,9 @@ Windows PowerShell 使用 `.venv\Scripts\python.exe` 替换下面的 `./.venv/bi
 ./.venv/bin/python run.py
 ```
 
-使用 Chrome 打开 **http://127.0.0.1:8765**。macOS 可双击 `启动试讲.command`；若网页先于服务加载完成，稍等后刷新。终端保持开启，按 Control-C 关闭服务。
+Windows 可双击 `启动试讲.bat`，macOS 可双击 `启动试讲.command`；两端都会在服务就绪后自动打开试讲页。使用系统默认浏览器，建议将 Chrome 设为默认浏览器；若未能自动打开，可使用终端显示的地址，默认为 **http://127.0.0.1:8765**。终端保持开启，按 Ctrl+C / Control-C 关闭服务。
+
+端口已被其他程序占用时启动会失败，不会终止占用进程或打开其他服务。可关闭先前启动的本项目终端，或在 `.env` 中设置其他 `PORT` 后重新启动。仅准备环境而不启动服务时，开发者可运行 `python scripts/bootstrap.py --prepare-only`（使用兼容 Python）。
 
 页面必须通过本机服务地址访问。直接打开 `frontend/index.html` 会跳转到默认地址 `http://127.0.0.1:8765/models`；若修改了 `PORT`，请使用相应端口的 HTTP 地址。若提示无法连接，请先启动服务。
 

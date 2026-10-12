@@ -3,6 +3,7 @@
 !.env.example
 .venv
 .venv/
+.venv.backup-*/
 /asr/models/
 logs/
 __pycache__/

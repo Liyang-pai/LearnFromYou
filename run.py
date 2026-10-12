@@ -12,7 +12,8 @@ def open_when_ready(server, stopped):
     while not stopped.wait(0.1):
         if server.started:
             try:
-                webbrowser.open(f'http://127.0.0.1:{PORT}')
+                if not webbrowser.open(f'http://127.0.0.1:{PORT}'):
+                    print(f'Open http://127.0.0.1:{PORT} in your browser.', flush=True)
             except OSError:
                 print(f'Open http://127.0.0.1:{PORT} in your browser.', flush=True)
             return
