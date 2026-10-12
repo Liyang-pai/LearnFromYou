@@ -156,7 +156,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
         def __init__(self, emit):
             pass
 
-        async def generate(self, phase, system, payload, output_type, *, history=()):
+        async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
             phases.append(phase)
             if phase == 'preparation':
                 return Preparation(scope=['星星运算'], boundary_note='仅从课堂学习')

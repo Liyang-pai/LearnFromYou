@@ -10,7 +10,7 @@ import numpy as np
 from asr.recognizer import AudioStream
 from . import config, prompts
 from .llm import ModelClient, ModelError
-from .policy import apply_result, invited, mark_delivered, speech_block
+from .policy import apply_result, invited, mark_delivered, speech_block, student_result_validator
 from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, StudentResult, StudentState, profile_preparation
 from .speech import Speaker
@@ -298,10 +298,12 @@ class Session:
             target_revision = batch[-1]["revision"]
             while True:
                 try:
-                    result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
-                                                     history=list(self.conversation))
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
+                    recovery = []
+                    result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
+                        history=list(self.conversation),
+                        result_validator=student_result_validator(self.state, allowed, ids, recovery))
                     next_state, candidate = apply_result(self.state, result, allowed, ids)
                     self.state = next_state
                     self.processed_ids |= ids
@@ -313,6 +315,8 @@ class Session:
                     self.last_block = None
                     await self.emit("state", {"state": self.state.model_dump(), "note": result.note,
                         "processed_sources": sorted(ids), "candidate": candidate.model_dump(), "addressed": addressed})
+                    for detail in recovery:
+                        await self.emit('student_recovery', detail)
                     self.failed_batch = None
                     break
                 except (ModelError, ValueError) as e:

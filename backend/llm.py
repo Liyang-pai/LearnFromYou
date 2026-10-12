@@ -20,7 +20,7 @@ class ModelClient:
     async def close(self):
         await self.http.aclose()
 
-    async def generate(self, phase, system, payload, output_type, *, history=()):
+    async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
         report_phase = phase.startswith('teaching_report')
         profile_phase = phase == 'student_profile'
         if not config.API_KEY:
@@ -56,20 +56,25 @@ class ModelClient:
             if report_phase and envelope['choices'][0].get('finish_reason') == 'length':
                 raise ModelError('模型报告输出被截断，未保存为成功报告；请检查输出额度或缩小试讲范围后重试')
             try:
-                return output_type.model_validate_json(raw)
+                result = output_type.model_validate_json(raw)
+                # JSON 与课堂关联校验共用两次请求预算，不在外层再叠加重试。
+                return result_validator(result, attempt == 1) if result_validator else result
             except (ValidationError, ValueError, TypeError) as exc:
+                errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
+                          if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
+                if phase == 'student':
+                    await self.emit('student_validation_error', {'attempt': attempt + 1, 'errors': errors})
                 if attempt:
                     if report_phase:
                         raise ModelError('模型两次未返回有效报告结构；课堂内容保留，可以重试教学报告') from None
                     if profile_phase:
                         raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
-                correction = "刚才输出不符合给定 JSON schema。仅修复结构和字段，返回完整 JSON 对象。"
+                correction = "刚才输出未通过结构或关联校验。修正指出的错误，保留其他有效内容，返回完整 JSON 对象。"
                 if isinstance(exc, ValidationError):
-                    errors = [{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
                     if report_phase:
                         await self.emit('report_validation_error', {'errors': errors})
-                    correction += '\n具体错误：' + json.dumps(errors, ensure_ascii=False)[:2000]
+                correction += '\n具体错误：' + json.dumps(errors, ensure_ascii=False)[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},
                              {"role": "user", "content": correction}]
 

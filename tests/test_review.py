@@ -32,7 +32,7 @@ class ReviewModel:
         self.review_cancelled = False
         self.closed = False
 
-    async def generate(self, phase, system, payload, output_type, *, history=()):
+    async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
         self.calls.append((phase, deepcopy(payload)))
         if phase == 'preparation':
             result = {'scope': ['链表'], 'boundary_note': '待学内容不是已知内容'}
@@ -60,7 +60,8 @@ class ReviewModel:
             result = {'knowledge_updates': [{'id': 'k' + ids[-1], 'text': '暂定理解',
                 'status': 'tentative', 'sources': ids}], 'addressed': True,
                 'candidate': {'kind': 'answer', 'text': '我大概理解了。', 'sources': ids}}
-        return output_type.model_validate(result)
+        parsed = output_type.model_validate(result)
+        return result_validator(parsed, False) if result_validator else parsed
 
     async def close(self):
         self.closed = True

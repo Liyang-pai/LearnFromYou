@@ -67,7 +67,7 @@ def test_profile_snapshot_sources_and_delivered_history(monkeypatch, tmp_path):
     monkeypatch.setattr(config, 'ROOT', tmp_path)
     calls = []
     class Model:
-        async def generate(self, phase, system, payload, output_type, *, history=()):
+        async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
             calls.append((phase, system, payload, list(history)))
             if phase == 'preparation':
                 return output_type(scope=['星星运算'], boundary_note='待学范围',

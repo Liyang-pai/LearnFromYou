@@ -130,14 +130,16 @@ class Question(QuestionUpdate):
 class Candidate(StrictModel):
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
     text: str = Field(default="", max_length=600)
-    question_id: str | None = None
+    question_id: str | None = Field(default=None,
+        description='question 必须引用当前未解决疑问，或在本轮 question_updates 中同时登记的疑问 ID')
     sources: list[str] = Field(default_factory=list, max_length=12)
 
 
 class StudentResult(StrictModel):
     knowledge_updates: list[Knowledge] = Field(default_factory=list, max_length=16,
         description="仅定义、概念、规则、因果、方法和有依据的纠正结论；不包含教师提问或课堂组织事件")
-    question_updates: list[QuestionUpdate] = Field(default_factory=list, max_length=12)
+    question_updates: list[QuestionUpdate] = Field(default_factory=list, max_length=12,
+        description='新增追问必须在这里登记，ID 与 candidate.question_id 一致；已有未解决疑问可直接引用')
     event_updates: list[ClassroomEvent] = Field(default_factory=list, max_length=12)
     addressed: bool = False
     candidate: Candidate = Field(default_factory=Candidate)

@@ -1,7 +1,36 @@
 """Deterministic rules: the model proposes; this module controls state and speech."""
 import re
 from difflib import SequenceMatcher
-from .schemas import StudentState, StudentResult, Question, KnowledgeRevision
+from .schemas import StudentState, StudentResult, Question, KnowledgeRevision, Candidate
+
+
+class MissingQuestionError(ValueError):
+    """候选追问缺少关联记录；与知识或来源不可靠的错误明确区分。"""
+    def __init__(self, question_id):
+        self.question_id = question_id
+        super().__init__(f'candidate.question_id={question_id!r} 未关联到已有或本轮登记的疑问。'
+                         '请在 question_updates 中补齐对应疑问记录，或将 candidate 改为 silence。')
+
+
+def student_result_validator(state, sources, current_ids, recovery):
+    """在状态副本上预校验，最后一次只允许跳过漏登记的追问。"""
+    snapshot = state.model_copy(deep=True)
+
+    def validate(result, final_attempt):
+        try:
+            apply_result(snapshot, result, sources, current_ids)
+        except MissingQuestionError as exc:
+            if not final_attempt:
+                raise
+            cleaned = result.model_copy(update={'candidate': Candidate()}, deep=True)
+            # 丢弃候选后仍需完整校验；不能把其他错误一起忽略或提前写入状态。
+            apply_result(snapshot, cleaned, sources, current_ids)
+            recovery.append({'code': 'missing_question_reference', 'question_id': exc.question_id,
+                             'sources': list(result.candidate.sources), 'reason': str(exc),
+                             'message': '异常追问已跳过，课堂继续', 'attempt': 2})
+            return cleaned
+        return result
+    return validate
 
 
 def invited(text: str) -> bool:
@@ -86,7 +115,7 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
     if candidate.kind == "question":
         q = questions.get(candidate.question_id)
         if not q:
-            raise ValueError("候选问题不在问题库中")
+            raise MissingQuestionError(candidate.question_id)
         if q.status in ("resolved", "deferred") or q.attempts >= 2:
             candidate.kind, candidate.text = "silence", ""
     next_state.knowledge = list(known.values())
