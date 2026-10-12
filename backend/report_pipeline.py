@@ -17,7 +17,10 @@ def encode(value):
 
 
 def compact(classroom):
-    return {'lesson': classroom['lesson'], 'turns': [
+    # 报告评价实际讲授，完整画像仅保存在原始课堂记录中，不占用分析窗口。
+    lesson = {key: value for key, value in classroom['lesson'].items()
+              if key in ('topic', 'points', 'grade', 'subject', 'student_level', 'lesson_type', 'textbook')}
+    return {'lesson': lesson, 'turns': [
         {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind') if key in turn}
         for turn in classroom['turns']]}
 

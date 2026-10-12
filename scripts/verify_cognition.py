@@ -32,7 +32,7 @@ async def main():
             await send(type='text', text=text)
             return await receive('state')
 
-        await send(type='start', lesson={'topic':'星星运算'}, muted=True, tts=False)
+        await send(type='start', lesson={'topic':'星星运算', 'student_profile':'普通初学者，尚未学习本课内容。'}, muted=True, tts=False)
         ready = await receive('ready')
         assert 'open_questions' in ready['state']
         print('session', ready['session_id'], flush=True)

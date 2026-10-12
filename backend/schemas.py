@@ -1,5 +1,7 @@
 from typing import Annotated, Literal
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StringConstraints, field_validator, model_validator
+
+PROFILE_REQUIRED = '请生成或填写学生设定，再创建试讲嗷~'
 
 
 class StrictModel(BaseModel):
@@ -31,16 +33,48 @@ class StudentProfileResult(StrictModel):
         return value
 
 
-class Lesson(StrictModel):
-    topic: str = Field(min_length=1, max_length=500)
-    points: str = Field(default="", max_length=3000)
-    prerequisites: str = Field(default="", max_length=2000)
-    level: str = Field(default="普通初学者，保留日常语言与基本逻辑能力", max_length=300)
+class Lesson(TeachingSettings):
+    student_profile: str = Field(default='', max_length=3000, validate_default=True)
+    # 只兼容用户显式传入的旧字段，不再自动生成默认基础或写入新日志。
+    prerequisites: str | None = Field(default=None, max_length=2000, exclude=True)
+    level: str | None = Field(default=None, max_length=300, exclude=True)
+
+    @model_validator(mode='before')
+    @classmethod
+    def migrate_explicit_legacy_basis(cls, data):
+        if isinstance(data, dict) and 'student_profile' not in data:
+            parts = [f'{label}：{data[key]}' for key, label in
+                     [('prerequisites', '已有知识'), ('level', '理解基础')]
+                     if isinstance(data.get(key), str) and data[key].strip()]
+            data = {**data, 'student_profile': '\n'.join(parts)}
+        return data
+
+    @field_validator('student_profile')
+    @classmethod
+    def require_profile(cls, value):
+        if not value.strip():
+            raise ValueError(PROFILE_REQUIRED)
+        return value
 
 
 class Preparation(StrictModel):
     scope: list[str] = Field(max_length=12)
     boundary_note: str = Field(max_length=400)
+    initial_prerequisites: list[Annotated[str, StringConstraints(min_length=1, max_length=400)]] = Field(
+        default_factory=list, max_length=24,
+        description='只逐字引用画像中明确已知的完整陈述；没有明确前置知识时返回空数组')
+
+
+def profile_preparation(profile: str):
+    """将画像原文约束放进模型结果校验，使无依据摘录参与既有结构修复。"""
+    class ProfilePreparation(Preparation):
+        @model_validator(mode='after')
+        def check_quotes(self):
+            for quote in self.initial_prerequisites:
+                if not quote.strip() or quote not in profile:
+                    raise ValueError('前置知识必须逐字引用确认画像中的完整原文，不得改写或补充')
+            return self
+    return ProfilePreparation
 
 
 class ReviewGlossary(StrictModel):

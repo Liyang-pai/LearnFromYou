@@ -32,7 +32,7 @@ class ReviewModel:
         self.review_cancelled = False
         self.closed = False
 
-    async def generate(self, phase, system, payload, output_type):
+    async def generate(self, phase, system, payload, output_type, *, history=()):
         self.calls.append((phase, deepcopy(payload)))
         if phase == 'preparation':
             result = {'scope': ['链表'], 'boundary_note': '待学内容不是已知内容'}
@@ -257,7 +257,7 @@ def test_deadline_includes_json_repair_attempt(monkeypatch, phase, timeout_name)
         llm = ModelClient(emit)
         await llm.http.aclose()
         llm.http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
-        reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表'))
+        reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表', student_profile='普通初学者，尚未学习链表。'))
         try:
             if phase == 'review_glossary':
                 await reviewer.initialize()
@@ -294,7 +294,7 @@ def test_glossary_overrun_tolerance_keeps_model_limit_and_review_flow(monkeypatc
         llm = ModelClient(emit)
         await llm.http.aclose()
         llm.http = httpx.AsyncClient(transport=httpx.MockTransport(transport))
-        reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表'))
+        reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表', student_profile='普通初学者，尚未学习链表。'))
         try:
             await reviewer.initialize()
             prompt, schema = calls[0]['messages'][0]['content'].split('\nJSON schema:\n')
@@ -395,7 +395,7 @@ def test_websocket_review_option(tmp_path, monkeypatch, option):
     monkeypatch.setattr('backend.session.ModelClient', ReviewModel)
     with TestClient(service.app) as client:
         with client.websocket_connect('/ws/session') as ws:
-            event = {'type': 'start', 'lesson': {'topic': '链表'}, 'tts': False}
+            event = {'type': 'start', 'lesson': {'topic': '链表', 'student_profile': '普通初学者，尚未学习本课内容。'}, 'tts': False}
             if option is not None:
                 event['asr_review'] = option
             ws.send_json(event)

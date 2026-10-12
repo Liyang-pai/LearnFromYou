@@ -14,7 +14,7 @@ from asr.debug import ASRDebug
 from asr.upload import AudioUpload
 from . import config
 from .llm import ModelError
-from .schemas import Lesson, TeachingSettings, StudentProfileResult
+from .schemas import Lesson, TeachingSettings, StudentProfileResult, PROFILE_REQUIRED
 from .student_profile import generate_profile
 from .session import Session
 from .teaching_report import ReportService, export_markdown
@@ -335,8 +335,9 @@ async def websocket(ws: WebSocket):
                             except (WebSocketDisconnect, RuntimeError):
                                 pass
             except (ValueError, ValidationError, ModelError) as e:
+                message = PROFILE_REQUIRED if PROFILE_REQUIRED in str(e) else str(e)
                 if session and not session.closed:
-                    await session.emit("error", {"message": str(e), "retryable": bool(session.failed_batch)})
+                    await session.emit("error", {"message": message, "retryable": bool(session.failed_batch)})
                     if not session.ready:
                         await session.close()
                         if owns_engine:
@@ -345,7 +346,7 @@ async def websocket(ws: WebSocket):
                         if active_session is session:
                             active_session = None
                 else:
-                    await ws.send_json({"type": "error", "data": {"message": str(e)}})
+                    await ws.send_json({"type": "error", "data": {"message": message}})
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:

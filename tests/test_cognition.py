@@ -131,7 +131,7 @@ def test_classroom_payload_keeps_revision_sources_and_filters_current_knowledge(
                for i in range(1, 13)}
     session = SimpleNamespace(state=state, sources=sources, processed_ids=set(sources) - {'t12'},
                               preparation=SimpleNamespace(scope=['星星运算']),
-                              lesson=SimpleNamespace(level='初学者'), prerequisites=[], history=[])
+                              lesson=SimpleNamespace(student_level='normal'), prerequisites=[], history=[])
     before = state.model_dump()
     payload = Session.payload(session, [sources['t12']])
     assert payload['current_state']['knowledge'] == [rule().model_dump()]
@@ -156,7 +156,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
         def __init__(self, emit):
             pass
 
-        async def generate(self, phase, system, payload, output_type):
+        async def generate(self, phase, system, payload, output_type, *, history=()):
             phases.append(phase)
             if phase == 'preparation':
                 return Preparation(scope=['星星运算'], boundary_note='仅从课堂学习')
@@ -199,7 +199,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
         assert 'lessonUploadFile' in page.text and 'asrReview' in page.text
         monkeypatch.setattr('backend.config.ROOT', tmp_path)
         with client.websocket_connect('/ws/session') as ws:
-            ws.send_json({'type': 'start', 'lesson': {'topic': '星星运算'},
+            ws.send_json({'type': 'start', 'lesson': {'topic': '星星运算', 'student_profile': '普通初学者，尚未学习本课内容。'},
                           'tts': False, 'asr_review': asr_review})
             ready = receive(ws, 'ready')
             assert 'assessment_available' not in ready

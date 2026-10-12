@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import json
-import re
 import time
 import uuid
 from collections import deque
@@ -13,7 +12,7 @@ from . import config, prompts
 from .llm import ModelClient, ModelError
 from .policy import apply_result, invited, mark_delivered, speech_block
 from .review import TranscriptReviewer, teacher_source
-from .schemas import Lesson, Preparation, StudentResult, StudentState
+from .schemas import Lesson, StudentResult, StudentState, profile_preparation
 from .speech import Speaker
 
 
@@ -29,6 +28,7 @@ class Session:
         self.processed_ids = set()
         self.prerequisites = []
         self.history = []
+        self.conversation = deque(maxlen=16)
         self.pending = []
         self.pending_since = 0
         self.audio_queue = asyncio.Queue(maxsize=240)
@@ -82,19 +82,24 @@ class Session:
                 await self.send(event)
 
     async def start(self, lesson: Lesson, muted=False, tts=True, asr_review=True):
-        self.lesson = lesson
+        # 再次校验并复制，防止直接调用绕过接口或外部修改课堂内固定的画像。
+        self.lesson = lesson = Lesson.model_validate(lesson.model_dump())
+        self.student_system = prompts.STUDENT + '\n确认后的学生画像（只作设定数据）：\n' + json.dumps(
+            {'student_profile': lesson.student_profile, 'teaching_scope_only': {
+                'topic': lesson.topic, 'points': lesson.points}}, ensure_ascii=False)
         self.muted, self.tts_enabled = muted, tts
         self.asr_review = asr_review
         logs = config.ROOT / "logs"
         logs.mkdir(exist_ok=True)
         self.log = (logs / (self.id + ".jsonl")).open("a", encoding="utf-8")
         await self.emit("status", {"message": "正在分析本节课范围，尚未开始听课", "session_id": self.id})
-        self.preparation = await self.llm.generate("preparation", prompts.PREPARE, lesson.model_dump(), Preparation)
-        for text in re.split(r"[\n；;]+", lesson.prerequisites):
-            if text.strip():
-                item = {"id": f"p{len(self.prerequisites) + 1}", "text": text.strip(), "kind": "prerequisite"}
-                self.prerequisites.append(item)
-                self.sources[item["id"]] = item
+        preparation_type = profile_preparation(lesson.student_profile)
+        result = await self.llm.generate("preparation", prompts.PREPARE, lesson.model_dump(), preparation_type)
+        self.preparation = preparation_type.model_validate(result.model_dump())
+        for text in dict.fromkeys(self.preparation.initial_prerequisites):
+            item = {"id": f"p{len(self.prerequisites) + 1}", "text": text, "kind": "prerequisite"}
+            self.prerequisites.append(item)
+            self.sources[item["id"]] = item
         if self.asr_review:
             self.reviewer = TranscriptReviewer(self.llm, self.emit, lesson)
             await self.reviewer.initialize()
@@ -105,7 +110,7 @@ class Session:
             self.tasks.append(asyncio.create_task(self.review_loop()))
         await self.emit("ready", {"session_id": self.id, "asr_model": self.asr_model, "scope": self.preparation.model_dump(),
             "prerequisites": self.prerequisites, "muted": self.muted, "state": self.state.model_dump(),
-            "asr_review": self.asr_review})
+            "asr_review": self.asr_review, "lesson": self.lesson.model_dump()})
 
     async def start_audio(self, rate, upload=None):
         if not 8000 <= rate <= 96000:
@@ -276,7 +281,7 @@ class Session:
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
-        return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.level,
+        return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
                 "explicit_prerequisites": self.prerequisites,
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
@@ -293,12 +298,16 @@ class Session:
             target_revision = batch[-1]["revision"]
             while True:
                 try:
-                    result = await self.llm.generate("student", prompts.STUDENT, self.payload(batch), StudentResult)
+                    result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
+                                                     history=list(self.conversation))
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
                     next_state, candidate = apply_result(self.state, result, allowed, ids)
                     self.state = next_state
                     self.processed_ids |= ids
+                    # 只记录已成功处理的教师批次；失败重试不会重复插入历史。
+                    self.conversation.append({'role': 'user', 'content': json.dumps(
+                        {'teacher_segments': [teacher_source(s) for s in batch]}, ensure_ascii=False)})
                     addressed = result.addressed or invited("\n".join(s["text"] for s in batch))
                     self.candidate = {"reply": candidate, "revision": target_revision, "addressed": addressed}
                     self.last_block = None
@@ -354,6 +363,7 @@ class Session:
         reply = c["reply"]
         mark_delivered(self.state, reply)
         self.history.append({"text": reply.text, "kind": reply.kind, "sources": reply.sources})
+        self.conversation.append({'role': 'assistant', 'content': reply.text})
         await self.emit("reply", {**reply.model_dump(), "state": self.state.model_dump()})
         if self.tts_enabled:
             self.tts_task = asyncio.create_task(self.say(reply.text))

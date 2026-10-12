@@ -20,13 +20,15 @@ class ModelClient:
     async def close(self):
         await self.http.aclose()
 
-    async def generate(self, phase, system, payload, output_type):
+    async def generate(self, phase, system, payload, output_type, *, history=()):
         report_phase = phase.startswith('teaching_report')
         profile_phase = phase == 'student_profile'
         if not config.API_KEY:
             raise ModelError("未找到 Deepseek_API 或 DEEPSEEK_API_KEY，请检查项目 .env")
         messages = [
             {"role": "system", "content": system + "\nJSON schema:\n" + json.dumps(output_type.model_json_schema(), ensure_ascii=False)},
+            # 只有课堂调用使用实际师生历史；生成画像、转写审核与报告不混用。
+            *([dict(turn) for turn in history] if phase == 'student' else []),
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ]
         for attempt in range(2):
@@ -63,9 +65,10 @@ class ModelClient:
                         raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
                 correction = "刚才输出不符合给定 JSON schema。仅修复结构和字段，返回完整 JSON 对象。"
-                if report_phase and isinstance(exc, ValidationError):
+                if isinstance(exc, ValidationError):
                     errors = [{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
-                    await self.emit('report_validation_error', {'errors': errors})
+                    if report_phase:
+                        await self.emit('report_validation_error', {'errors': errors})
                     correction += '\n具体错误：' + json.dumps(errors, ensure_ascii=False)[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},
                              {"role": "user", "content": correction}]
