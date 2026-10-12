@@ -14,7 +14,8 @@ from asr.debug import ASRDebug
 from asr.upload import AudioUpload
 from . import config
 from .llm import ModelError
-from .schemas import Lesson
+from .schemas import Lesson, TeachingSettings, StudentProfileResult
+from .student_profile import generate_profile
 from .session import Session
 from .teaching_report import ReportService, export_markdown
 
@@ -77,6 +78,14 @@ async def health():
 @app.get("/models")
 async def models_page():
     return FileResponse(config.ROOT / "frontend/index.html")
+
+
+@app.post('/api/student-profile', response_model=StudentProfileResult)
+async def student_profile(settings: TeachingSettings):
+    try:
+        return await generate_profile(settings)
+    except (ModelError, ValidationError) as exc:
+        raise HTTPException(502, '画像生成失败，原有内容已保留。' + str(exc)) from None
 
 
 @app.get("/api/asr/models")

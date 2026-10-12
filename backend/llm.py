@@ -22,6 +22,7 @@ class ModelClient:
 
     async def generate(self, phase, system, payload, output_type):
         report_phase = phase.startswith('teaching_report')
+        profile_phase = phase == 'student_profile'
         if not config.API_KEY:
             raise ModelError("未找到 Deepseek_API 或 DEEPSEEK_API_KEY，请检查项目 .env")
         messages = [
@@ -41,7 +42,9 @@ class ModelClient:
                 envelope = response.json()
                 raw = envelope["choices"][0]["message"]["content"]
             except TimeoutError:
-                raise ModelError('本阶段请求超过60秒；成功阶段已保留，可以重试继续') from None
+                if profile_phase:
+                    raise ModelError('画像生成超时，原有内容已保留，请重试。') from None
+                raise ModelError(f'本阶段请求超过{60 if report_phase else 90}秒；已有内容已保留，可以重试') from None
             except httpx.HTTPStatusError as e:
                 raise ModelError(f"模型服务返回 HTTP {e.response.status_code}，请检查密钥、额度或模型配置") from None
             except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
@@ -56,6 +59,8 @@ class ModelClient:
                 if attempt:
                     if report_phase:
                         raise ModelError('模型两次未返回有效报告结构；课堂内容保留，可以重试教学报告') from None
+                    if profile_phase:
+                        raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
                 correction = "刚才输出不符合给定 JSON schema。仅修复结构和字段，返回完整 JSON 对象。"
                 if report_phase and isinstance(exc, ValidationError):

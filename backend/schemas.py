@@ -1,9 +1,34 @@
 from typing import Annotated, Literal
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class TeachingSettings(StrictModel):
+    """生成和创建共用的教学约束；不包含课堂状态或对话。"""
+    topic: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=500)]
+    points: str = Field(default="", max_length=3000)
+    grade: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+    subject: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)] = ""
+    student_level: Literal["weak", "normal", "strong"] = "normal"
+    lesson_type: Literal["new", "review", "application"] = "new"
+    textbook: str = Field(default="", max_length=200)
+
+
+class StudentProfileResult(StrictModel):
+    grade: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+    subject: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+    points: str = Field(min_length=1, max_length=3000)
+    student_profile: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=3000)]
+
+    @field_validator('points')
+    @classmethod
+    def nonblank_points(cls, value):
+        if not value.strip():
+            raise ValueError('准备讲的知识点不能为空白')
+        return value
 
 
 class Lesson(StrictModel):
