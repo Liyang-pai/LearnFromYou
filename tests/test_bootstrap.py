@@ -16,6 +16,39 @@ import pytest
 from scripts import bootstrap
 
 
+@pytest.mark.parametrize('fails', [False, True])
+def test_entry_point_outputs_chinese_with_cp1252_streams(fails):
+    # Reproduce Windows CI's redirected encoding on every platform, without
+    # creating a venv or downloading dependencies.
+    code = '''
+import sys
+from types import SimpleNamespace
+from scripts import bootstrap
+sys.argv = ['bootstrap.py', '--prepare-only']
+bootstrap.supported_python = lambda: True
+bootstrap.subprocess.run = lambda *a, **kw: SimpleNamespace(returncode=0)
+def prepare(root):
+    bootstrap.run_with_activity(['example'], '正在创建虚拟环境……', root)
+    if FAILS:
+        raise OSError('中文错误')
+    return sys.executable
+bootstrap.prepare_venv = prepare
+bootstrap.prepare_dependencies = lambda *a: print('依赖完整，无需下载安装。')
+sys.exit(bootstrap.main())
+'''.replace('FAILS', repr(fails))
+    result = subprocess.run([sys.executable, '-c', code], cwd=bootstrap.ROOT,
+                            env={**os.environ, 'PYTHONIOENCODING': 'cp1252:strict'},
+                            capture_output=True, timeout=15)
+    stdout = result.stdout.decode('utf-8')
+    stderr = result.stderr.decode('utf-8')
+    assert '正在创建虚拟环境……' in stdout
+    assert result.returncode == int(fails), stderr
+    if fails:
+        assert '启动失败：中文错误' in stderr
+    else:
+        assert '依赖完整，无需下载安装。' in stdout
+
+
 @pytest.mark.parametrize('version,expected', [((3, 10, 9), False), ((3, 11, 0), True),
                                             ((3, 12, 0), True), ((3, 13, 0), True), ((3, 14, 0), False)])
 def test_supported_versions(monkeypatch, version, expected):

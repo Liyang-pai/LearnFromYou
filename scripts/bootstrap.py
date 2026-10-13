@@ -241,6 +241,11 @@ def start_service(executable, root):
 
 
 def main():
+    # Windows redirected streams may default to cp1252 even though child
+    # interpreters use -X utf8. Configure our own logs before any output.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='backslashreplace')
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--probe', action='store_true')
     parser.add_argument('--venv', type=Path)
