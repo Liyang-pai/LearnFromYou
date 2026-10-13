@@ -284,6 +284,12 @@ exit $result
         assert (tmp_path / '下载 with spaces.exe').read_bytes() == payload
         assert progress[-1] == 100
         if mode == 'known':
-            assert all(0 <= percent <= 99 for percent in progress[:-1])
+            # Content-Length becomes known only after response headers arrive.
+            # Connecting may report indeterminate progress even for this URL.
+            determinate = [percent for percent in progress[:-1] if percent != -1]
+            assert determinate, progress
+            assert all(0 <= percent <= 99 for percent in determinate), progress
+            first_known = next(index for index, percent in enumerate(progress) if percent != -1)
+            assert -1 not in progress[first_known:], progress
         else:
             assert -1 in progress

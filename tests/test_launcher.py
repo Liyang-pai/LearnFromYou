@@ -116,7 +116,11 @@ webbrowser.open = verify_ready
         assert process.returncode == 0, process.stdout
         assert marker.read_text(encoding='utf-8') == f'http://127.0.0.1:{port}'
     assert '系统找不到指定的路径' not in process.stdout
-    assert '依赖完整，无需下载安装。' in process.stdout
+    # Explorer's file association opens a separate console; its output is not
+    # inherited by the PowerShell parent. The marker above verifies that this
+    # launch still reached its own healthy server and opened the browser.
+    if launch == 'direct':
+        assert '依赖完整，无需下载安装。' in process.stdout
     # The automatically stopped test service must leave no listener behind.
     with socket.socket() as probe:
         probe.settimeout(0.2)
