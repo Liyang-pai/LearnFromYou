@@ -19,6 +19,7 @@ from .student_profile import generate_profile
 from .session import Session
 from .runtime import RUNTIME
 from .teaching_report import ReportService, export_markdown
+from .classroom_images import MAX_IMAGE_BYTES, find_image
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
@@ -72,6 +73,7 @@ async def health():
     state = await asyncio.to_thread(models.snapshot)
     return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "audio_upload_available": True, "model_configured": bool(config.API_KEY),
             "runtime": RUNTIME,
+            "image_upload_available": True, "image_model": config.IMAGE_MODEL,
             "student_model": config.MODEL, "asr_model": state["selected_id"],
             "vad_ready": state["vad_ready"], "engine_state": state["engine_state"],
             "asr_busy": state["busy"], "asr_activity": state["activity"], "error": state["error"], "notice": state["notice"]}
@@ -88,6 +90,63 @@ async def student_profile(settings: TeachingSettings):
         return await generate_profile(settings)
     except (ModelError, ValidationError) as exc:
         raise HTTPException(502, '画像生成失败，原有内容已保留。' + str(exc)) from None
+
+
+@app.post('/api/sessions/{session_id}/image')
+async def upload_classroom_image(session_id: str, request: Request):
+    session = active_session
+    if (not session or session.id != session_id or not session.ready
+            or session.closed or session.finishing):
+        raise HTTPException(409, '请先创建并保持本次课堂，再上传截图')
+    chunks, size = [], 0
+    async for chunk in request.stream():
+        size += len(chunk)
+        if size > MAX_IMAGE_BYTES:
+            raise HTTPException(413, '截图不能超过 5 MiB，请裁剪后上传')
+        chunks.append(chunk)
+    try:
+        return await session.set_image(b''.join(chunks))
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    except OSError:
+        raise HTTPException(400, '截图保存失败，当前图片保留；请检查目录权限或磁盘空间') from None
+
+
+@app.get('/api/sessions/{session_id}/image')
+async def current_classroom_image(session_id: str, request: Request):
+    origin = request.headers.get('origin')
+    if (origin and not local_origin(origin)) or request.headers.get('sec-fetch-site') == 'cross-site':
+        raise HTTPException(403, '仅允许本机课堂页面读取截图')
+    session = active_session
+    if not session or session.id != session_id or session.closed:
+        raise HTTPException(409, '当前课堂已结束或不存在')
+    image = session.images.get(session.current_image)
+    return image.public(session_id) if image else None
+
+
+@app.post('/api/sessions/{session_id}/image/clear')
+async def clear_classroom_image(session_id: str):
+    session = active_session
+    if not session or session.id != session_id or session.closed:
+        raise HTTPException(409, '当前课堂已结束或不存在')
+    try:
+        await session.clear_image()
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return {'cleared': True}
+
+
+@app.get('/api/sessions/{session_id}/images/{image_id}')
+async def classroom_image(session_id: str, image_id: str, request: Request):
+    origin = request.headers.get('origin')
+    if (origin and not local_origin(origin)) or request.headers.get('sec-fetch-site') == 'cross-site':
+        raise HTTPException(403, '仅允许本机课堂页面读取截图')
+    try:
+        path, mime = await asyncio.to_thread(find_image, config.ROOT, session_id, image_id)
+    except (ValueError, FileNotFoundError):
+        raise HTTPException(404, '未找到本次课堂的图片') from None
+    return FileResponse(path, media_type=mime, headers={'Cache-Control': 'no-store',
+                        'Cross-Origin-Resource-Policy': 'same-origin', 'X-Content-Type-Options': 'nosniff'})
 
 
 @app.get("/api/asr/models")

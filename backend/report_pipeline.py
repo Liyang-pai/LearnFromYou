@@ -20,8 +20,10 @@ def compact(classroom):
     # 报告评价实际讲授，完整画像仅保存在原始课堂记录中，不占用分析窗口。
     lesson = {key: value for key, value in classroom['lesson'].items()
               if key in ('topic', 'points', 'grade', 'subject', 'student_level', 'lesson_type', 'textbook')}
+    if any(turn.get('image_id') for turn in classroom['turns']):
+        lesson['has_visual_material'] = True
     return {'lesson': lesson, 'turns': [
-        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind') if key in turn}
+        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id') if key in turn}
         for turn in classroom['turns']]}
 
 
@@ -77,11 +79,16 @@ def batches(groups):
 class ReportPipeline:
     def __init__(self, model, root: Path, sid, digest, progress):
         self.model, self.progress = model, progress
+        self.has_visual_material = False
         # Keep paths short on Windows; full hashes in each file still guard reuse.
         self.directory = root / 'logs' / f'{sid}.report-v2-stages' / digest[:16]
         self.directory.mkdir(parents=True, exist_ok=True)
 
     async def stage(self, phase, prompt, payload, schema, allowed):
+        if self.has_visual_material:
+            prompt += ('\n本课堂包含实际展示的截图，但本次报告没有收到图片内容。'
+                       '不能将没有口述图中内容判为漏讲，也不能臆测图里的知识错误、解释或答案。'
+                       '仅评价文本中可观察的教学动作，受图片缺失影响的判断应明确材料不足。')
         bound = source_bound(schema, allowed)
         key = hashlib.sha256(encode({'phase': phase, 'prompt': prompt, 'payload': payload,
                                     'schema': schema.model_json_schema()}).encode('utf-8')).hexdigest()
@@ -102,6 +109,7 @@ class ReportPipeline:
 
     async def generate(self, classroom):
         payload = compact(classroom)
+        self.has_visual_material = payload['lesson'].get('has_visual_material', False)
         teachers = {s['id'] for s in classroom['teacher_segments']}
         if len(encode(payload)) <= SHORT_LIMIT:
             self.progress('正在分析讲授内容与改进建议……')

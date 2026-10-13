@@ -62,7 +62,7 @@
         <div class="card interaction">
           <div class="classroom-top"><div class="section-heading"><span class="step">02</span><h2>开始讲给学生听</h2></div><span class="pill" id="sessionStatus">尚未开始</span></div>
           <div class="student"><div id="avatar" class="avatar">听<span id="studentDot"></span></div><div><span class="eyebrow">你的 AI 学生</span><p id="studentMood">准备好后，我们就开始。</p></div><div class="meter" aria-label="麦克风音量"><div id="meterFill"></div></div></div>
-          <div id="conversation" class="conversation" aria-live="polite"><div class="empty" id="emptyConversation">学生会根据你实际讲过的内容回应。<br>也可能还不确定，或者需要你再解释一点。</div></div>
+          <div id="conversation" class="conversation" aria-live="polite"><div class="empty" id="emptyConversation">学生会结合你的讲解与展示的截图回应。<br>也可能还不确定，或者需要你再解释一点。</div></div>
           <div class="controls">
             <button id="mic" class="primary" disabled>开启麦克风</button>
             <button id="stopSpeech" disabled>停止播报</button>
@@ -71,6 +71,21 @@
             <button id="end" class="quiet" disabled>结束试讲</button>
           </div>
           <p class="hint control-hint" id="micHint">建议戴耳机，避免学生语音被麦克风收回。静音时继续学习并保留待回应事项；解除静音后按最新内容判断是否回应，可能增加一次模型调用（含修复最多两次）。</p>
+          <section class="classroom-image-input" aria-labelledby="imageHeading">
+            <h3 id="imageHeading">给学生看当前教学截图</h3>
+            <p class="hint">试卷、PPT、教案或讲义截图都可以。一次一张，上传成功后替换当前图；不会自动开始解题。</p>
+            <label for="imageFile">选择截图（PNG / JPEG / WebP，最大 5 MiB）</label>
+            <input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp">
+            <div id="imagePaste" class="image-paste" tabindex="0" role="group" aria-label="截图粘贴区域">点击这里，再按 Ctrl+V / ⌘V 粘贴截图</div>
+            <div class="image-previews">
+              <figure id="imageDraft" class="hidden"><figcaption>待上传图片 · 尚未给学生看</figcaption><img id="imagePreview" alt="待上传截图预览"><button id="imageCancel" type="button" disabled>取消选图</button></figure>
+              <figure id="imageCurrent" class="hidden"><figcaption>当前教学图片</figcaption><img id="imageCurrentPreview" alt="当前学生使用的教学截图"><button id="imageClear" type="button" disabled>移除当前图</button></figure>
+            </div>
+            <button id="imageUpload" class="primary" type="button" disabled>确认上传</button>
+            <button id="imageReload" type="button" class="hidden">核对当前图</button>
+            <p id="imageStatus" class="hint" role="status" aria-live="polite"></p>
+            <p class="hint">截图用于学生的图文模型请求，可能产生 API 用量；上传本身不调用模型。</p>
+          </section>
           <div class="audio-upload" aria-label="上传音频测试课堂链路">
             <label for="lessonUploadFile">上传音频测试 · 与麦克风同等的课堂输入</label>
             <input id="lessonUploadFile" type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4">
@@ -94,7 +109,7 @@
           <div class="stats"><span>转写 <b id="transcriptCount">0</b></span><span>教学片段 <b id="segmentCount">0</b></span><span>状态版本 <b id="stateVersion">0</b></span><span>最近模型耗时 <b id="llmTime">—</b></span><span>最近审核耗时 <b id="reviewTime">—</b></span></div>
           <div class="tabs" role="tablist"><button data-tab="transcripts" class="selected" role="tab" aria-selected="true">转写与分段</button><button data-tab="input" role="tab" aria-selected="false">LLM 输入</button><button data-tab="state" role="tab" aria-selected="false">学生状态</button><button data-tab="output" role="tab" aria-selected="false">输出与事件</button></div>
           <div class="pane" id="pane-transcripts"><div id="transcripts" class="empty">麦克风最终转写和送入模型的教学片段会显示在这里。</div></div>
-          <div class="pane hidden" id="pane-input"><p class="hint">实际请求正文，不包含认证信息。上方是最近一次调用。</p><div id="modelInputs" class="empty">尚无模型调用</div></div>
+          <div class="pane hidden" id="pane-input"><p class="hint">请求正文，不包含认证信息；图片二进制省略。上方是最近一次调用。</p><div id="modelInputs" class="empty">尚无模型调用</div></div>
           <div class="pane hidden" id="pane-state"><div id="stateCards" class="empty">学生尚未开始学习</div><details><summary>查看原始状态 JSON</summary><pre id="stateJson">{}</pre></details></div>
           <div class="pane hidden" id="pane-output"><div id="events" class="empty">候选回复、模型原始输出和发言控制原因会显示在这里。</div></div>
         </div>
@@ -124,7 +139,7 @@
       <div id="modelCards" class="model-grid"><p class="empty">正在读取模型列表……</p></div>
       <p class="hint models-note">体积为所需文件的下载与安装占用，共享 VAD 另需约 644KB。识别准确性与速度取决于讲课内容和设备，推荐标签为选型建议，尚未提供实测评分。音频只在本机处理。</p>
     </section>
-    <footer>当前认知不等于标准答案。这个学生的知识边界，来自明确的前置知识和本次讲授。</footer>
+    <footer>当前认知不等于标准答案。学生的知识来自明确的前置知识、本次讲授与实际展示的材料。</footer>
   </main>
   <dialog id="profileOverwrite" aria-labelledby="profileOverwriteTitle" aria-describedby="profileOverwriteDescription">
     <h2 id="profileOverwriteTitle">重新生成学生画像？</h2>
@@ -133,6 +148,7 @@
   </dialog>
   <script src="/static/audio-file.js?v=20261007-upload-1" defer></script>
   <script src="/static/student-profile.js?v=20261012-profile-1" defer></script>
+  <script src="/static/classroom-images.js?v=20261013-images-1" defer></script>
   <script src="/static/app.js?v=20261007-upload-1" defer></script>
   <script src="/static/teaching-report.js?v=20261011-interaction" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>

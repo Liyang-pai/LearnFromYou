@@ -35,6 +35,8 @@ def read_classroom(root: Path, session_id: str):
                 if source_id in teachers:
                     raise ValueError('课堂讲授编号重复')
                 teachers[source_id] = {'id': source_id, 'text': data['text'], 'mode': data.get('mode', 'text')}
+                if data.get('image_id'):
+                    teachers[source_id]['image_id'] = data['image_id']
                 timeline.append(('teacher', source_id))
             elif kind == 'review_completed':
                 for segment in data.get('segments', []):
