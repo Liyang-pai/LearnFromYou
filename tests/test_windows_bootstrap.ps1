@@ -96,7 +96,9 @@ function Assert-Fails([scriptblock]$Action, [string]$Pattern) {
         Assert-True ($ArgumentList -contains 'Include_launcher=0') 'Do not install launcher'
         Assert-True ($ArgumentList -contains '/norestart') 'Do not restart automatically'
         Assert-True ($ArgumentList -contains 'TargetDir="C:\Users\Test User\Python313"') 'Quote target directory'
-        return [pscustomobject]@{ ExitCode = $script:InstallerExit }
+        $process = [pscustomobject]@{ ExitCode = $script:InstallerExit }
+        $process | Add-Member -MemberType ScriptMethod -Name WaitForExit -Value { param($Timeout) return $true }
+        return $process
     }
     Invoke-PythonInstaller 'fake.exe' 'fake.log'
     foreach ($code in @(3010, 1641)) {
@@ -111,9 +113,9 @@ function Assert-Fails([scriptblock]$Action, [string]$Pattern) {
     . $Launcher
     $cacheRoot = Join-Path ([IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $env:LOCALAPPDATA = $cacheRoot
-    function Invoke-WebRequest {
-        param($Uri, $OutFile, [switch]$UseBasicParsing, $TimeoutSec)
-        [IO.File]::WriteAllText($OutFile, 'partial download')
+    function Receive-InstallerDownload {
+        param($Uri, $Destination)
+        [IO.File]::WriteAllText($Destination, 'partial download')
         throw 'download timeout'
     }
     function Invoke-PythonInstaller { throw 'Must not execute incomplete installer' }
@@ -122,6 +124,25 @@ function Assert-Fails([scriptblock]$Action, [string]$Pattern) {
         $remaining = @(Get-ChildItem -LiteralPath (Join-Path $cacheRoot 'LearnFromYou\downloads'))
         Assert-True ($remaining.Count -eq 0) 'Failed download must be removed'
     } finally { Remove-Item -LiteralPath $cacheRoot -Recurse -Force }
+}
+
+& {
+    . $Launcher
+    $script:Progress = @()
+    function Write-Progress {
+        param($Id, $Activity, $Status, $PercentComplete, [switch]$Completed)
+        $script:Progress += [pscustomobject]@{ Status = $Status; Percent = $PercentComplete }
+    }
+    Show-InstallerDownloadProgress 1048576 4194304 2
+    Assert-True ($script:Progress[-1].Percent -eq 25) 'Use actual downloaded bytes for percentage'
+    Assert-True ($script:Progress[-1].Status -match 'MB/s') 'Show download speed'
+    Show-InstallerDownloadProgress 4194304 4194304 2
+    Assert-True ($script:Progress[-1].Percent -eq 99) 'Do not show 100% before successful EOF'
+    Show-InstallerDownloadProgress 4194304 4194304 2 -Finished
+    Assert-True ($script:Progress[-1].Percent -eq 100) 'Show completion after EOF'
+    Show-InstallerDownloadProgress 1048576 -1 2
+    Assert-True ($script:Progress[-1].Percent -eq -1) 'Unknown size must not invent a percentage'
+    Assert-True ($script:Progress[-1].Status -match 'downloaded') 'Unknown size still shows received bytes'
 }
 
 Write-Host 'Offline Windows bootstrap tests passed.'

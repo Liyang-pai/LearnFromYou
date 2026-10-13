@@ -98,6 +98,89 @@ function Assert-Installer {
     }
 }
 
+function Show-InstallerDownloadProgress {
+    param([long]$Received, [long]$Total, [double]$Seconds, [switch]$Finished)
+    $receivedMB = $Received / 1MB
+    $speed = $receivedMB / [Math]::Max($Seconds, 0.001)
+    if ($Total -gt 0) {
+        $percent = [Math]::Min(99, [Math]::Floor(100.0 * $Received / $Total))
+        $status = '{0}% | {1:N2} / {2:N2} MB | {3:N2} MB/s' -f $percent, $receivedMB, ($Total / 1MB), $speed
+    } else {
+        $percent = -1
+        $frame = @('|', '/', '-', '\')[[int]($Seconds * 5) % 4]
+        $status = '[{0}] {1:N2} MB downloaded | {2:N2} MB/s | {3:N0}s' -f $frame, $receivedMB, $speed, $Seconds
+    }
+    if ($Finished) {
+        $percent = 100
+        $status = '100% | {0:N2} MB downloaded' -f $receivedMB
+    }
+    Write-Progress -Id 1 -Activity "Downloading Python $PythonVersion" -Status $status -PercentComplete $percent
+}
+
+function Receive-InstallerDownload {
+    param([string]$Uri, [string]$Destination)
+    # HttpClient streams the response; polling async operations keeps the console
+    # moving even during connection/read waits. The deadline covers the whole file.
+    Add-Type -AssemblyName System.Net.Http
+    $ProgressPreference = 'Continue'
+    $client = New-Object System.Net.Http.HttpClient
+    $client.Timeout = [TimeSpan]::FromSeconds(180)
+    $cancel = New-Object System.Threading.CancellationTokenSource
+    $cancel.CancelAfter(180000)
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    $response = $null
+    $source = $null
+    $destinationStream = $null
+    $received = 0L
+    $total = -1L
+    try {
+        $request = $client.GetAsync([uri]$Uri, [Net.Http.HttpCompletionOption]::ResponseHeadersRead, $cancel.Token)
+        while (-not $request.IsCompleted) {
+            $cancel.Token.ThrowIfCancellationRequested()
+            Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds
+            Start-Sleep -Milliseconds 200
+        }
+        $response = $request.GetAwaiter().GetResult()
+        $null = $response.EnsureSuccessStatusCode()
+        if ($null -ne $response.Content.Headers.ContentLength) {
+            $total = [long]$response.Content.Headers.ContentLength
+        }
+        $source = $response.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
+        $destinationStream = [IO.File]::Open($Destination, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write)
+        $buffer = New-Object byte[] 65536
+        $lastUpdate = -1.0
+        while ($true) {
+            $cancel.Token.ThrowIfCancellationRequested()
+            $read = $source.ReadAsync($buffer, 0, $buffer.Length, $cancel.Token)
+            while (-not $read.IsCompleted) {
+                $cancel.Token.ThrowIfCancellationRequested()
+                Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds
+                Start-Sleep -Milliseconds 200
+            }
+            $count = $read.GetAwaiter().GetResult()
+            if ($count -eq 0) { break }
+            $destinationStream.Write($buffer, 0, $count)
+            $received += $count
+            if ($clock.Elapsed.TotalSeconds - $lastUpdate -ge 0.2) {
+                Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds
+                $lastUpdate = $clock.Elapsed.TotalSeconds
+            }
+        }
+        if ($total -ge 0 -and $received -ne $total) { throw 'Python installer download is incomplete.' }
+        $destinationStream.Flush()
+        Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds -Finished
+        Write-Host ('Download complete: {0:N2} MB. Checking SHA-256 and signature...' -f ($received / 1MB))
+    } finally {
+        Write-Progress -Id 1 -Activity 'Downloading Python' -Completed
+        if ($destinationStream) { $destinationStream.Dispose() }
+        if ($source) { $source.Dispose() }
+        if ($response) { $response.Dispose() }
+        $client.Dispose()
+        $cancel.Dispose()
+        $clock.Stop()
+    }
+}
+
 function Invoke-PythonInstaller {
     param([string]$Installer, [string]$LogPath)
     $arguments = @('/quiet', '/norestart', '/log', ('"' + $LogPath + '"'),
@@ -105,7 +188,19 @@ function Invoke-PythonInstaller {
         'PrependPath=0', 'AppendPath=0', 'Include_pip=1', 'Include_launcher=0',
         'InstallLauncherAllUsers=0', 'Include_test=0', 'Include_doc=0',
         'Include_tcltk=0', 'Include_freethreaded=0', 'AssociateFiles=0', 'Shortcuts=0')
-    $process = Start-Process -FilePath $Installer -ArgumentList $arguments -Wait -PassThru
+    $ProgressPreference = 'Continue'
+    $clock = [Diagnostics.Stopwatch]::StartNew()
+    try {
+        $process = Start-Process -FilePath $Installer -ArgumentList $arguments -PassThru
+        do {
+            $frame = @('|', '/', '-', '\')[[int]($clock.Elapsed.TotalSeconds * 5) % 4]
+            $status = '[{0}] Installing... {1:N0}s elapsed. Keep this window open.' -f $frame, $clock.Elapsed.TotalSeconds
+            Write-Progress -Id 2 -Activity 'Installing Python for the current user' -Status $status -PercentComplete -1
+        } while (-not $process.WaitForExit(200))
+    } finally {
+        Write-Progress -Id 2 -Activity 'Installing Python' -Completed
+        $clock.Stop()
+    }
     if ($process.ExitCode -in @(3010, 1641)) {
         throw 'Python installation requires a Windows restart. Restart manually, then launch again.'
     }
@@ -123,13 +218,12 @@ function Install-ManagedPython {
     $partial = Join-Path $cache ([guid]::NewGuid().ToString() + '.part.exe')
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-        $ProgressPreference = 'SilentlyContinue'
         if (Test-Path -LiteralPath $installer) {
             try { Assert-Installer $installer }
             catch { Remove-Item -LiteralPath $installer -Force }
         }
         if (-not (Test-Path -LiteralPath $installer)) {
-            Invoke-WebRequest -Uri $InstallerUrl -OutFile $partial -UseBasicParsing -TimeoutSec 180
+            Receive-InstallerDownload -Uri $InstallerUrl -Destination $partial
             Assert-Installer $partial
             Move-Item -LiteralPath $partial -Destination $installer -Force
         }
@@ -158,8 +252,11 @@ function Start-LearnFromYou {
     Write-Host "Using Python: $python"
     $arguments = @('-X', 'utf8', (Join-Path $ProjectRoot 'scripts\bootstrap.py'))
     if ($PrepareOnly) { $arguments += '--prepare-only' }
-    & $python @arguments | Out-Host
-    return $LASTEXITCODE
+    # Inherit the console so Python can render live activity and pip progress.
+    # Piping through Out-Host would turn stdout into a line-buffered pipe.
+    $quotedArguments = ($arguments | ForEach-Object { '"' + $_ + '"' }) -join ' '
+    $process = Start-Process -FilePath $python -ArgumentList $quotedArguments -NoNewWindow -Wait -PassThru
+    return $process.ExitCode
 }
 
 # Dot-source for offline Windows tests without starting/installing anything.

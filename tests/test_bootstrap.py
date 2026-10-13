@@ -1,9 +1,14 @@
 """Offline bootstrap checks; never install packages or call an LLM."""
 from importlib import metadata
+import io
+import json
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
 import subprocess
 import sys
+import re
+from threading import Thread
 from types import SimpleNamespace
 
 import pytest
@@ -158,9 +163,94 @@ def test_failed_command_includes_stage_and_exit_code(tmp_path, monkeypatch):
         bootstrap.checked(['example'], '安装依赖', tmp_path)
 
 
+def test_interactive_activity_keeps_moving_and_preserves_errors(tmp_path, monkeypatch):
+    class Terminal(io.StringIO):
+        def isatty(self):
+            return True
+
+    terminal = Terminal()
+    monkeypatch.setattr(sys, 'stdout', terminal)
+    command = [sys.executable, '-X', 'utf8', '-c',
+               'import time,sys; time.sleep(.7); print("下载完成", flush=True); '
+               'time.sleep(.5); print("安装失败：测试错误", file=sys.stderr); sys.exit(7)']
+    with pytest.raises(RuntimeError, match='退出码 7'):
+        bootstrap.checked(command, '正在安装依赖', tmp_path)
+    output = terminal.getvalue()
+    assert '下载完成' in output and '安装失败：测试错误' in output
+    assert len(set(re.findall(r'\[([|/\\-])\]', output))) >= 2
+    assert '已等待' in output
+    assert '\x1b' not in output  # compatible with the classic Windows console
+
+
+def test_redirected_output_uses_plain_logs(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(bootstrap.subprocess, 'run', lambda *a, **kw: SimpleNamespace(returncode=0))
+    assert bootstrap.run_with_activity(['example'], '正在配置环境', tmp_path) == 0
+    assert capsys.readouterr().out == '正在配置环境\n'
+
+
 @pytest.mark.skipif(os.name != 'nt', reason='requires Windows PowerShell')
 def test_windows_detection_and_installer_failure_paths():
     result = subprocess.run(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File',
                              str(bootstrap.ROOT / 'tests/test_windows_bootstrap.ps1')],
                             capture_output=True, timeout=45, encoding='utf-8', errors='replace')
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='requires Windows PowerShell HttpClient')
+@pytest.mark.parametrize('mode', ['known', 'unknown', 'truncated'])
+def test_windows_streaming_download_and_progress(tmp_path, mode):
+    payload = bytes(range(256)) * 900
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            if mode != 'unknown':
+                self.send_header('Content-Length', str(len(payload) + (99 if mode == 'truncated' else 0)))
+            self.send_header('Connection', 'close')
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, *args):
+            pass
+
+    with ThreadingHTTPServer(('127.0.0.1', 0), Handler) as server:
+        worker = Thread(target=server.serve_forever, daemon=True)
+        worker.start()
+        env = {**os.environ,
+               'LFY_DOWNLOAD_LAUNCHER': str(bootstrap.ROOT / 'scripts/start_windows.ps1'),
+               'LFY_DOWNLOAD_URL': f'http://127.0.0.1:{server.server_port}/installer',
+               'LFY_DOWNLOAD_FILE': str(tmp_path / '下载 with spaces.exe'),
+               'LFY_DOWNLOAD_PROGRESS': str(tmp_path / 'progress.json')}
+        command = '''. $env:LFY_DOWNLOAD_LAUNCHER
+$script:Percents = @()
+function Write-Progress {
+    param($Id, $Activity, $Status, $PercentComplete, [switch]$Completed)
+    if (-not $Completed) { $script:Percents += $PercentComplete }
+}
+$result = 0
+try { Receive-InstallerDownload -Uri $env:LFY_DOWNLOAD_URL -Destination $env:LFY_DOWNLOAD_FILE }
+catch { Write-Host $_.Exception.Message; $result = 1 }
+finally {
+    ConvertTo-Json -InputObject @($script:Percents) -Compress | Set-Content -Encoding UTF8 $env:LFY_DOWNLOAD_PROGRESS
+}
+exit $result
+'''
+        try:
+            result = subprocess.run(['powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+                                     '-Command', command], env=env, capture_output=True,
+                                    timeout=25, encoding='utf-8', errors='replace')
+        finally:
+            server.shutdown()
+            worker.join(timeout=2)
+    progress = json.loads((tmp_path / 'progress.json').read_text(encoding='utf-8-sig'))
+    if mode == 'truncated':
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert 100 not in progress
+    else:
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert (tmp_path / '下载 with spaces.exe').read_bytes() == payload
+        assert progress[-1] == 100
+        if mode == 'known':
+            assert all(0 <= percent <= 99 for percent in progress[:-1])
+        else:
+            assert -1 in progress

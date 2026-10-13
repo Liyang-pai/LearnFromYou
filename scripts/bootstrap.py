@@ -1,15 +1,21 @@
 """Prepare the local environment; this entry point initially needs only stdlib."""
 import argparse
+import codecs
 from datetime import datetime
 from importlib import metadata
 import importlib
 import os
 from pathlib import Path
 import platform
+import queue
+import shutil
 import struct
 import subprocess
 import sys
 import sysconfig
+from threading import Thread
+import time
+import unicodedata
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ('fastapi', 'uvicorn', 'httpx', 'anyio', 'dotenv', 'websockets',
@@ -46,11 +52,90 @@ def valid_venv(root):
         return False
 
 
-def checked(command, stage, root):
+def run_with_activity(command, stage, root):
+    """Animate indeterminate work, forwarding child output without hiding errors."""
     print(stage, flush=True)
-    result = subprocess.run(command, cwd=root)
-    if result.returncode:
-        raise RuntimeError(f'{stage}失败（退出码 {result.returncode}）。请查看上方错误，处理后重新双击启动。')
+    if not sys.stdout.isatty():
+        # Keep redirected output / CI logs readable and free of animation frames.
+        return subprocess.run(command, cwd=root).returncode
+    process = subprocess.Popen(command, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    output = queue.Queue()
+
+    def forward_output():
+        decoder = codecs.getincrementaldecoder('utf-8')(errors='replace')
+        try:
+            with process.stdout:
+                while data := process.stdout.read1(4096):
+                    output.put(decoder.decode(data))
+                output.put(decoder.decode(b'', final=True))
+        finally:
+            output.put(None)
+
+    reader = Thread(target=forward_output, daemon=True)
+    reader.start()
+    started = time.monotonic()
+    drawn_width = 0
+    partial_line = False
+
+    def clear():
+        nonlocal drawn_width
+        if drawn_width:
+            sys.stdout.write('\r' + ' ' * drawn_width + '\r')
+            sys.stdout.flush()
+            drawn_width = 0
+
+    try:
+        while True:
+            try:
+                text = output.get(timeout=0.2)
+            except queue.Empty:
+                if not partial_line:
+                    elapsed = time.monotonic() - started
+                    frame = '|/-\\'[int(elapsed * 5) % 4]
+                    suffix = f' [{frame}] 已等待 {elapsed:.1f} 秒'
+                    suffix_width = len(suffix) + 4
+                    budget = max(0, shutil.get_terminal_size((80, 20)).columns - suffix_width - 1)
+                    label = ''
+                    cells = 0
+                    for char in stage:
+                        width = 0 if unicodedata.combining(char) else (2 if unicodedata.east_asian_width(char) in 'WF' else 1)
+                        if cells + width > budget:
+                            break
+                        label += char
+                        cells += width
+                    clear()
+                    sys.stdout.write('\r' + label + suffix)
+                    sys.stdout.flush()
+                    drawn_width = cells + suffix_width
+                continue
+            if text is None:
+                break
+            if text:
+                clear()
+                sys.stdout.write(text)
+                sys.stdout.flush()
+                partial_line = not text.endswith('\n')
+        if partial_line:
+            print(flush=True)
+        return process.wait()
+    except BaseException:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+        raise
+    finally:
+        clear()
+        reader.join(timeout=1)
+
+
+def checked(command, stage, root):
+    result = run_with_activity(command, stage, root)
+    if result:
+        raise RuntimeError(f'{stage}失败（退出码 {result}）。请查看上方错误，处理后重新双击启动。')
 
 
 def prepare_venv(root):
@@ -118,14 +203,13 @@ def prepare_dependencies(executable, root):
         checked([python, '-I', '-X', 'utf8', '-m', 'ensurepip', '--upgrade'], '正在恢复 pip……', root)
     check = [python, '-I', '-X', 'utf8', str(Path(__file__).resolve()), '--check-dependencies',
              str(root / 'requirements.txt')]
-    print('正在检查项目依赖……', flush=True)
-    status = subprocess.run(check, cwd=root).returncode
+    status = run_with_activity(check, '正在检查项目依赖……', root)
     if status:
         # Metadata may be intact while a DLL/package file is broken. A normal
         # pip install would say "already satisfied" without fixing that case.
         repair = ['--force-reinstall'] if status == 2 else []
         checked([python, '-I', '-X', 'utf8', '-m', 'pip', '--disable-pip-version-check', 'install',
-                 '--retries', '2', '--timeout', '30', *repair, '-r', str(root / 'requirements.txt')],
+                 '--progress-bar', 'on', '--retries', '2', '--timeout', '30', *repair, '-r', str(root / 'requirements.txt')],
                 '正在安装或修复依赖（首次安装需要联网，请保持窗口开启）……', root)
         checked(check, '正在验证安装结果……', root)
     else:
