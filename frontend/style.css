@@ -11,3 +11,14 @@
 
 /* 课前画像：窄侧栏使用可换行选项，长表单随页面自然滚动。 */
 .setup{position:static;min-width:0}.profile-selects{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-selects>div{min-width:0}.profile-selects select{width:100%;min-width:0;padding:10px 6px;border:1px solid var(--line);border-radius:8px;background:#fcfdff;color:var(--ink);font:inherit;font-size:12px}.profile-selects select:focus{outline:1px solid var(--accent)}.profile-selects input{margin-top:6px}.profile-options{border:0;padding:0;margin:18px 0 0;display:flex;flex-wrap:wrap;gap:8px 12px}.profile-options legend{font-size:12px;font-weight:600;margin-bottom:7px}.profile-options label{margin:0;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:400;white-space:nowrap}.profile-options input[type=radio]{display:inline-block;width:auto;padding:0;margin:0;accent-color:var(--accent)}.profile-more{margin-top:16px}.profile-more label{margin-top:12px}.profile-status{min-height:20px;overflow-wrap:anywhere}.profile-status.failed{color:#966139}#studentProfile{line-height:1.8;min-height:170px}#profileOverwrite{width:min(420px,calc(100vw - 32px));border:1px solid var(--line);border-radius:16px;padding:24px;color:var(--ink);box-shadow:0 16px 70px #26364d30}#profileOverwrite::backdrop{background:#26364d65}#profileOverwrite p{font-size:13px;margin:14px 0;color:var(--muted)}.profile-dialog-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:10px;margin-top:20px}
+.classroom-image-input{margin:20px 0;padding:16px;border:1px solid #d7e3f4;border-radius:12px;background:#f8fbff}
+.classroom-image-input h3{margin:0 0 8px;font-size:16px}
+.classroom-image-input input[type=file]{display:block;max-width:100%;margin:10px 0}
+.image-paste{padding:14px;margin:12px 0;border:1px dashed #7da8df;border-radius:8px;color:#426187;cursor:pointer}
+.image-paste:focus-visible{outline:3px solid #3684db;outline-offset:2px}
+.image-paste[aria-disabled=true]{opacity:.55}
+.image-previews{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px}
+.image-previews figure{margin:0;flex:1 1 220px;min-width:0;padding:10px;border:1px solid #ceddef;border-radius:8px;background:white}
+.image-previews figcaption{font-size:13px;color:#426187;margin-bottom:8px}
+.image-previews img{display:block;width:100%;max-height:280px;object-fit:contain;background:#fff;margin-bottom:8px}
+.classroom-image-input .failed{color:#a43434}

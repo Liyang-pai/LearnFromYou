@@ -11,6 +11,7 @@ const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原�
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
 let audioUploadAvailable = null;
+let imageUploadAvailable = null;
 const labels = {tentative:'暂定理解',understood:'课堂推断理解',unclear:'信息缺失',conflict:'冲突或失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
@@ -25,10 +26,13 @@ function syncControls() {
   for (const id of ['mic','stopSpeech','end','teacherText','sendText']) $(id).disabled = !running || ending;
   $('mic').disabled ||= uploadBusy || micStarting || micStopping;
   for (const id of ['teacherText','sendText']) $(id).disabled ||= uploadBusy;
+  for (const id of ['teacherText','sendText']) $(id).disabled ||= Boolean(window.classroomImages?.busy || window.classroomImages?.uncertain);
+  if (window.classroomImages?.uncertain && !recording) $('mic').disabled = true;
   window.studentProfile?.sync(running || starting || ending);
   $('mic').textContent = recording ? '暂停麦克风' : '开启麦克风';
   window.asrDebug?.sync();
   window.lessonUpload?.sync();
+  window.classroomImages?.sync();
 }
 function append(container, node, first = false) {
   if (container.classList.contains('empty')) { container.textContent = ''; container.classList.remove('empty'); }
@@ -80,6 +84,7 @@ function showActivity() {
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
   window.lessonUpload?.handle(event);
+  window.classroomImages?.handle(event);
   switch (event.type) {
     case 'ready':
       $('asrReview').checked = d.asr_review !== false;
@@ -290,6 +295,12 @@ window.lessonUpload = new AudioFileInput('lessonUpload', {
   },
   disconnected:() => socket?.close()
 });
+window.classroomImages = new ClassroomImageInput({
+  session:() => running && !ending ? sessionId : null,
+  blocked:() => imageUploadAvailable !== true,
+  changed:() => syncControls(),
+  pause:() => stopMic()
+});
 // The model screen shares this page so navigating never disconnects a lesson.
 function showPage(models, updateURL = true) {
   $('lessonPage').classList.toggle('hidden', models);
@@ -397,6 +408,7 @@ async function refreshASR() {
     const [state, health] = await Promise.all([asrRequest('/api/asr/models'), asrRequest('/api/health')]);
     asrDebugAvailable = health.asr_debug_available === true;
     audioUploadAvailable = health.audio_upload_available === true;
+    imageUploadAvailable = health.image_upload_available === true;
     lastASRState = state; asrReady = state.asr_ready; asrBusy = state.busy;
     asrDownloading = state.models.some(m => ['downloading','verifying','cancelling'].includes(m.state));
     const selected = state.models.find(m => m.selected);
@@ -411,7 +423,7 @@ async function refreshASR() {
     if (state.error) modelMessage(state.error, true);
     renderModelCards(state); syncControls();
   } catch (error) {
-    asrReady = false; asrDebugAvailable = null; audioUploadAvailable = null; $('health').textContent = '本机服务未连接'; syncControls();
+    asrReady = false; asrDebugAvailable = null; audioUploadAvailable = null; imageUploadAvailable = null; $('health').textContent = '本机服务未连接'; syncControls();
     modelMessage('无法读取本机模型状态，请检查服务是否启动。', true);
   } finally { refreshingASR = false; }
 }

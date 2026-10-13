@@ -14,6 +14,9 @@ from .policy import apply_result, invited, mark_delivered, speech_block, student
 from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, StudentResult, StudentState, profile_preparation
 from .speech import Speaker
+from .classroom_images import save_image
+
+CURRENT_IMAGE = object()
 
 
 class Session:
@@ -25,6 +28,9 @@ class Session:
         self.id = uuid.uuid4().hex[:12]
         self.state = StudentState()
         self.sources = {}
+        self.images = {}
+        self.current_image = None
+        self.image_lock = asyncio.Lock()
         self.processed_ids = set()
         self.prerequisites = []
         self.history = []
@@ -45,6 +51,10 @@ class Session:
         self.audio_enabled = False
         self.audio_started_at = 0
         self.audio_frames = 0
+        self.audio_segment_image = None
+        self.audio_rate = 16000
+        self.audio_received_seconds = 0.0
+        self.audio_image_timeline = []
         self.last_audio_notice = 0
         self.active = False
         self.processing = False
@@ -120,6 +130,10 @@ class Session:
         if self.audio:
             await self.stop_audio()
         self.audio = await asyncio.to_thread(AudioStream, self.vad_path, rate)
+        self.audio_rate = rate
+        self.audio_received_seconds = 0.0
+        self.audio_image_timeline = []
+        self.audio_segment_image = None
         self.upload = upload
         self.audio_enabled = True
         self.audio_started_at = time.monotonic()
@@ -127,6 +141,42 @@ class Session:
         self.last_audio_notice = 0
         await self.emit("audio", {"recording": True, "sample_rate": rate,
                                   **(upload.progress() if upload else {})})
+
+    async def set_image(self, data):
+        async with self.image_lock:
+            if not self.ready or self.finishing or self.closed:
+                raise ValueError('请在进行中的课堂上传截图')
+            image = await asyncio.to_thread(save_image, config.ROOT, self.id, data)
+            if self.finishing or self.closed:
+                raise ValueError('课堂已结束，截图未切换')
+            if self.current_image == image.id:
+                return image.public(self.id)
+            # Flush older text before changing the visible material; upload does
+            # not enqueue a new learning task or become a knowledge source alone.
+            await self.flush('image_change')
+            if self.finishing or self.closed:
+                raise ValueError('课堂已结束，截图未切换')
+            self.images[image.id] = image
+            self.current_image = image.id
+            self.revision += 1
+            self.candidate = None
+            await self.stop_speech('教学图片已切换')
+            public = image.public(self.id)
+            await self.emit('teaching_image', public)
+            return public
+
+    async def clear_image(self):
+        async with self.image_lock:
+            if not self.ready or self.finishing or self.closed:
+                raise ValueError('请在进行中的课堂移除截图')
+            await self.flush('image_clear')
+            if self.finishing or self.closed:
+                raise ValueError('课堂已结束，当前图片保留')
+            self.current_image = None
+            self.revision += 1
+            self.candidate = None
+            await self.stop_speech('当前教学图片已移除')
+            await self.emit('teaching_image', {'cleared': True})
 
     async def accept_audio(self, data):
         if not self.audio_enabled or self.finishing:
@@ -143,20 +193,32 @@ class Session:
             await self.emit("error", {"message": "音频处理积压，已停止接收新录音；已接收内容继续处理，请暂停讲授后重启麦克风", "code": "audio_backlog"})
             return
         self.audio_frames += 1
+        if not self.audio_image_timeline or self.audio_image_timeline[-1][1] != self.current_image:
+            self.audio_image_timeline.append((self.audio_received_seconds, self.current_image))
+        self.audio_received_seconds += len(samples) / self.audio_rate
         now = time.monotonic()
         if self.audio_frames == 1 or now - self.last_audio_notice >= 2:
             self.last_audio_notice = now
             await self.emit("audio_input", {"frames": self.audio_frames, "samples": int(len(samples)),
                                               "queue": self.audio_queue.qsize()})
-        self.audio_queue.put_nowait((samples, self.upload))
+        self.audio_queue.put_nowait((samples, self.upload, self.current_image))
+
+    def image_for_audio_start(self, start_sample):
+        # VAD starts are in the resampled 16 kHz stream, not ASR completion time.
+        seconds = start_sample / 16000
+        for start, image_id in reversed(self.audio_image_timeline):
+            if start <= seconds:
+                return image_id
+        return None
 
     async def audio_loop(self):
         while True:
-            samples, upload = await self.audio_queue.get()
+            samples, upload, image_id = await self.audio_queue.get()
             try:
                 segments, transitions, active = await asyncio.to_thread(self.audio.feed, samples)
                 for on in transitions:
                     if on:
+                        self.audio_segment_image = image_id
                         self.revision += 1
                         self.candidate = None
                         await self.stop_speech("教师开始讲话")
@@ -166,9 +228,11 @@ class Session:
                 elif self.active:
                     self.last_voice = time.monotonic() - .6
                 self.active = active
-                for segment in segments:
+                for index, segment in enumerate(segments):
                     self.asr_pending += 1
-                    await self.asr_queue.put((segment, upload))
+                    starts = getattr(self.audio, 'segment_starts', [])
+                    bound = self.image_for_audio_start(starts[index]) if index < len(starts) else self.audio_segment_image
+                    await self.asr_queue.put((segment, upload, bound))
                 if upload and not upload.failed:
                     await self.emit("upload_ack", upload.progress(len(samples)))
             except Exception:
@@ -181,14 +245,14 @@ class Session:
 
     async def asr_loop(self):
         while True:
-            samples, upload = await self.asr_queue.get()
+            samples, upload, image_id = await self.asr_queue.get()
             try:
                 started = time.monotonic()
                 text = await asyncio.to_thread(self.recognizer.transcribe, samples)
                 seconds = round(time.monotonic() - started, 3)
                 if text:
                     await self.add_transcript(text, "microphone", {"asr_seconds": seconds, "audio_seconds": round(len(samples) / 16000, 3)},
-                                              upload.metadata if upload else None)
+                                              upload.metadata if upload else None, image_id=image_id)
                 else:
                     await self.emit("asr_empty", {"asr_seconds": seconds})
             except Exception:
@@ -200,7 +264,7 @@ class Session:
                 self.asr_pending -= 1
                 self.asr_queue.task_done()
 
-    async def add_transcript(self, text, mode="text", metrics=None, source=None):
+    async def add_transcript(self, text, mode="text", metrics=None, source=None, *, image_id=CURRENT_IMAGE):
         text = text.strip()
         if not text:
             return
@@ -217,6 +281,9 @@ class Session:
                 "review_status": "bypassed" if mode == "text" else ("pending" if self.asr_review else "disabled")}
         if source:
             item.update(source)
+        bound_image = self.current_image if image_id is CURRENT_IMAGE else image_id
+        if bound_image:
+            item['image_id'] = bound_image
         self.sources[item["id"]] = item
         if not self.pending:
             self.pending_since = time.monotonic()
@@ -235,9 +302,11 @@ class Session:
                 if upload:
                     upload.failed = True
                 await self.emit("error", {"message": "末尾音频处理失败，已有转写保留", "code": "audio_failure"})
-            for samples in segments:
+            for index, samples in enumerate(segments):
                 self.asr_pending += 1
-                await self.asr_queue.put((samples, upload))
+                starts = getattr(self.audio, 'segment_starts', [])
+                bound = self.image_for_audio_start(starts[index]) if index < len(starts) else self.audio_segment_image
+                await self.asr_queue.put((samples, upload, bound))
         await self.asr_queue.join()
         self.audio = None
         self.upload = None
@@ -254,9 +323,16 @@ class Session:
         self.pending_since = 0
         queue = self.review_queue if self.asr_review else self.teaching_queue
         # The queue insertion precedes the first await to preserve flush order.
-        queue.put_nowait(batch)
-        await self.emit("segment", {"sources": [s["id"] for s in batch], "text": "\n".join(s["text"] for s in batch),
-            "reason": reason, "queued": queue.qsize(), "destination": "review" if self.asr_review else "student"})
+        groups = []
+        for source in batch:
+            if not groups or groups[-1][-1].get('image_id') != source.get('image_id'):
+                groups.append([])
+            groups[-1].append(source)
+        for group in groups:
+            queue.put_nowait(group)
+        for group in groups:
+            await self.emit("segment", {"sources": [s["id"] for s in group], "text": "\n".join(s["text"] for s in group),
+                "reason": reason, "queued": queue.qsize(), "destination": "review" if self.asr_review else "student"})
 
     async def review_loop(self):
         while True:
@@ -281,17 +357,22 @@ class Session:
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
-        return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
+        result = {"lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
                 "explicit_prerequisites": self.prerequisites,
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
                 "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
+        image_ids = list(dict.fromkeys(s['image_id'] for s in batch if s.get('image_id')))
+        if image_ids:
+            result['teaching_images'] = [{'id': image_id, 'teacher_source_ids': [
+                s['id'] for s in batch if s.get('image_id') == image_id]} for image_id in image_ids]
+        return result
 
     async def learn_loop(self):
         while True:
             batch = await self.teaching_queue.get()
             count = 1
-            while not self.teaching_queue.empty() and count < 4:
+            while not self.images and not self.teaching_queue.empty() and count < 4:
                 batch += self.teaching_queue.get_nowait()
                 count += 1
             self.processing = True
@@ -301,9 +382,12 @@ class Session:
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
                     recovery = []
+                    image_ids = list(dict.fromkeys(s['image_id'] for s in batch if s.get('image_id')))
+                    images = [self.images[image_id] for image_id in image_ids]
                     result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
                         history=list(self.conversation),
-                        result_validator=student_result_validator(self.state, allowed, ids, recovery))
+                        result_validator=student_result_validator(self.state, allowed, ids, recovery),
+                        **({'images': images} if images else {}))
                     next_state, candidate = apply_result(self.state, result, allowed, ids)
                     self.state = next_state
                     self.processed_ids |= ids
@@ -311,7 +395,8 @@ class Session:
                     self.conversation.append({'role': 'user', 'content': json.dumps(
                         {'teacher_segments': [teacher_source(s) for s in batch]}, ensure_ascii=False)})
                     addressed = result.addressed or invited("\n".join(s["text"] for s in batch))
-                    self.candidate = {"reply": candidate, "revision": target_revision, "addressed": addressed}
+                    self.candidate = {"reply": candidate, "revision": target_revision, "addressed": addressed,
+                                      'image_id': batch[-1].get('image_id')}
                     self.last_block = None
                     await self.emit("state", {"state": self.state.model_dump(), "note": result.note,
                         "processed_sources": sorted(ids), "candidate": candidate.model_dump(), "addressed": addressed})
@@ -350,7 +435,8 @@ class Session:
         if not self.candidate or self.finishing:
             return
         c = self.candidate
-        reason = speech_block(muted=self.muted, stale=c["revision"] != self.revision,
+        stale = c["revision"] != self.revision or c.get('image_id') != self.current_image
+        reason = speech_block(muted=self.muted, stale=stale,
             busy=bool(self.processing or self.pending or self.asr_pending or self.review_processing
                       or not self.review_queue.empty() or not self.teaching_queue.empty()),
             speaking=self.active, silence=silence,
@@ -360,7 +446,7 @@ class Session:
             if self.last_block != reason:
                 await self.emit("suppressed", {"reason": reason})
                 self.last_block = reason
-            if self.muted or c["revision"] != self.revision or c["reply"].kind == "silence" or (not c["addressed"] and c["reply"].kind != "question"):
+            if self.muted or stale or c["reply"].kind == "silence" or (not c["addressed"] and c["reply"].kind != "question"):
                 self.candidate = None
             return
         self.candidate = None

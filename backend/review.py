@@ -9,7 +9,10 @@ from .schemas import ReviewGlossary, ReviewResult
 
 def teacher_source(source):
     """Only canonical classroom text crosses the student boundary."""
-    return {key: source[key] for key in ("id", "text", "mode", "revision", "at")}
+    result = {key: source[key] for key in ("id", "text", "mode", "revision", "at")}
+    if source.get('image_id'):
+        result['image_id'] = source['image_id']
+    return result
 
 
 class TranscriptReviewer:

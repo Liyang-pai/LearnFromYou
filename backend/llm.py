@@ -20,21 +20,35 @@ class ModelClient:
     async def close(self):
         await self.http.aclose()
 
-    async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
+    async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None, images=()):
         report_phase = phase.startswith('teaching_report')
         profile_phase = phase == 'student_profile'
         if not config.API_KEY:
             raise ModelError("未找到 Deepseek_API 或 DEEPSEEK_API_KEY，请检查项目 .env")
+        if images and phase != 'student':
+            raise ValueError('图片仅用于本次课堂学生请求')
+        content = json.dumps(payload, ensure_ascii=False)
+        if images:
+            urls = await asyncio.to_thread(lambda: [image.data_url() for image in images])
+            content = [{'type': 'text', 'text': content}, *[
+                {'type': 'image_url', 'image_url': {'url': url, 'detail': 'original'}} for url in urls]]
         messages = [
             {"role": "system", "content": system + "\nJSON schema:\n" + json.dumps(output_type.model_json_schema(), ensure_ascii=False)},
             # 只有课堂调用使用实际师生历史；生成画像、转写审核与报告不混用。
             *([dict(turn) for turn in history] if phase == 'student' else []),
-            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+            {"role": "user", "content": content},
         ]
         for attempt in range(2):
-            body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
+            body = {"model": config.IMAGE_MODEL if images else config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
                     "temperature": 0.25, "max_tokens": 3500}
-            await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
+            # Keep screenshot binaries out of websocket/debug/JSONL exports.
+            logged_body = body
+            if images:
+                logged_body = {**body, 'messages': [{**m, 'content': [
+                    ({**part, 'image_url': {'url': '[图片二进制已省略]', 'detail': 'original'}}
+                     if part.get('type') == 'image_url' else part) for part in m['content']]
+                    if isinstance(m['content'], list) else m['content']} for m in messages]}
+            await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": logged_body})
             started = time.monotonic()
             try:
                 async with asyncio.timeout(REPORT_REQUEST_TIMEOUT if report_phase else 90):
