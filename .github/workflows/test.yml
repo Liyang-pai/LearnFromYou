@@ -7,6 +7,9 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
         python: ['3.11', '3.13']
+        include:
+          - os: windows-latest
+            python: '3.12'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -14,5 +17,26 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python scripts/check_model_files.py
-      - run: python -m pip install -r requirements.txt
-      - run: python -m pytest -q
+      - run: python scripts/bootstrap.py --prepare-only
+      - if: runner.os == 'Windows'
+        run: .\.venv\Scripts\python.exe -m pytest -q
+      - if: runner.os == 'macOS'
+        run: ./.venv/bin/python -m pytest -q
+  windows-installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Hosted runners have preinstalled Python. Bypass discovery to exercise a
+      # real official-installer download/install in the disposable user account.
+      - name: Install official Python and prepare the project
+        shell: powershell
+        run: |
+          . .\scripts\start_windows.ps1 -PrepareOnly
+          function Find-CompatiblePython { return $null }
+          $result = Start-LearnFromYou
+          exit $result
+      - name: Check the Windows launchers
+        shell: powershell
+        run: |
+          & .\.venv\Scripts\python.exe -m pytest -q tests/test_bootstrap.py tests/test_launcher.py
+          exit $LASTEXITCODE

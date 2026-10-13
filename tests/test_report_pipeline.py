@@ -368,7 +368,7 @@ def test_auto_start_happens_after_resources_release_and_survives_browser_close(t
     monkeypatch.setattr(app_module, 'reports', Service(lambda emit: NotesModel(calls)))
     with TestClient(app_module.app) as client:
         with client.websocket_connect('/ws/session') as ws:
-            ws.send_json({'type': 'start', 'lesson': {'topic': '链表'}})
+            ws.send_json({'type': 'start', 'lesson': {'topic': '链表', 'student_profile': '普通初学者，尚未学习本课内容。'}})
             assert ws.receive_json()['type'] == 'status'
             assert ws.receive_json()['type'] == 'ready'
             ws.send_json({'type': 'end'})

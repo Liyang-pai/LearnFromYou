@@ -35,7 +35,7 @@ async def main():
                 if e['type']=='error':raise RuntimeError(e['data']['message'])
             return collected
 
-        await send(type='start',lesson={'topic':'链表的基本概念','points':'节点、连接方式和访问起点','prerequisites':''},tts=False)
+        await send(type='start',lesson={'topic':'链表的基本概念','points':'节点、连接方式和访问起点','student_profile':'普通初学者，尚未学习链表。'},tts=False)
         ready=await until('ready')
         print('SESSION',ready['session_id'],flush=True)
         print('PREPARATION',json.dumps(ready['scope'],ensure_ascii=False),flush=True)

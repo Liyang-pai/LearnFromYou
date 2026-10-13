@@ -416,7 +416,7 @@ def test_websocket_locks_model_and_releases_on_end_disconnect_and_failure(manage
                 return event['data']
         pytest.fail(f'没有收到 {kind}')
     def start(ws):
-        ws.send_json({'type': 'start', 'lesson': {'topic': '主题'}, 'tts': False})
+        ws.send_json({'type': 'start', 'lesson': {'topic': '主题', 'student_profile': '普通初学者，尚未学习本课内容。'}, 'tts': False})
     with TestClient(service.app, base_url='http://localhost:8765') as client:
         with client.websocket_connect('/ws/session') as ws:
             start(ws)

@@ -46,6 +46,8 @@ def read_classroom(root: Path, session_id: str):
             elif kind == 'finished':
                 finished = data
                 lesson = data.get('lesson', lesson)
+            elif kind == 'ready' and 'lesson' in data:
+                lesson = data['lesson']
     if finished is None:
         raise ValueError('请先结束试讲，再生成教学报告')
     if not teachers:

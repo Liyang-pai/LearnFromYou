@@ -73,7 +73,7 @@ def test_microphone_debug_without_llm_drains_tail_and_releases(debug_service):
             assert client.post('/api/asr/models/second/select').status_code == 409
             assert client.post('/api/asr/models/second/download').status_code == 400
             with client.websocket_connect('/ws/session') as lesson:
-                lesson.send_json({'type': 'start', 'lesson': {'topic': '主题'}, 'tts': False})
+                lesson.send_json({'type': 'start', 'lesson': {'topic': '主题', 'student_profile': '普通初学者，尚未学习本课内容。'}, 'tts': False})
                 assert 'ASR 调试' in receive(lesson, 'error')['message']
             assert manager.busy
             ws.send_bytes(np.zeros(4800, dtype='<f4').tobytes())

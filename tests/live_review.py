@@ -47,7 +47,7 @@ async def main():
         if kind in ('warning', 'review_glossary'):
             events.append({'type': kind, 'data': data})
     llm = ModelClient(emit)
-    reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表', points='节点、next 指针、遍历、时间复杂度'))
+    reviewer = TranscriptReviewer(llm, emit, Lesson(topic='链表', points='节点、next 指针、遍历、时间复杂度', student_profile='普通初学者，尚未学习链表。'))
     report = {'at': datetime.now(timezone.utc).isoformat(), 'model': config.MODEL,
               'review_timeout': config.ASR_REVIEW_TIMEOUT, 'cases': [], 'events': events}
     try:
