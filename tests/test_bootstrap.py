@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import re
+import time
 from threading import Thread
 from types import SimpleNamespace
 
@@ -230,18 +231,36 @@ def test_windows_detection_and_installer_failure_paths():
 
 
 @pytest.mark.skipif(os.name != 'nt', reason='requires Windows PowerShell HttpClient')
-@pytest.mark.parametrize('mode', ['known', 'unknown', 'truncated'])
+@pytest.mark.parametrize('mode', ['known', 'unknown', 'truncated', 'slow', 'stalled', 'headers-stalled'])
 def test_windows_streaming_download_and_progress(tmp_path, mode):
     payload = bytes(range(256)) * 900
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
+            if mode == 'headers-stalled':
+                time.sleep(4)
             self.send_response(200)
             if mode != 'unknown':
                 self.send_header('Content-Length', str(len(payload) + (99 if mode == 'truncated' else 0)))
             self.send_header('Connection', 'close')
-            self.end_headers()
-            self.wfile.write(payload)
+            try:
+                self.end_headers()
+                if mode == 'slow':
+                    # Total duration exceeds the two-second inactivity limit,
+                    # but each chunk arrives well within it.
+                    for offset in range(0, len(payload), 32768):
+                        self.wfile.write(payload[offset:offset + 32768])
+                        self.wfile.flush()
+                        time.sleep(0.6)
+                elif mode == 'stalled':
+                    self.wfile.write(payload[:1024])
+                    self.wfile.flush()
+                    time.sleep(4)
+                else:
+                    self.wfile.write(payload)
+            except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
+                # Expected when the downloader cancels a stalled connection.
+                pass
 
         def log_message(self, *args):
             pass
@@ -261,7 +280,7 @@ function Write-Progress {
     if (-not $Completed) { $script:Percents += $PercentComplete }
 }
 $result = 0
-try { Receive-InstallerDownload -Uri $env:LFY_DOWNLOAD_URL -Destination $env:LFY_DOWNLOAD_FILE }
+try { Receive-InstallerDownload -Uri $env:LFY_DOWNLOAD_URL -Destination $env:LFY_DOWNLOAD_FILE -IdleTimeoutSeconds 2 }
 catch { Write-Host $_.Exception.Message; $result = 1 }
 finally {
     ConvertTo-Json -InputObject @($script:Percents) -Compress | Set-Content -Encoding UTF8 $env:LFY_DOWNLOAD_PROGRESS
@@ -276,14 +295,19 @@ exit $result
             server.shutdown()
             worker.join(timeout=2)
     progress = json.loads((tmp_path / 'progress.json').read_text(encoding='utf-8-sig'))
-    if mode == 'truncated':
+    if mode in ('truncated', 'stalled', 'headers-stalled'):
         assert result.returncode != 0, result.stdout + result.stderr
         assert 100 not in progress
+        if mode != 'truncated':
+            assert 'download stalled' in result.stdout, result.stdout + result.stderr
+            assert 'for 2 seconds' in result.stdout
+        if mode == 'stalled':
+            assert (tmp_path / '下载 with spaces.exe').read_bytes() == payload[:1024]
     else:
         assert result.returncode == 0, result.stdout + result.stderr
         assert (tmp_path / '下载 with spaces.exe').read_bytes() == payload
         assert progress[-1] == 100
-        if mode == 'known':
+        if mode in ('known', 'slow'):
             # Content-Length becomes known only after response headers arrive.
             # Connecting may report indeterminate progress even for this URL.
             determinate = [percent for percent in progress[:-1] if percent != -1]
