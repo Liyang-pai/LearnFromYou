@@ -1,0 +1,376 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="Electron" agent="Codex" version="32.4.1" type="device" compressed="false">
+  <diagram id="architecture" name="01 架构总览">
+    <mxGraphModel dx="1600" dy="1320" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1320" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;LearnFromYou｜最终知识状态机架构&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="确认版设计 · 2026-10-14 · 本文件定义目标架构，尚未实施到代码。&lt;br&gt;范围：五种知识状态、冲突关系、前置知识修订及推导依赖；问题生命周期独立管理。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
+        </mxCell>
+        <mxCell id="input" value="&lt;b&gt;01 课堂输入与学生基础&lt;/b&gt;&lt;br&gt;教师讲授 / 纠正、确认画像、前置知识 p&lt;br&gt;教师来源 t、当前知识 k 与版本历史" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="190" width="430" height="125" />
+        </mxCell>
+        <mxCell id="extract" value="&lt;b&gt;02 独立知识提取&lt;/b&gt;&lt;br&gt;拆分独立结论与理解范围，明确条件&lt;br&gt;知识 / 问题 / 课堂事件分别记录" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="585" y="190" width="430" height="125" />
+        </mxCell>
+        <mxCell id="judge" value="&lt;b&gt;03 状态判定与更新&lt;/b&gt;&lt;br&gt;按学生可获得的依据选择五种状态&lt;br&gt;明确失效独立处理；保存状态变更依据" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="190" width="430" height="125" />
+        </mxCell>
+        <mxCell id="a1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="input" target="extract">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="a2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="extract" target="judge">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="store" value="&lt;b&gt;认知记录与关系&lt;/b&gt;&lt;br&gt;知识：内容、范围、状态及版本&lt;br&gt;证据：来源、原因、理解表现&lt;br&gt;关联：冲突双方、替代关系、推导依赖" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="415" width="430" height="155" />
+        </mxCell>
+        <mxCell id="a3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="judge" target="store">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="use" value="&lt;b&gt;04 按状态控制知识使用&lt;/b&gt;&lt;br&gt;understood：可用于推理&lt;br&gt;tentative：条件性使用并传递待确认性质&lt;br&gt;unclear / conflict：不作确定事实&lt;br&gt;invalid：停止使用，仅保留历史" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EAF7F0;strokeColor=#88C7A5;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="585" y="415" width="430" height="155" />
+        </mxCell>
+        <mxCell id="a4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="store" target="use">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="follow" value="&lt;b&gt;05 后续证据与依赖检查&lt;/b&gt;&lt;br&gt;其他讲解路径、课堂解释 / 应用&lt;br&gt;条件澄清、教师纠正、相关前提变化&lt;br&gt;只更新有依据的具体理解范围" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="415" width="430" height="155" />
+        </mxCell>
+        <mxCell id="a5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="use" target="follow">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="loop" value="重新判定相关知识" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=1;" edge="1" parent="1" source="follow" target="extract">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="judgment" value="&lt;b&gt;语义判断与记录执行的分工&lt;/b&gt;&lt;br&gt;AI：在画像与已讲内容的边界内识别缺口、可补跳步、矛盾和理解依据，提出状态更新。&lt;br&gt;程序：校验枚举及关联来源，保存版本与关系，执行已确认的失效与使用限制，并组织相关依赖检查。&lt;br&gt;来源存在不等于事实正确；学生理解教师的说法，也不等于教师的说法已经被外部验证。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="660" width="1460" height="155" />
+        </mxCell>
+        <mxCell id="guards" value="&lt;b&gt;三条贯穿全图的规则&lt;/b&gt;&lt;br&gt;① 冲突双方互相矛盾的部分都暂停作确定前提，其余独立部分保留。&lt;br&gt;② 仅依赖 tentative 的结论仍为 tentative；独立、充分依据可支持单独 understood。&lt;br&gt;③ 缺口不是固定补讲清单，任一合理路径都可建立理解；部分理解分别记录。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="865" width="1460" height="155" />
+        </mxCell>
+        <mxCell id="navigation" value="&lt;b&gt;阅读路径&lt;/b&gt;&lt;br&gt;第 2 页：五状态判定　→　第 3 页：冲突与失效　→　第 4 页：多路径及依赖　→　第 5 页：状态使用与转换&lt;br&gt;&lt;br&gt;&lt;b&gt;设计基线&lt;/b&gt;&lt;br&gt;依据已确认 final 流程图与本次三项补充：冲突双方暂停使用、tentative 依赖传递、understood 多路径解除。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1080" width="1460" height="155" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="decision" name="02 五状态判定">
+    <mxGraphModel dx="1600" dy="1620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1620" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜五状态判定&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="确认版设计 · 2026-10-14 · 状态描述学生当前的理解与接受情况，不直接裁定教师对错；尚未实施到代码。&lt;br&gt;先拆分独立结论及适用范围；明确失效走左侧独立路径，其他当前知识走主判定流程。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
+        </mxCell>
+        <mxCell id="input" value="&lt;b&gt;教师新讲授内容 + 当前认知&lt;/b&gt;&lt;br&gt;确认画像、前置知识 p、课堂知识 k、教师来源 t、历史及依赖关系" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="390" y="175" width="700" height="95" />
+        </mxCell>
+        <mxCell id="compare" value="&lt;b&gt;拆成可独立判断的知识条目，再识别条件&lt;/b&gt;&lt;br&gt;独立结论分别记录，避免局部纠错导致整条知识失效&lt;br&gt;识别必要基础、步骤与适用条件；年级只作辅助判断" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="390" y="325" width="700" height="105" />
+        </mxCell>
+        <mxCell id="in" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="input" target="compare">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="d1" value="学生凭已有依据能识别：&lt;br&gt;同一适用条件下，&lt;br&gt;存在尚未解决的矛盾？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="470" y="490" width="440" height="150" />
+        </mxCell>
+        <mxCell id="c1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="compare" target="d1">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="conflict" value="&lt;b&gt;conflict｜矛盾待解决&lt;/b&gt;&lt;br&gt;关联双方知识、来源、条件和具体矛盾&lt;br&gt;双方互相矛盾的部分暂停作为确定前提&lt;br&gt;其他独立部分保留；不自动判哪方错误" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1060" y="505" width="470" height="125" />
+        </mxCell>
+        <mxCell id="yes1" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#BD786F;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d1" target="conflict">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="d2" value="在可用讲解与已有基础下，&lt;br&gt;存在无法补出的关键缺口，&lt;br&gt;无法建立理解链条？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="470" y="740" width="440" height="150" />
+        </mxCell>
+        <mxCell id="no1" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d1" target="d2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="unclear" value="&lt;b&gt;unclear｜必要信息或基础缺失&lt;/b&gt;&lt;br&gt;记录当前无法理解的具体知识与原因&lt;br&gt;缺口是诊断依据，不是唯一解除条件&lt;br&gt;允许例子、表格、类比等其他路径建立理解" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1060" y="755" width="470" height="125" />
+        </mxCell>
+        <mxCell id="yes2" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C59B45;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d2" target="unclear">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="d3" value="存在可补出的跳步，&lt;br&gt;或结论仍依赖&lt;br&gt;尚未确认的前提？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="470" y="990" width="440" height="150" />
+        </mxCell>
+        <mxCell id="no2" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d2" target="d3">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="tentative" value="&lt;b&gt;tentative｜推断待确认&lt;/b&gt;&lt;br&gt;可接受的跳步，或依赖未确认前提&lt;br&gt;记录补步依据、推导依赖与待确认部分&lt;br&gt;关键基础缺失仍归 unclear，不以此兜底" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1060" y="1005" width="470" height="125" />
+        </mxCell>
+        <mxCell id="yes3" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#5D8DCF;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d3" target="tentative">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="understood" value="&lt;b&gt;understood｜当前可推断理解&lt;/b&gt;&lt;br&gt;基础足够、理解链条完整；或通过任一&lt;br&gt;合理路径获得充分理解依据&lt;br&gt;不代表外部事实已验证或永久掌握" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EAF7F0;strokeColor=#88C7A5;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="470" y="1260" width="440" height="140" />
+        </mxCell>
+        <mxCell id="no3" value="无待确认跳步或前提；理解依据充分" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="d3" target="understood">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="guard" value="&lt;b&gt;判定保护&lt;/b&gt;&lt;br&gt;无法指出学生依据，不强行 understood。&lt;br&gt;缺口不是固定清单，可由其他路径建立理解。&lt;br&gt;关键步骤无法补出 → unclear；可补步骤或未确认前提 → tentative。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="995" width="340" height="150" />
+        </mxCell>
+        <mxCell id="guardedge" value="检查不足" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.5;exitY=0;entryX=0;entryY=0.5;" edge="1" parent="1" source="guard" target="d2">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="revoke" value="&lt;b&gt;invalid｜已失效（独立路径）&lt;/b&gt;&lt;br&gt;教师明确撤回 / 纠正某条旧规则，或新规则明确替代旧规则；必须能定位具体旧条目&lt;br&gt;→ 旧条目直接 invalid，无需先经过 conflict&lt;br&gt;→ 保存失效依据与历史；有替代规则时关联新条目&lt;br&gt;→ 新规则重新走主判定流程，不自动 understood" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="490" width="340" height="255" />
+        </mxCell>
+        <mxCell id="req" value="&lt;b&gt;状态依据与关联&lt;/b&gt;&lt;br&gt;共同：独立知识、适用范围、原因、来源、推导依赖。unclear：当前障碍；tentative：补步及未确认前提；conflict：双方及暂停范围；understood：理解范围与充分依据；invalid：旧条目、失效来源与替代关联。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="1470" width="1480" height="100" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="conflict-invalid" name="03 冲突与失效处理">
+    <mxGraphModel dx="1600" dy="1610" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1610" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜冲突与失效&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="确认版设计 · conflict 是双方的待解决矛盾，invalid 是旧条目已明确失效。&lt;br&gt;教师讲错但学生无法识别时，按当时依据判断理解程度；教师明确纠正后再更新，保留真实历史。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
+        </mxCell>
+        <mxCell id="new" value="&lt;b&gt;教师新增说法 / 纠正说明&lt;/b&gt;&lt;br&gt;结合学生可获得的已有知识与来源判断" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="490" y="170" width="600" height="90" />
+        </mxCell>
+        <mxCell id="explicit" value="教师明确撤回、纠正或替代，&lt;br&gt;且能定位具体旧条目？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="540" y="325" width="500" height="150" />
+        </mxCell>
+        <mxCell id="ne" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="new" target="explicit">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="invalid" value="&lt;b&gt;旧条目 → invalid｜已失效&lt;/b&gt;&lt;br&gt;关联：旧知识 ID、教师纠正来源&lt;br&gt;有新规则时记录替代知识 ID&lt;br&gt;明确失效，不代表已证明在所有条件下错误" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="340" width="430" height="145" />
+        </mxCell>
+        <mxCell id="ei" value="是：直接失效" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#BD786F;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="explicit" target="invalid">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="contradiction" value="学生凭已有内容能识别：&lt;br&gt;同一适用条件下，&lt;br&gt;双方说法互相矛盾？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="540" y="575" width="500" height="150" />
+        </mxCell>
+        <mxCell id="ec" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="explicit" target="contradiction">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="conflict" value="&lt;b&gt;conflict｜双方矛盾部分暂停&lt;/b&gt;&lt;br&gt;关联双方 p / k、来源、条件及具体矛盾&lt;br&gt;双方矛盾部分均不能作确定前提&lt;br&gt;其余部分保留；后说的也不自动优先" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="590" width="430" height="145" />
+        </mxCell>
+        <mxCell id="cc" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#BD786F;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="contradiction" target="conflict">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="normal" value="&lt;b&gt;按当时可获得的依据判定&lt;/b&gt;&lt;br&gt;关键缺口 → unclear&lt;br&gt;可补跳步 / 未确认前提 → tentative&lt;br&gt;充分理解依据 → understood&lt;br&gt;不借外部知识识别学生无法发现的错误" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="590" width="400" height="160" />
+        </mxCell>
+        <mxCell id="cn" value="否 / 无发现依据" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="contradiction" target="normal">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="clarify" value="&lt;b&gt;教师后续澄清&lt;/b&gt;&lt;br&gt;尚未澄清：保持 conflict&lt;br&gt;普通补充或重复讲解不能触发 invalid" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="820" width="430" height="110" />
+        </mxCell>
+        <mxCell id="cq" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="conflict" target="clarify">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="branch" value="后续说明解决了什么？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="1000" width="430" height="120" />
+        </mxCell>
+        <mxCell id="qb" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="clarify" target="branch">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="conditions" value="&lt;b&gt;适用条件不同&lt;/b&gt;&lt;br&gt;修订范围，双方都可能保留&lt;br&gt;消除矛盾后，分别重新判定&lt;br&gt;不因范围扩展就自动失效" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EAF7F0;strokeColor=#88C7A5;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="570" y="1190" width="430" height="145" />
+        </mxCell>
+        <mxCell id="bc" value="澄清条件" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="branch" target="conditions">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="corrected" value="&lt;b&gt;明确纠正其中一条&lt;/b&gt;&lt;br&gt;被纠正旧条目 → invalid&lt;br&gt;其余保留 / 修订规则重新判定&lt;br&gt;新规则不自动 understood" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="1190" width="430" height="145" />
+        </mxCell>
+        <mxCell id="br" value="明确纠正" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="branch" target="corrected">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="replacement" value="&lt;b&gt;直接失效后的处理&lt;/b&gt;&lt;br&gt;有替代规则 → 回到第 2 页重新判定&lt;br&gt;只有撤回 → 不猜测替代规则&lt;br&gt;保留旧状态历史与失效来源" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="340" width="400" height="145" />
+        </mxCell>
+        <mxCell id="ir" value="处理替代规则" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;dashed=1;exitX=0.5;exitY=0;entryX=0.5;entryY=0;" edge="1" parent="1" source="invalid" target="replacement">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="history" value="&lt;b&gt;画像与历史的处理&lt;/b&gt;&lt;br&gt;p 前置知识同样参与冲突、修订和失效；保存原始画像，后续使用修订后的有效基础。&lt;br&gt;例如：教师错误讲授时 understood → 后来明确纠正，旧条目 invalid；新规则重新判定。&lt;br&gt;普通补充、重复讲解或无法定位旧条目的模糊纠正，均不自动让任意旧条目失效。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1410" width="1460" height="130" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="flexible-dependencies" name="04 多路径理解与依赖传递">
+    <mxGraphModel dx="1600" dy="1670" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1670" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜多路径理解与依赖传递&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="确认版设计 · 缺口用于诊断，不是固定补讲清单。允许其他讲解路径，但不把部分理解当成整片掌握。&lt;br&gt;有未确认前提的推导继承待确认性质；有独立、充分的依据后可单独 understood。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
+        </mxCell>
+        <mxCell id="lefttitle" value="&lt;b&gt;&lt;font style=&quot;font-size:23px&quot;&gt;A｜不同路径都可以支持理解&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="170" width="710" height="50" />
+        </mxCell>
+        <mxCell id="righttitle" value="&lt;b&gt;&lt;font style=&quot;font-size:23px&quot;&gt;B｜前提改变，检查依赖结论&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="860" y="170" width="670" height="50" />
+        </mxCell>
+        <mxCell id="new" value="&lt;b&gt;新讲解或课堂表现到来&lt;/b&gt;&lt;br&gt;补讲、例子、表格、类比、解释或应用&lt;br&gt;可对应原缺口，也可通过其他路径建立理解" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="245" width="710" height="105" />
+        </mxCell>
+        <mxCell id="evidence" value="有学生可获得的依据，&lt;br&gt;支持对具体知识 / 理解范围&lt;br&gt;作出新的判断？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="210" y="420" width="410" height="145" />
+        </mxCell>
+        <mxCell id="new-e" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="new" target="evidence">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="keep" value="&lt;b&gt;没有新的判断依据&lt;/b&gt;&lt;br&gt;保留当前状态&lt;br&gt;不凭重复次数自动升级&lt;br&gt;不把原缺口当唯一入口" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="650" width="280" height="145" />
+        </mxCell>
+        <mxCell id="scope" value="&lt;b&gt;明确实际理解到了哪一层&lt;/b&gt;&lt;br&gt;拆分独立结论 / 理解范围&lt;br&gt;只更新有依据的部分&lt;br&gt;再走五状态判定流程" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EAF7F0;strokeColor=#88C7A5;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="390" y="650" width="380" height="145" />
+        </mxCell>
+        <mxCell id="eno" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="evidence" target="keep">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="eyes" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="evidence" target="scope">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="example" value="&lt;b&gt;例：学生不懂坐标，但教师改用数量表&lt;/b&gt;&lt;br&gt;数量表帮助学生理解一次函数中的数量关系&lt;br&gt;→ 该关系可以重新判定为 understood。&lt;br&gt;尚不能读函数图像 → 图像相关条目仍可为 unclear。&lt;br&gt;不必先补完坐标，也不把局部理解当成整片掌握。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="880" width="710" height="210" />
+        </mxCell>
+        <mxCell id="changed" value="&lt;b&gt;结论 B 依赖前提 A&lt;/b&gt;&lt;br&gt;A 的状态、内容或适用条件发生变化时检查 B&lt;br&gt;依赖记录关联具体知识及版本，区别于来源引用" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="860" y="245" width="670" height="105" />
+        </mxCell>
+        <mxCell id="affected" value="该变化是否影响&lt;br&gt;B 所用的前提或适用条件？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rhombus;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="990" y="420" width="410" height="145" />
+        </mxCell>
+        <mxCell id="ca" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="changed" target="affected">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="unaffected" value="&lt;b&gt;不影响推导&lt;/b&gt;&lt;br&gt;保留 B 当前状态&lt;br&gt;记录检查依据" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="860" y="650" width="270" height="145" />
+        </mxCell>
+        <mxCell id="review" value="&lt;b&gt;重新检查 B 的成立依据&lt;/b&gt;&lt;br&gt;还有独立依据吗？&lt;br&gt;修订后的前提仍支持推导吗？&lt;br&gt;缺了哪部分理解依据？" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1180" y="650" width="350" height="145" />
+        </mxCell>
+        <mxCell id="ano" value="否" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="affected" target="unaffected">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="ayes" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0.5;entryY=0;" edge="1" parent="1" source="affected" target="review">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="rejudge" value="&lt;b&gt;B 按剩余依据重新判定&lt;/b&gt;&lt;br&gt;独立、充分依据 → 可单独 understood。&lt;br&gt;仅依赖 tentative 前提 → B 仍 tentative。&lt;br&gt;关键依据缺失 → unclear；可识别矛盾 → conflict。&lt;br&gt;教师明确撤回 / 纠正 B → B 为 invalid。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="860" y="880" width="670" height="210" />
+        </mxCell>
+        <mxCell id="rr" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="review" target="rejudge">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="guard" value="&lt;b&gt;依赖传播与检查期间&lt;/b&gt;&lt;br&gt;B 仅靠 tentative 的 A 成立，即使 B 的推导步骤完整，也继承待确认性质。&lt;br&gt;A 被 invalid 或发生冲突时，检查 B 及后续受影响结论；不自动判错，也不继续无条件使用。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="860" y="1140" width="670" height="150" />
+        </mxCell>
+        <mxCell id="rg" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="rejudge" target="guard">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="split" value="&lt;b&gt;C｜独立结论分别记录，局部纠正只影响对应条目&lt;/b&gt;&lt;br&gt;不要将“正方形四条边相等”和“面积等于边长乘以四”塞在同一条知识里。&lt;br&gt;教师纠正面积公式 → 旧面积条目 invalid；边的性质保留。错误面积公式所支持的其他结论触发依赖检查。&lt;br&gt;条目大小以能独立判断、独立修订为准，不按字数或句子数量机械切分。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1350" width="1470" height="160" />
+        </mxCell>
+        <mxCell id="record" value="&lt;b&gt;转换记录：&lt;/b&gt;前后状态、来源、理解范围、推导依赖与变化原因。只更新有依据的部分。&lt;br&gt;依赖检查不新增第六种状态；暂未完成检查的受影响结论，不作为确定前提继续推理。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1540" width="1470" height="95" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="recovery" name="05 状态使用与转换总览">
+    <mxGraphModel dx="1600" dy="1550" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1550" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜状态使用与转换&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
+        </mxCell>
+        <mxCell id="subtitle" value="确认版设计 · 新讲解、课堂表现或相关依赖变化触发重新判断；没有新的判断依据时保持状态。&lt;br&gt;五状态没有固定升级顺序；明确失效的旧版本保留历史，新规则独立判定。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
+        </mxCell>
+        <mxCell id="unclear" value="&lt;b&gt;unclear&lt;/b&gt;&lt;br&gt;关键基础或信息不足" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="190" width="400" height="95" />
+        </mxCell>
+        <mxCell id="tentative" value="&lt;b&gt;tentative&lt;/b&gt;&lt;br&gt;可补跳步 / 依赖未确认前提" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="600" y="190" width="400" height="95" />
+        </mxCell>
+        <mxCell id="conflict" value="&lt;b&gt;conflict&lt;/b&gt;&lt;br&gt;尚未解决的矛盾" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1130" y="190" width="400" height="95" />
+        </mxCell>
+        <mxCell id="uaction" value="&lt;b&gt;通过任一合理路径建立理解&lt;/b&gt;&lt;br&gt;可补讲基础，也可用例子、表格、类比等&lt;br&gt;原缺口不要求逐项补齐&lt;br&gt;检查具体理解范围与学生已有依据" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="370" width="400" height="125" />
+        </mxCell>
+        <mxCell id="taction" value="&lt;b&gt;待确认部分获得支持&lt;/b&gt;&lt;br&gt;补全步骤、解释 / 应用、前提确认&lt;br&gt;或取得独立于原前提的充分依据&lt;br&gt;重新判定，不只凭“我懂了”升级" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="600" y="370" width="400" height="125" />
+        </mxCell>
+        <mxCell id="caction" value="&lt;b&gt;教师澄清条件或明确纠正&lt;/b&gt;&lt;br&gt;条件不同：修订适用范围，双方可保留&lt;br&gt;明确纠正：旧条目 invalid&lt;br&gt;保留 / 修订后的规则重新判断" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1130" y="370" width="400" height="125" />
+        </mxCell>
+        <mxCell id="aunclear" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="unclear" target="uaction">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="atentative" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="tentative" target="taction">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="aconflict" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;" edge="1" parent="1" source="conflict" target="caction">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="reevaluate" value="&lt;b&gt;按当前依据重新判定（详见第 2 页）&lt;/b&gt;&lt;br&gt;可识别矛盾 → conflict；无法补出的关键缺口 → unclear；&lt;br&gt;可补跳步或仍依赖未确认前提 → tentative；充分理解依据 → understood。&lt;br&gt;任一合理路径都可支持理解；只更新有依据的具体范围。understood 遇到新证据也可重新判定。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="240" y="610" width="1120" height="155" />
+        </mxCell>
+        <mxCell id="ruaction" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitY=1;entryY=0;" edge="1" parent="1" source="uaction" target="reevaluate">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="rtaction" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitY=1;entryY=0;" edge="1" parent="1" source="taction" target="reevaluate">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="rcaction" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7890AB;fontSize=14;fontColor=#41556D;labelBackgroundColor=#FFFFFF;exitY=1;entryY=0;" edge="1" parent="1" source="caction" target="reevaluate">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="profile" value="&lt;b&gt;画像前置知识 p 的冲突处理&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. 关联画像中的具体前置知识 ID，记录双方来源和条件。&lt;br&gt;2. 发现可识别的同条件矛盾 → conflict，等待澄清。&lt;br&gt;3. 条件不同 → 修订范围；教师明确纠正 → 旧前置知识 invalid，修订后的当前规则重新判定。&lt;br&gt;4. 保存原始画像与历史；后续上下文使用修订后的基础，避免旧设定反复制造同一冲突。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="820" width="690" height="260" />
+        </mxCell>
+        <mxCell id="historical" value="&lt;b&gt;冲突解除与明确失效&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;conflict：&lt;/b&gt;关联双方与矛盾范围；双方矛盾部分都暂停作为确定前提，无关部分保留。&lt;br&gt;条件澄清后，分别重新判定，双方可能都保留。&lt;br&gt;&lt;br&gt;&lt;b&gt;invalid：&lt;/b&gt;可从任一当前状态直接进入，无需先 conflict。必须有明确撤回 / 纠正 / 替代及具体旧条目。&lt;br&gt;保留历史与失效来源，有替代规则时关联新条目。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="840" y="820" width="690" height="260" />
+        </mxCell>
+        <mxCell id="useu" value="&lt;b&gt;understood 的使用&lt;/b&gt;&lt;br&gt;进入当前有效知识，可用于后续推理。&lt;br&gt;遇到新证据仍可重新判断。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EAF7F0;strokeColor=#88C7A5;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1170" width="350" height="145" />
+        </mxCell>
+        <mxCell id="uset" value="&lt;b&gt;tentative 的使用&lt;/b&gt;&lt;br&gt;有条件参与推理，保留待确认标记。&lt;br&gt;仅依赖它的推断也为 tentative。&lt;br&gt;独立充分依据可解除该依赖限制。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="440" y="1170" width="350" height="145" />
+        </mxCell>
+        <mxCell id="usei" value="&lt;b&gt;unclear / conflict 的使用&lt;/b&gt;&lt;br&gt;不作为确定事实。&lt;br&gt;冲突双方矛盾部分均暂停；&lt;br&gt;无关部分保留，等待澄清。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="810" y="1170" width="350" height="145" />
+        </mxCell>
+        <mxCell id="question" value="&lt;b&gt;转换边界&lt;/b&gt;&lt;br&gt;问题 resolved 不自动升级知识；无需先回答原问题，其他路径也可建立理解。&lt;br&gt;invalid 旧版本不静默复活：重新采用时创建新版本并判定。相关前提变化时，检查后续依赖结论（第 4 页）。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;align=left;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="70" y="1360" width="1460" height="115" />
+        </mxCell>
+        <mxCell id="useinvalid" value="&lt;b&gt;invalid 的使用&lt;/b&gt;&lt;br&gt;停止用于后续推理。&lt;br&gt;只保留历史及失效依据。&lt;br&gt;重新采用时创建新版本并重新判定，不静默复活旧条目。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF0EE;strokeColor=#D99087;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1180" y="1170" width="350" height="145" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
