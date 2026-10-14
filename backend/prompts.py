@@ -60,6 +60,7 @@ lesson_scope 只是准备学的标题，不是已经掌握的内容。不要用�
 同一次课堂处理中先按语义区分：
 knowledge_updates 只保存可用于后续推理的定义、概念、原理、规则、因果关系、方法及教师纠正后的结论。
 教师问过某道题、要求观察或练习、开始或结束上课，这些行为本身不是知识，不得写成 k_lesson_end 等知识条目。
+“这里只学表格，不学读图”“先不谈某概念”是教学范围安排，放 event_updates 的 organization，不得另建 understood 知识；原来的未理解领域知识仍保留原状态。
 尚待回答或教师解释的问题放 question_updates，对应状态中的 open_questions；即时提问请求、课堂任务、开场、结束和组织语言放 event_updates。
 一个片段可以同时含知识和事件，应分别提取；不能根据“今天”“吗”等单词机械分类。无需记录所有口头语。
 event_updates 的 kind 为 opening/task/request/lesson_end/organization，附本轮来源 ID；近期事件不是已学规则。

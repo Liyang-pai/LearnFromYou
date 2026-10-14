@@ -24,7 +24,7 @@ CASES = {
         '刚才朵运算只相加的规则讲错了，我明确撤回它。正确规则下一段再讲。',
         '正确的朵运算是两数相加后再减1，先相加，再减去1。这取代原来的只相加规则。请回答3朵3是多少。']),
     'multiple_routes': (BEGINNER, ['一次函数y=2x+1的图像是一条直线，通过斜率和截距就能读图。',
-        '先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。规则是把输入数乘2再加1，也可每当输入增加1，输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。']),
+        '先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。只用加法解释：把输入数加上它自己，再加1。输入0时是0加0再加1，得到1；输入1时是1加1再加1，得到3；输入2时是2加2再加1，得到5。输入每增加1，两份输入各增加1，所以输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。']),
     'dependencies': (ARITHMETIC, ['盒规则是把输入数乘3再加2。要使输出为14，我跳过中间计算，暂时推得输入是4。',
         '沿用刚才尚待确认的输入推断，把这个输入数再加1，结果就是5；这个结论只根据前面的输入推断得到。',
         '刚才盒规则乘3再加2讲错了，明确撤回它，以及由这条规则推出的输入为4。正确规则暂时不讲；由那个输入推断出的后续结果需要重新考虑。'])
@@ -61,8 +61,21 @@ def check(case, snapshots, replies):
         assert any('5' in text or '五' in text for text in replies), '纠正后答案未按新规则计算'
     elif case == 'multiple_routes':
         assert any(k.status == 'unclear' for k in learned(snapshots[0]))
-        assert any(k.status == 'understood' and ('增加2' in k.text or '增加 2' in k.text) for k in learned(end)), '表格路径未建立局部理解'
-        assert any(k.status == 'unclear' and ('图' in k.text or '图' in k.reason) for k in learned(end)), '把表格理解当成会读图'
+        increments = [k for k in learned(end) if k.status == 'understood'
+                      and ('增加2' in k.text or '增加 2' in k.text)]
+        assert increments, '表格路径未建立局部理解'
+        assert all('t2' in k.sources and k.reason.strip() for k in increments), '表格理解缺少本轮教师依据'
+        assert any(k.status == 'understood' and '加' in k.text and 't2' in k.sources
+                   for k in learned(end)), '未记录只用已有加法基础即可理解的表格规则'
+        original_graph_ids = {k.id for k in learned(snapshots[0]) if k.status == 'unclear' and '图' in k.text}
+        assert original_graph_ids, '第一轮未定位图像理解障碍'
+        assert all(any(k.id == kid and k.status == 'unclear' for k in end.knowledge)
+                   for kid in original_graph_ids), '把换讲法误当成会读图或原图像规则失效'
+        # “不学读图”是课堂安排，不能只因含有“读图”两个字误报领域理解升级。
+        assert not any(k.status == 'understood' and any(word in k.text for word in ('读图', '斜率', '截距'))
+                       and not any(word in k.text for word in ('不学', '不谈', '未学'))
+                       for k in learned(end)), '未教清楚的图像知识被错误升级'
+        assert not any('只学' in k.text and '不学' in k.text for k in learned(end)), '教学范围安排被错误存成领域知识'
     elif case == 'dependencies':
         assert any(k.status == 'tentative' and k.dependencies for k in learned(snapshots[1])), '没有记录并传递待确认依赖'
         assert any(k.status == 'invalid' for k in learned(end)), '撤回前提未失效'
