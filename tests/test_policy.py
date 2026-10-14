@@ -1,5 +1,5 @@
 import pytest
-from backend.policy import apply_result, mark_delivered, speech_block
+from backend.policy import QuestionReleaseError, apply_result, mark_delivered, speech_block
 from backend.schemas import Candidate, Knowledge, Question, StudentResult, StudentState
 
 SOURCES = {"p1": {"text": "知道数组"}, "t1": {"text": "节点通过指针连接"}, "t2": {"text": "指针保存下个节点的位置"}}
@@ -36,8 +36,8 @@ def test_attempts_count_delivery_not_generation():
     assert state.questions[0].attempts == 0
     mark_delivered(state, candidate); mark_delivered(state, candidate)
     assert state.questions[0].attempts == 2 and state.questions[0].status == "deferred"
-    _, reply = apply_result(state, StudentResult(candidate=candidate), SOURCES, {"t2"})
-    assert reply.kind == "silence"
+    with pytest.raises(QuestionReleaseError):
+        apply_result(state, StudentResult(candidate=candidate), SOURCES, {"t2"})
 
 
 @pytest.mark.parametrize('changes', [{"muted":True},{"stale":True},{"busy":True},{"speaking":True},{"silence":.5},{"addressed":False}])

@@ -52,6 +52,16 @@ function bubble(text, teacher = false) {
   const body = document.createElement('div'); body.textContent = text; node.append(label, body); $('conversation').append(node);
   $('conversation').scrollTop = $('conversation').scrollHeight;
 }
+function showRuntime(runtime, promptFingerprint) {
+  const node = $('runtimeVersion');
+  if (!runtime?.capabilities?.includes('question_release_v1')) {
+    node.textContent = '当前后台尚未支持新版提问放行机制，请重启后台并刷新页面。';
+    return;
+  }
+  node.textContent = `运行版本 ${runtime.rules_fingerprint.slice(0, 12)} · 进程 ${runtime.pid}`;
+  node.title = `目录：${runtime.code_root}\n启动：${runtime.started_at}\n提交：${runtime.commit || '未提供'}\n规则：${runtime.rules_fingerprint}${promptFingerprint ? '\n课堂提示词：' + promptFingerprint : ''}`;
+}
+
 function showState(state) {
   $('stateVersion').textContent = state.version;
   $('stateJson').textContent = JSON.stringify(state, null, 2);
@@ -97,7 +107,7 @@ function showState(state) {
   if (!requests.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
   for (const request of requests) {
     const status = {pending:'待回应',answered:'已回应',dismissed:'无需回应'}[request.status] || request.status;
-    holder.append(recordNode(`${request.id} · ${status}`,`${request.text}\n来源：${request.sources.join('、')}${request.reason ? '\n' + request.reason : ''}${request.resolution_sources?.length ? '\n处理依据：' + request.resolution_sources.join('、') : ''}`));
+    holder.append(recordNode(`${request.id} · ${status}`,`${({invite_questions:'邀请说明疑问',answer:'回答请求',check_understanding:'确认理解',check_audio:'检查声音'})[request.kind || 'answer']}：${request.text}${request.invitation_quote ? '\n邀请原文：' + request.invitation_quote : ''}\n来源：${request.sources.join('、')}${request.reason ? '\n' + request.reason : ''}${request.resolution_sources?.length ? '\n处理依据：' + request.resolution_sources.join('、') : ''}`));
   }
   if (state.knowledge_history?.length) {
     const detail = document.createElement('details'), summary = document.createElement('summary');
@@ -124,6 +134,7 @@ function handle(event) {
   window.lessonUpload?.handle(event);
   switch (event.type) {
     case 'ready':
+      showRuntime(d.runtime, d.student_prompt_fingerprint);
       $('asrReview').checked = d.asr_review !== false;
       starting = false; running = true; sessionId = d.session_id; $('sessionStatus').textContent = '课堂已就绪'; $('studentMood').textContent = '这节课的内容，我准备开始听了。';
       $('scope').classList.remove('hidden'); $('scopeTags').textContent = '';
@@ -180,7 +191,7 @@ function handle(event) {
     case 'state':
       studentBusy = studentFailed = false;
       showState(d.state); $('sessionStatus').textContent = $('mute').checked ? '静音中 · 继续学习' : '继续听课';
-      $('studentMood').textContent = d.note || '正在等待你继续讲。';
+      $('studentMood').textContent = d.candidate?.kind && d.candidate.kind !== 'silence' ? '已生成候选，尚未发言。' : (d.note || '正在等待你继续讲。');
       append($('events'),recordNode(`${stamp} · 认知更新与候选回复`,JSON.stringify(d,null,2),true),true); break;
     case 'knowledge_review':
       if (d.state) showState(d.state);
@@ -194,8 +205,16 @@ function handle(event) {
       append($('events'),recordNode(`${stamp} · 解除静音回应 · ${d.status}`,JSON.stringify(d,null,2),true),true);
       if (d.status === 'failed') showError(d.message, true);
       break;
-    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '轮到你继续讲了。'; break;
-    case 'suppressed': append($('events'),recordNode(`${stamp} · 发言控制`,d.reason),true); break;
+    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '学生已发言，轮到你继续讲了。'; break;
+    case 'question_release': {
+      const status = {requested:'模型申请',approved:'已获准 · 等待发言',waiting:'等待发言',delivered:'已实际发出',cancelled:'已取消',denied:'未通过 · 跳过候选',rejected:'未通过 · 尝试修复'}[d.status] || d.status;
+      $('studentMood').textContent = `提问申请：${status}`;
+      append($('events'),recordNode(`${stamp} · 提问申请 · ${status}`,JSON.stringify(d,null,2),true),true); break;
+    }
+    case 'invitation_expired':
+      if (d.state) showState(d.state);
+      append($('events'),recordNode(`${stamp} · 教师邀请已失效`,d.reason),true); break;
+    case 'suppressed': $('studentMood').textContent = d.reason; append($('events'),recordNode(`${stamp} · 发言控制`,d.reason),true); break;
     case 'mute': $('mute').checked = d.muted; $('sessionStatus').textContent = d.muted ? '静音中 · 继续学习' : '继续听课'; break;
     case 'speech': $('avatar').classList.toggle('speaking',d.speaking); if(d.speaking) $('studentMood').textContent = '学生正在回应……'; break;
     case 'speech_stopped': $('avatar').classList.remove('speaking'); break;
@@ -451,6 +470,7 @@ async function refreshASR() {
   refreshingASR = true;
   try {
     const [state, health] = await Promise.all([asrRequest('/api/asr/models'), asrRequest('/api/health')]);
+    if (!running && !starting) showRuntime(health.runtime);
     asrDebugAvailable = health.asr_debug_available === true;
     audioUploadAvailable = health.audio_upload_available === true;
     lastASRState = state; asrReady = state.asr_ready; asrBusy = state.busy;

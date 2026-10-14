@@ -11,10 +11,11 @@ from asr.recognizer import AudioStream
 from . import config, prompts
 from .llm import ModelClient, ModelError
 from .cognition import seed_prerequisites, dependency_order
-from .policy import apply_result, invited, mark_delivered, speech_block, student_result_validator
+from .policy import apply_result, invited, mark_delivered, speech_block, student_result_validator, expire_invitations, release_error
 from .review import TranscriptReviewer, teacher_source
 from .schemas import Lesson, StudentResult, StudentState, KnowledgeReviewResult, ResumeResult, profile_preparation
 from .speech import Speaker
+from .runtime import RUNTIME, fingerprint
 
 
 class Session:
@@ -76,6 +77,8 @@ class Session:
         self.llm = ModelClient(self.emit)
 
     async def emit(self, kind, data):
+        if kind in ('ready', 'llm_request'):
+            data = {**data, 'runtime': RUNTIME, 'student_prompt_fingerprint': getattr(self, 'student_prompt_fingerprint', None)}
         event = {"type": kind, "time": datetime.now(timezone.utc).isoformat(),
                  "elapsed": round(time.monotonic() - self.started, 3), "data": data}
         serialized = json.dumps(event, ensure_ascii=False)
@@ -89,12 +92,42 @@ class Session:
             with contextlib.suppress(Exception):
                 await self.send(event)
 
+    async def release_event(self, status, candidate, reason='', attempt=None):
+        release = candidate.question_release_request
+        if not release:
+            return
+        request = next((r for r in self.state.response_requests if r.id == release.response_request_id), None)
+        await self.emit('question_release', {'status': status, 'question_id': release.question_id,
+            'response_request_id': release.response_request_id,
+            'teacher_source_id': request.invitation_source_id if request else None,
+            'invitation_quote': request.invitation_quote if request else '',
+            'input_revision': self.revision, 'reason': reason or release.reason, 'attempt': attempt})
+
+    async def cancel_candidate(self, reason, *, expire=False):
+        previous, self.candidate = self.candidate, None
+        expired = expire_invitations(self.state, self.revision) if expire else []
+        if previous:
+            await self.release_event('cancelled', previous['reply'], reason)
+        if expired:
+            await self.emit('invitation_expired', {'request_ids': expired, 'reason': reason, 'state': self.state.model_dump()})
+
+    async def candidate_ready(self):
+        if not self.candidate or not self.candidate['reply'].question_release_request:
+            return
+        c = self.candidate
+        reason = release_error(self.state, c['reply'], self.revision)
+        if reason or c['revision'] != self.revision:
+            await self.cancel_candidate(reason or '新的教师输入使旧邀请失效')
+        else:
+            await self.release_event('approved', c['reply'], '例外校验通过，等待正常发言时机；尚未消耗许可')
+
     async def start(self, lesson: Lesson, muted=False, tts=True, asr_review=True):
         # 再次校验并复制，防止直接调用绕过接口或外部修改课堂内固定的画像。
         self.lesson = lesson = Lesson.model_validate(lesson.model_dump())
         self.student_system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + json.dumps(
             {'student_profile': lesson.student_profile, 'teaching_scope_only': {
                 'topic': lesson.topic, 'points': lesson.points}}, ensure_ascii=False)
+        self.student_prompt_fingerprint = fingerprint(self.student_system)
         self.muted, self.tts_enabled = muted, tts
         self.asr_review = asr_review
         logs = config.ROOT / "logs"
@@ -168,7 +201,7 @@ class Session:
                 for on in transitions:
                     if on:
                         self.revision += 1
-                        self.candidate = None
+                        await self.cancel_candidate("教师开始讲话", expire=True)
                         await self.stop_speech("教师开始讲话")
                     await self.emit("vad", {"speaking": on})
                 if active:
@@ -220,7 +253,7 @@ class Session:
             self.last_voice = time.monotonic()
             await self.stop_speech("收到新的教师文本")
         self.revision += 1
-        self.candidate = None
+        await self.cancel_candidate("收到新的教师输入", expire=True)
         if self.resume_failed and not self.muted:
             self.resume_failed = False
             self.resume_pending = True
@@ -300,7 +333,8 @@ class Session:
         relevant |= {s for r in self.state.response_requests for s in r.sources + r.resolution_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
-        return {"interaction_context": {"muted": getattr(self, 'muted', False), "trigger": trigger},
+        input_revision = batch[-1]['revision'] if batch else self.revision
+        return {"interaction_context": {"muted": getattr(self, 'muted', False), "trigger": trigger, "input_revision": input_revision},
                 "lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
                 "explicit_prerequisites": [k for k in self.state.learning_context()['knowledge'] if k['id'].startswith('p')],
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
@@ -330,9 +364,10 @@ class Session:
                     control_revision = self.control_revision
                     result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
                         history=list(self.conversation),
-                        result_validator=student_result_validator(self.state, allowed, ids, recovery))
-                    next_state, candidate = apply_result(self.state, result, allowed, ids)
+                        result_validator=student_result_validator(self.state, allowed, ids, recovery, input_revision=target_revision, require_response=not self.muted))
+                    next_state, candidate = apply_result(self.state, result, allowed, ids, input_revision=target_revision)
                     self.state = next_state
+                    expire_invitations(self.state, self.revision)
                     self.processed_ids |= ids
                     # 只记录已成功处理的教师批次；失败重试不会重复插入历史。
                     self.conversation.append({'role': 'user', 'content': json.dumps(
@@ -348,12 +383,15 @@ class Session:
                         self.resume_pending = False
                         self.resume_failed = False
                     self.last_block = None
+                    await self.candidate_ready()
                     await self.emit("state", {"state": self.state.model_dump(), "note": result.note,
                         "processed_sources": sorted(ids), "candidate": candidate.model_dump(), "addressed": addressed})
                     if self.candidate is None and candidate.kind != 'silence':
                         await self.emit('suppressed', {'reason': '学生静音或控制状态已变化，候选未发出；学习记录已保存'})
                     for detail in recovery:
                         await self.emit('student_recovery', detail)
+                        if detail['code'] == 'question_release_denied':
+                            await self.emit('question_release', {**detail, 'status': 'denied'})
                     self.failed_batch = None
                     break
                 except (ModelError, ValueError) as e:
@@ -394,27 +432,30 @@ class Session:
             return (self.muted or self.finishing or self.closed
                     or revisions != (self.revision, self.state.version, self.control_revision))
 
-        def validate(result, final_attempt):
-            proposed = StudentResult(**result.model_dump(), addressed=bool(result.candidate.response_request_ids))
-            apply_result(snapshot, proposed, allowed, set(), resume=True)
-            return result
+        recovery = []
+        validate = student_result_validator(snapshot, allowed, set(), recovery,
+            input_revision=revisions[0], resume=True)
 
         try:
             await self.emit('resume_response', {'status': 'running', 'message': '正在判断是否需要回应'})
             result = await self.llm.generate('student_resume', self.student_system + '\n' + prompts.RESUME,
                 self.payload([], 'unmuted'), ResumeResult, history=list(self.conversation), result_validator=validate)
-            validate(result, True)
             if stale():
                 self.resume_pending = not (self.muted or self.finishing or self.closed)
                 await self.emit('resume_response', {'status': 'stale', 'message': '课堂或静音状态已变化，恢复结果已丢弃'})
                 return
             proposed = StudentResult(**result.model_dump(), addressed=bool(result.candidate.response_request_ids))
-            self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True)
+            self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True, input_revision=self.revision, allow_silence=bool(recovery))
             self.candidate = {'reply': candidate, 'revision': self.revision,
                               'control_revision': self.control_revision, 'addressed': bool(candidate.response_request_ids),
                               'resume': True}
             self.resume_failed = False
             self.last_block = None
+            await self.candidate_ready()
+            for detail in recovery:
+                await self.emit('student_recovery', detail)
+                if detail['code'] == 'question_release_denied':
+                    await self.emit('question_release', {**detail, 'status': 'denied'})
             await self.emit('resume_response', {'status': 'generated' if candidate.kind != 'silence' else 'skipped',
                 'message': '已生成恢复回应' if candidate.kind != 'silence' else '当前无需发言',
                 'state': self.state.model_dump(), 'candidate': candidate.model_dump(), 'note': result.note})
@@ -523,16 +564,25 @@ class Session:
         if c.get('control_revision', self.control_revision) != self.control_revision:
             self.candidate = None
             return
+        reason = release_error(self.state, c['reply'], self.revision)
+        q = next((q for q in self.state.questions if q.id == c['reply'].question_id), None)
+        if c['reply'].kind == 'question' and (not q or q.status == 'resolved'
+                or ((q.status == 'deferred' or q.attempts >= 2) and not c['reply'].question_release_request)):
+            reason = '疑问已解决或已暂缓，且没有有效例外许可'
+        if reason:
+            await self.cancel_candidate(reason)
+            await self.emit('suppressed', {'reason': reason})
+            return
         requests = {r.id: r for r in self.state.response_requests}
         if any(rid not in requests or requests[rid].status != 'pending' for rid in c['reply'].response_request_ids):
-            self.candidate = None
+            await self.cancel_candidate('关联请求或知识已不可用')
             await self.emit('suppressed', {'reason': '教师请求已取消或已回应，这次回复已取消'})
             return
         facts = {k.id: k for k in self.state.knowledge}
         blocked = {r.knowledge_id for r in self.state.pending_reviews}
         if any(kid in blocked or kid not in facts or facts[kid].status in ('unclear', 'conflict', 'invalid')
                for kid in c['reply'].knowledge_ids):
-            self.candidate = None
+            await self.cancel_candidate('关联请求或知识已不可用')
             await self.emit('suppressed', {'reason': '回复生成后所用知识已不可用，这次回复已取消'})
             return
         reason = speech_block(muted=self.muted, stale=c["revision"] != self.revision,
@@ -542,11 +592,14 @@ class Session:
             required_pause=config.DIRECT_PAUSE if c["addressed"] else config.SPEAK_PAUSE,
             candidate=c["reply"], addressed=c["addressed"])
         if reason:
-            if self.last_block != reason:
+            new_reason = self.last_block != reason
+            if new_reason:
                 await self.emit("suppressed", {"reason": reason})
                 self.last_block = reason
             if self.muted or c["revision"] != self.revision or c["reply"].kind == "silence" or (not c["addressed"] and c["reply"].kind != "question"):
-                self.candidate = None
+                await self.cancel_candidate(reason)
+            elif c["reply"].question_release_request and new_reason:
+                await self.release_event("waiting", c["reply"], reason)
             return
         self.candidate = None
         reply = c["reply"]
@@ -554,6 +607,7 @@ class Session:
         self.history.append({"text": reply.text, "kind": reply.kind, "sources": reply.sources})
         self.conversation.append({'role': 'assistant', 'content': reply.text})
         await self.emit("reply", {**reply.model_dump(), "state": self.state.model_dump()})
+        await self.release_event("delivered", reply, "实际回复已发出，累计次数加一；本次邀请已使用")
         if self.tts_enabled:
             self.tts_task = asyncio.create_task(self.say(reply.text))
 
@@ -582,7 +636,7 @@ class Session:
         self.muted = muted
         if changed:
             self.control_revision += 1
-            self.candidate = None
+            await self.cancel_candidate("静音状态已变化")
             self.resume_failed = False
             self.resume_pending = not muted and not (self.finishing or self.closed)
             self.student_work_wake.set()
@@ -593,6 +647,7 @@ class Session:
 
     async def finish(self):
         self.finishing = True
+        await self.cancel_candidate("试讲结束")
         self.resume_pending = False
         # 恢复任务属于同一课堂工作器；取消它后重启工作器处理末尾讲授。
         if self.resume_running:

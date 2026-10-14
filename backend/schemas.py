@@ -173,15 +173,26 @@ class ResponseRequestUpdate(StrictModel):
     status: Literal['pending', 'dismissed'] = 'pending'
     reason: str = Field(default='', max_length=400)
     resolution_sources: list[str] = Field(default_factory=list, max_length=12)
+    kind: Literal['answer', 'invite_questions', 'check_understanding', 'check_audio'] = 'answer'
+    invitation_source_id: str | None = None
+    invitation_quote: str = Field(default='', max_length=500)
 
 
 class ResponseRequest(ResponseRequestUpdate):
     status: Literal['pending', 'answered', 'dismissed'] = 'pending'
+    input_revision: int = 0  # Set by the program, never supplied by the model.
+
+
+class QuestionReleaseRequest(StrictModel):
+    question_id: str = Field(min_length=1, max_length=60)
+    response_request_id: str = Field(min_length=1, max_length=60)
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=400)]
 
 
 class Candidate(StrictModel):
+    question_release_request: QuestionReleaseRequest | None = None
     response_request_ids: list[str] = Field(default_factory=list,
-        description='answer/ack 实际回应的教师待回应请求 ID；发出前不算 answered；question/silence 填 []')
+        description='实际回应的教师请求 ID；question 仅关联 invite_questions；silence 填 []；发出前不算 answered')
     knowledge_ids: list[str] = Field(default_factory=list, max_length=16,
         description="实际用于推导答案的可用知识前提 ID；仅复述、描述障碍或对比冲突双方不算采用前提，这些条目不列入；无推理前提时填 []，来源仍填 sources")
     kind: Literal["silence", "answer", "question", "ack"] = "silence"

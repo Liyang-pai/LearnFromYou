@@ -1,0 +1,87 @@
+{
+  "runtime": {
+    "code_root": "/Users/chenliyang/Desktop/项目/LearnFromYou",
+    "pid": 51241,
+    "started_at": "2026-10-14T13:31:11.115429+00:00",
+    "commit": "53aea79d127885adc25cb329132eb6303d2ca562",
+    "rules_fingerprint": "a7d05022368fc3a24cb6028091efd3e51408b19de6c50d74a6eb618ba8335ae3",
+    "capabilities": [
+      "question_release_v1"
+    ]
+  },
+  "session_id": "578c9431a106",
+  "checks": [
+    {
+      "case": "runtime_identity",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "case": "first_question",
+      "passed": true,
+      "detail": "[{\"kind\": \"question\", \"text\": \"老师，折光操作具体是什么？不知道它就没法算盒子里的数。\"}]"
+    },
+    {
+      "case": "second_question",
+      "passed": true,
+      "detail": "[{\"kind\": \"question\", \"text\": \"老师，我还是不知道“折光”具体怎么做，能先解释一下折光是什么吗？\"}]"
+    },
+    {
+      "case": "deferred_at_two",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "case": "autonomous_stop",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "case": "invited_exception",
+      "passed": true,
+      "detail": "[{\"kind\": \"question\", \"text\": \"老师，我还是不知道“折光”具体怎么做，能先解释一下折光是什么吗？\"}]"
+    },
+    {
+      "case": "count_three_still_deferred",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "case": "audio_check_not_question",
+      "passed": true,
+      "detail": "[{\"kind\": \"ack\", \"text\": \"老师，我在听，能听到您说话。\"}]"
+    },
+    {
+      "case": "muted_invitation_recorded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "case": "unmute_fresh_question",
+      "passed": true,
+      "detail": "{\"kind\": \"question\", \"text\": \"老师，我还是不知道“折光”具体怎么做，能先解释一下折光是什么吗？\"}"
+    },
+    {
+      "case": "no_extra_classifier",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "case": "tts",
+      "passed": null,
+      "detail": "此验收关闭系统播报，不代表已验证实际扬声器声音。"
+    }
+  ],
+  "requests": 8,
+  "log": "logs/578c9431a106.jsonl",
+  "separate_tts_check": {
+    "system": "macOS say",
+    "text": "老师，我在听。",
+    "speech_events": [
+      true,
+      false
+    ],
+    "errors": [],
+    "physical_speaker_confirmed": false
+  }
+}

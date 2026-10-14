@@ -4,7 +4,7 @@ from copy import deepcopy
 
 import pytest
 
-from backend.policy import DeferredQuestionReplyError, RestrictedKnowledgeError, apply_result, invited, student_result_validator
+from backend.policy import QuestionReleaseError, RestrictedKnowledgeError, apply_result, invited, student_result_validator
 from backend.schemas import Question, StudentResult, StudentState
 from test_question_recovery import make_session
 from test_session import until
@@ -126,50 +126,45 @@ def deferred_state():
     return state
 
 
-def test_deferred_question_blocks_only_autonomous_repeat_not_ack():
+def test_deferred_question_requires_application_even_when_addressed():
     state = deferred_state()
-    autonomous = StudentResult.model_validate(reply([], 'question'))
-    autonomous.addressed = False
-    _, candidate = apply_result(state, autonomous, SOURCES, {'t3'})
-    assert candidate.kind == 'silence'
-    with pytest.raises(DeferredQuestionReplyError, match='不能因此沉默'):
-        apply_result(state, StudentResult.model_validate(reply([], 'question')), SOURCES, {'t3'})
-    assert invited('还有问题吗')
-    with pytest.raises(DeferredQuestionReplyError):
-        apply_result(state, autonomous, {**SOURCES, 't3': {'text': '还有问题吗'}}, {'t3'})
+    for addressed in (True, False):
+        result = StudentResult.model_validate(reply([], 'question'))
+        result.addressed = addressed
+        with pytest.raises(QuestionReleaseError, match='缺少例外申请'):
+            apply_result(state, result, SOURCES, {'t3'})
     _, candidate = apply_result(state, StudentResult.model_validate(reply([], 'ack')), SOURCES, {'t3'})
     assert candidate.kind == 'ack' and state.questions[0].attempts == 2
 
 
 @pytest.mark.parametrize('repaired', [True, False])
-def test_direct_invitation_after_two_questions_still_delivers_reply(tmp_path, monkeypatch, repaired):
+def test_invitation_repairs_application_or_skips_without_ack(tmp_path, monkeypatch, repaired):
     invalid = reply([], 'question')
-    invalid['question_updates'] = [{'id': 'q1', 'topic': '规则冲突', 'text': '到底是加3还是加5？',
-                                   'status': 'asked', 'sources': ['t1', 't2', 't3']}]
-    second = reply([], 'answer') if repaired else invalid
+    second = deepcopy(invalid)
+    if repaired:
+        second['response_request_updates'] = [{'id': 'r1', 'text': '还有问题吗', 'sources': ['t3'],
+            'kind': 'invite_questions', 'invitation_source_id': 't3', 'invitation_quote': '还有问题吗'}]
+        second['candidate']['response_request_ids'] = ['r1']
+        second['candidate']['question_release_request'] = {'question_id': 'q1', 'response_request_id': 'r1', 'reason': '教师明确邀请'}
 
     async def run():
         session, events, requests = await make_session(tmp_path, monkeypatch, [invalid, second])
         session.state = deferred_state()
         try:
             await session.add_transcript('还有问题吗'); await session.flush()
-            await until(lambda: session.state.version == 3)
+            await until(lambda: bool([e for e in events if e['type'] == 'state']))
             await session.try_speak(10)
             assert len(requests) == 2
-            assert '不能因此沉默' in requests[1]['messages'][-1]['content']
+            assert 'question_release_request' in requests[1]['messages'][-1]['content']
             delivered = [e['data'] for e in events if e['type'] == 'reply']
-            assert len(delivered) == 1 and delivered[0]['kind'] in ('answer', 'ack')
-            assert delivered[0]['text'] and not delivered[0]['question_id']
-            assert session.state.questions[0].attempts == 2
+            assert len(delivered) == int(repaired)
+            if repaired:
+                assert delivered[0]['kind'] == 'question'
+            assert session.state.questions[0].attempts == (3 if repaired else 2)
             assert session.state.questions[0].status == 'deferred'
-            assert len(session.state.questions) == 1
-            recovery = [e['data'] for e in events if e['type'] == 'student_recovery']
-            assert len(recovery) == (0 if repaired else 1)
-            if not repaired:
-                assert recovery[0]['code'] == 'deferred_question_reply'
-                assert delivered[0]['sources'] == ['t3'] and delivered[0]['knowledge_ids'] == []
-                assert '加3' not in delivered[0]['text'] and '加5' not in delivered[0]['text']
             assert not [e for e in events if e['type'] == 'error']
+            if not repaired:
+                assert any(e['type'] == 'student_recovery' and e['data']['code'] == 'question_release_denied' for e in events)
         finally:
             await session.close()
     asyncio.run(run())

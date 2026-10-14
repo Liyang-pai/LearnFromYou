@@ -134,8 +134,9 @@ def test_resume_cannot_modify_cognition_or_create_requests():
         apply_result(StudentState(), StudentResult.model_validate({'response_request_updates': [request()]}),
                      SOURCES, set(), resume=True)
     state = waiting('r1', 'r2')
-    with pytest.raises(ValueError, match='合并'):
-        apply_result(state, StudentResult.model_validate({'candidate': answer()}), SOURCES, set(), resume=True)
+    partial, partial_reply = apply_result(state, StudentResult.model_validate({'candidate': answer()}), SOURCES, set(), resume=True)
+    mark_delivered(partial, partial_reply)
+    assert [r.status for r in partial.response_requests] == ['answered', 'pending']
     next_state, _ = apply_result(state, StudentResult.model_validate({'candidate': answer(('r1', 'r2'))}),
                                 SOURCES, set(), resume=True)
     for field in ('knowledge', 'conflicts', 'knowledge_history', 'pending_reviews', 'recent_events'):
@@ -152,13 +153,13 @@ def test_muted_learning_then_fresh_merged_response_without_input(tmp_path, monke
         try:
             await teach(session)
             await until(lambda: session.state.version == 1)
-            assert model.calls[0][1]['interaction_context'] == {'muted': True, 'trigger': 'teacher_input'}
+            assert model.calls[0][1]['interaction_context'] == {'muted': True, 'trigger': 'teacher_input', 'input_revision': 1}
             assert not replies(events) and session.candidate is None
             cognition = deepcopy(session.state.knowledge)
             await session.set_muted(False)
             await until(lambda: len(replies(events)) == 1)
             assert model.calls[1][0] == 'student_resume'
-            assert model.calls[1][1]['interaction_context'] == {'muted': False, 'trigger': 'unmuted'}
+            assert model.calls[1][1]['interaction_context'] == {'muted': False, 'trigger': 'unmuted', 'input_revision': 1}
             assert model.calls[1][1]['new_teacher_segments'] == []
             assert replies(events)[0]['data']['text'] == '根据最新内容重新回应。'
             assert all(r.status == 'answered' for r in session.state.response_requests)
