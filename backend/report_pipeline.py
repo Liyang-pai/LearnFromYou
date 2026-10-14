@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .llm import ModelError
-from .report_contract import AnalysisNotes, TeachingReport, source_bound
+from .report_contract import AnalysisNotes, TeachingReport, source_bound, interaction_facts
 from .report_prompt import ANALYZE_CHUNK, MERGE_NOTES, TEACHING_REPORT
 
 SHORT_LIMIT = 24000
@@ -22,7 +22,7 @@ def compact(classroom):
               if key in ('topic', 'points', 'grade', 'subject', 'student_level', 'lesson_type', 'textbook')}
     if any(turn.get('image_id') for turn in classroom['turns']):
         lesson['has_visual_material'] = True
-    return {'lesson': lesson, 'turns': [
+    return {'lesson': lesson, 'interaction_facts': interaction_facts(classroom['turns']), 'turns': [
         {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id') if key in turn}
         for turn in classroom['turns']]}
 
@@ -80,6 +80,7 @@ class ReportPipeline:
     def __init__(self, model, root: Path, sid, digest, progress):
         self.model, self.progress = model, progress
         self.has_visual_material = False
+        self.turns = None
         # Keep paths short on Windows; full hashes in each file still guard reuse.
         self.directory = root / 'logs' / f'{sid}.report-v2-stages' / digest[:16]
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -88,8 +89,11 @@ class ReportPipeline:
         if self.has_visual_material:
             prompt += ('\n本课堂包含实际展示的截图，但本次报告没有收到图片内容。'
                        '不能将没有口述图中内容判为漏讲，也不能臆测图里的知识错误、解释或答案。'
-                       '仅评价文本中可观察的教学动作，受图片缺失影响的判断应明确材料不足。')
-        bound = source_bound(schema, allowed)
+                       '图片缺失不等于AI回应缺失：实际AI文字仍在turns或笔记中，必须按角色读取。'
+                       '可评价教师设问及回应处理，但不能仅凭AI复述就认定图中公式正确，'
+                       '更不能把AI计算写成教师示范。不能独立核对的图片内容应在对应维度保守判断，'
+                       '不要将局部限制扩大成整次课堂材料不足。')
+        bound = source_bound(schema, allowed, self.turns)
         key = hashlib.sha256(encode({'phase': phase, 'prompt': prompt, 'payload': payload,
                                     'schema': schema.model_json_schema()}).encode('utf-8')).hexdigest()
         path = self.directory / (key[:24] + '.json')
@@ -109,6 +113,7 @@ class ReportPipeline:
 
     async def generate(self, classroom):
         payload = compact(classroom)
+        self.turns = classroom['turns']
         self.has_visual_material = payload['lesson'].get('has_visual_material', False)
         teachers = {s['id'] for s in classroom['teacher_segments']}
         if len(encode(payload)) <= SHORT_LIMIT:
@@ -123,7 +128,8 @@ class ReportPipeline:
             groups.append({'range': [i, i], **notes.model_dump()})
         # Coverage is tracked by the program, rather than trusting a model's claim.
         level = 0
-        while len(encode({'lesson': payload['lesson'], 'groups': groups})) > SHORT_LIMIT:
+        while len(encode({'lesson': payload['lesson'], 'groups': groups,
+                          'interaction_facts': payload['interaction_facts']})) > SHORT_LIMIT:
             level += 1
             merged = []
             for i, batch in enumerate(batches(groups)):
@@ -137,6 +143,7 @@ class ReportPipeline:
             groups = merged
         assert groups[0]['range'][0] == 0 and groups[-1]['range'][1] == len(parts) - 1
         self.progress('正在核对全课解释、更正与优先改进……')
-        final_payload = {'lesson': payload['lesson'], 'groups': groups}
+        final_payload = {'lesson': payload['lesson'], 'groups': groups,
+                         'interaction_facts': payload['interaction_facts']}
         return await self.stage('teaching_report', TEACHING_REPORT, final_payload, TeachingReport,
                                 note_sources(final_payload))

@@ -42,8 +42,8 @@ class ClassroomImageInput {
   select(file) {
     if (!file || this.busy) return;
     if (file.size > 5 * 1024 * 1024 || !['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      this.el('imageFile').value = '';
-      return this.notice('请选择不超过 5 MiB 的 PNG、JPEG 或 WebP 截图。', true);
+      this.cancelDraft();
+      return this.notice('选图失败：请选择不超过 5 MiB 的 PNG、JPEG 或 WebP 截图。当前教学图片未改变。', true);
     }
     if (this.previewURL) URL.revokeObjectURL(this.previewURL);
     this.file = file; this.previewURL = URL.createObjectURL(file);

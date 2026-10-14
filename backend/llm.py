@@ -6,6 +6,11 @@ from pydantic import ValidationError
 from . import config
 
 REPORT_REQUEST_TIMEOUT = 60
+# Independent of the concise report budget. Thinking and JSON share output
+# tokens; one truncated student response may use the remaining bounded retry.
+STUDENT_OUTPUT_TOKENS = 6000
+STUDENT_RECOVERY_TOKENS = 8000
+STUDENT_TOTAL_OUTPUT_TOKENS = 14000
 
 
 class ModelError(Exception):
@@ -38,9 +43,14 @@ class ModelClient:
             *([dict(turn) for turn in history] if phase == 'student' else []),
             {"role": "user", "content": content},
         ]
+        student_tokens = STUDENT_OUTPUT_TOKENS
+        remaining_tokens = STUDENT_TOTAL_OUTPUT_TOKENS
         for attempt in range(2):
+            max_tokens = min(student_tokens, remaining_tokens) if phase == 'student' else 3500
+            if phase == 'student':
+                remaining_tokens -= max_tokens
             body = {"model": config.IMAGE_MODEL if images else config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 3500}
+                    "temperature": 0.25, "max_tokens": max_tokens}
             # Keep screenshot binaries out of websocket/debug/JSONL exports.
             logged_body = body
             if images:
@@ -65,10 +75,26 @@ class ModelClient:
                 raise ModelError(f"模型服务返回 HTTP {e.response.status_code}，请检查密钥、额度或模型配置") from None
             except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
                 raise ModelError("模型服务连接失败或返回格式异常；课堂内容已保留，可重试") from None
+            finish_reason = envelope['choices'][0].get('finish_reason')
             await self.emit("llm_output", {"phase": phase, "attempt": attempt + 1, "raw": raw,
-                "seconds": round(time.monotonic() - started, 3), "usage": envelope.get("usage", {})})
-            if report_phase and envelope['choices'][0].get('finish_reason') == 'length':
-                raise ModelError('模型报告输出被截断，未保存为成功报告；请检查输出额度或缩小试讲范围后重试')
+                "finish_reason": finish_reason, "seconds": round(time.monotonic() - started, 3),
+                "usage": envelope.get("usage", {})})
+            if finish_reason == 'length' and (report_phase or phase == 'student'):
+                await self.emit('report_validation_error' if report_phase else 'student_validation_error',
+                    {'attempt': attempt + 1, 'kind': 'truncated',
+                     'errors': [{'field': 'response', 'error': '输出达到长度限制，不能作为完整结果提交'}]})
+                if report_phase:
+                    raise ModelError('模型报告输出被截断，未保存为成功报告；成功阶段保留，可以重试')
+                if attempt:
+                    raise ModelError('学生本轮输出两次被截断，尚未完成；此前有效状态保留，可以重试')
+                student_tokens = STUDENT_RECOVERY_TOKENS
+                # Preserve original sources/images. Do not feed a cut-off JSON
+                # back as an assistant example or treat it as committed history.
+                messages = [*messages, {'role': 'user', 'content':
+                    '上次输出被截断，未提交任何状态。请重新返回完整JSON，不续写残片。'
+                    '只写本轮必要变更，未变化条目不用重写；保留必要来源及更正、疑问关系。'
+                    '候选回复和note保持简短，不展开推理过程。'}]
+                continue
             try:
                 result = output_type.model_validate_json(raw)
                 # JSON 与课堂关联校验共用两次请求预算，不在外层再叠加重试。
@@ -76,18 +102,24 @@ class ModelClient:
             except (ValidationError, ValueError, TypeError) as exc:
                 errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
                           if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
+                if isinstance(exc, ValidationError):
+                    details = exc.errors()
+                    kind = ('json' if any(e['type'] == 'json_invalid' for e in details)
+                            else 'content' if any(not e['loc'] for e in details) else 'schema')
+                else:
+                    kind = 'content'
                 if phase == 'student':
-                    await self.emit('student_validation_error', {'attempt': attempt + 1, 'errors': errors})
+                    await self.emit('student_validation_error', {'attempt': attempt + 1, 'kind': kind, 'errors': errors})
+                elif report_phase:
+                    await self.emit('report_validation_error', {'attempt': attempt + 1, 'kind': kind, 'errors': errors})
                 if attempt:
                     if report_phase:
-                        raise ModelError('模型两次未返回有效报告结构；课堂内容保留，可以重试教学报告') from None
+                        reason = {'json': 'JSON格式', 'schema': '字段结构', 'content': '内容或来源'}[kind]
+                        raise ModelError(f'报告{reason}校验两次未通过；课堂内容保留，可以重试教学报告') from None
                     if profile_phase:
                         raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
                 correction = "刚才输出未通过结构或关联校验。修正指出的错误，保留其他有效内容，返回完整 JSON 对象。"
-                if isinstance(exc, ValidationError):
-                    if report_phase:
-                        await self.emit('report_validation_error', {'errors': errors})
                 correction += '\n具体错误：' + json.dumps(errors, ensure_ascii=False)[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},
                              {"role": "user", "content": correction}]

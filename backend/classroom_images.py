@@ -69,8 +69,13 @@ def save_image(root, session_id, data):
     directory = image_directory(root, session_id)
     directory.mkdir(parents=True, exist_ok=True)
     path = directory / (digest + '.' + extension)
-    if not path.exists():
-        used = sum(p.stat().st_size for p in directory.iterdir() if p.suffix in ('.png', '.jpg', '.webp'))
+    intact = (path.is_file() and path.stat().st_size == len(data)
+              and hashlib.sha256(path.read_bytes()).hexdigest() == digest)
+    if not intact:
+        # A damaged deduplicated file must be repairable by uploading its valid
+        # original. Replacement occupies one file, not a second quota slot.
+        used = sum(p.stat().st_size for p in directory.iterdir()
+                   if p != path and p.suffix in ('.png', '.jpg', '.webp'))
         if used + len(data) > MAX_CLASSROOM_BYTES:
             raise ValueError('本次课堂截图已达到 64 MiB，请结束课堂后开启新试讲')
         temporary = directory / (uuid.uuid4().hex + '.tmp')
