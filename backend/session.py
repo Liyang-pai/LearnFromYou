@@ -13,7 +13,7 @@ from .llm import ModelClient, ModelError
 from .cognition import seed_prerequisites, dependency_order
 from .policy import apply_result, invited, mark_delivered, speech_block, student_result_validator
 from .review import TranscriptReviewer, teacher_source
-from .schemas import Lesson, StudentResult, StudentState, KnowledgeReviewResult, profile_preparation
+from .schemas import Lesson, StudentResult, StudentState, KnowledgeReviewResult, ResumeResult, profile_preparation
 from .speech import Speaker
 
 
@@ -36,6 +36,11 @@ class Session:
         self.asr_queue = asyncio.Queue(maxsize=30)
         self.review_queue = asyncio.Queue()
         self.teaching_queue = asyncio.Queue()
+        self.student_work_wake = asyncio.Event()
+        self.control_revision = 0
+        self.resume_pending = False
+        self.resume_failed = False
+        self.resume_running = False
         self.asr_review = True
         self.reviewer = None
         self.review_processing = False
@@ -216,6 +221,9 @@ class Session:
             await self.stop_speech("收到新的教师文本")
         self.revision += 1
         self.candidate = None
+        if self.resume_failed and not self.muted:
+            self.resume_failed = False
+            self.resume_pending = True
         item = {"id": f"t{sum(k.startswith('t') for k in self.sources) + 1}", "text": text,
                 "mode": mode, "revision": self.revision, "at": round(time.monotonic() - self.started, 3),
                 "raw_text": text, "corrected_text": None, "review_seconds": 0,
@@ -260,6 +268,7 @@ class Session:
         queue = self.review_queue if self.asr_review else self.teaching_queue
         # The queue insertion precedes the first await to preserve flush order.
         queue.put_nowait(batch)
+        self.student_work_wake.set()
         await self.emit("segment", {"sources": [s["id"] for s in batch], "text": "\n".join(s["text"] for s in batch),
             "reason": reason, "queued": queue.qsize(), "destination": "review" if self.asr_review else "student"})
 
@@ -273,6 +282,7 @@ class Session:
                     self.sources[source["id"]] = source
                     self.review_context.append(teacher_source(source))
                 self.teaching_queue.put_nowait(reviewed)
+                self.student_work_wake.set()
                 await self.emit("review_completed", {"sources": [s["id"] for s in reviewed],
                     "segments": reviewed, "seconds": max(s["review_seconds"] for s in reviewed),
                     "queued": self.review_queue.qsize()})
@@ -280,16 +290,18 @@ class Session:
                 self.review_processing = False
                 self.review_queue.task_done()
 
-    def payload(self, batch):
+    def payload(self, batch, trigger='teacher_input'):
         relevant = {s for k in self.state.knowledge for s in k.sources}
         relevant |= {s for revision in self.state.knowledge_history for s in revision.previous.sources}
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
         relevant |= {s for k in self.state.knowledge for s in k.correction_sources}
         relevant |= {s for c in self.state.conflicts for s in c.sources + c.resolution_sources}
         relevant |= {s for r in self.state.pending_reviews for s in r.trigger_sources}
+        relevant |= {s for r in self.state.response_requests for s in r.sources + r.resolution_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
-        return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
+        return {"interaction_context": {"muted": getattr(self, 'muted', False), "trigger": trigger},
+                "lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
                 "explicit_prerequisites": [k for k in self.state.learning_context()['knowledge'] if k['id'].startswith('p')],
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
@@ -297,7 +309,13 @@ class Session:
 
     async def learn_loop(self):
         while True:
-            batch = await self.teaching_queue.get()
+            await self.student_work_wake.wait()
+            self.student_work_wake.clear()
+            if self.teaching_queue.empty():
+                if self.resume_pending and self.resume_ready():
+                    await self.resume_response()
+                continue
+            batch = self.teaching_queue.get_nowait()
             count = 1
             while not self.teaching_queue.empty() and count < 4:
                 batch += self.teaching_queue.get_nowait()
@@ -309,6 +327,7 @@ class Session:
                     ids = {s["id"] for s in batch}
                     allowed = {k: v for k, v in self.sources.items() if k.startswith("p") or k in ids or k in self.processed_ids}
                     recovery = []
+                    control_revision = self.control_revision
                     result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
                         history=list(self.conversation),
                         result_validator=student_result_validator(self.state, allowed, ids, recovery))
@@ -318,11 +337,21 @@ class Session:
                     # 只记录已成功处理的教师批次；失败重试不会重复插入历史。
                     self.conversation.append({'role': 'user', 'content': json.dumps(
                         {'teacher_segments': [teacher_source(s) for s in batch]}, ensure_ascii=False)})
-                    addressed = result.addressed or invited("\n".join(s["text"] for s in batch))
-                    self.candidate = {"reply": candidate, "revision": target_revision, "addressed": addressed}
+                    addressed = result.addressed or bool(candidate.response_request_ids) or invited("\n".join(s["text"] for s in batch))
+                    # 切换静音不丢学习进度，但旧控制状态生成的发言不再有效。
+                    if not self.muted and control_revision == self.control_revision:
+                        self.candidate = {"reply": candidate, "revision": target_revision,
+                                          "control_revision": control_revision, "addressed": addressed}
+                    else:
+                        self.candidate = None
+                    if (self.candidate and candidate.kind != 'silence' and target_revision == self.revision):
+                        self.resume_pending = False
+                        self.resume_failed = False
                     self.last_block = None
                     await self.emit("state", {"state": self.state.model_dump(), "note": result.note,
                         "processed_sources": sorted(ids), "candidate": candidate.model_dump(), "addressed": addressed})
+                    if self.candidate is None and candidate.kind != 'silence':
+                        await self.emit('suppressed', {'reason': '学生静音或控制状态已变化，候选未发出；学习记录已保存'})
                     for detail in recovery:
                         await self.emit('student_recovery', detail)
                     self.failed_batch = None
@@ -337,11 +366,78 @@ class Session:
             self.knowledge_review_wake.set()
             for _ in range(count):
                 self.teaching_queue.task_done()
+            if not self.teaching_queue.empty():
+                self.student_work_wake.set()
+
+    def resume_ready(self):
+        return not (self.muted or self.finishing or self.closed or self.processing or self.active
+                    or self.pending or self.asr_pending or self.review_processing or self.knowledge_review_busy
+                    or not self.audio_queue.empty() or not self.asr_queue.empty()
+                    or not self.review_queue.empty() or not self.teaching_queue.empty()
+                    or time.monotonic() - self.last_voice < config.DIRECT_PAUSE)
+
+    def has_resume_work(self):
+        return (any(r.status == 'pending' for r in self.state.response_requests)
+                or any(q.status in ('pending', 'asked') and q.attempts < 2 for q in self.state.questions))
+
+    async def resume_response(self):
+        self.resume_pending = False
+        if not self.has_resume_work():
+            await self.emit('resume_response', {'status': 'skipped', 'message': '没有待回应请求或可主动提出的疑问'})
+            return
+        self.processing = self.resume_running = True
+        snapshot = self.state.model_copy(deep=True)
+        revisions = (self.revision, self.state.version, self.control_revision)
+        allowed = {k: v for k, v in self.sources.items() if k.startswith('p') or k in self.processed_ids}
+
+        def stale():
+            return (self.muted or self.finishing or self.closed
+                    or revisions != (self.revision, self.state.version, self.control_revision))
+
+        def validate(result, final_attempt):
+            proposed = StudentResult(**result.model_dump(), addressed=bool(result.candidate.response_request_ids))
+            apply_result(snapshot, proposed, allowed, set(), resume=True)
+            return result
+
+        try:
+            await self.emit('resume_response', {'status': 'running', 'message': '正在判断是否需要回应'})
+            result = await self.llm.generate('student_resume', self.student_system + '\n' + prompts.RESUME,
+                self.payload([], 'unmuted'), ResumeResult, history=list(self.conversation), result_validator=validate)
+            validate(result, True)
+            if stale():
+                self.resume_pending = not (self.muted or self.finishing or self.closed)
+                await self.emit('resume_response', {'status': 'stale', 'message': '课堂或静音状态已变化，恢复结果已丢弃'})
+                return
+            proposed = StudentResult(**result.model_dump(), addressed=bool(result.candidate.response_request_ids))
+            self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True)
+            self.candidate = {'reply': candidate, 'revision': self.revision,
+                              'control_revision': self.control_revision, 'addressed': bool(candidate.response_request_ids),
+                              'resume': True}
+            self.resume_failed = False
+            self.last_block = None
+            await self.emit('resume_response', {'status': 'generated' if candidate.kind != 'silence' else 'skipped',
+                'message': '已生成恢复回应' if candidate.kind != 'silence' else '当前无需发言',
+                'state': self.state.model_dump(), 'candidate': candidate.model_dump(), 'note': result.note})
+        except (ModelError, ValueError) as exc:
+            if stale():
+                self.resume_pending = not (self.muted or self.finishing or self.closed)
+                await self.emit('resume_response', {'status': 'stale', 'message': '过期恢复调用未提交'})
+            else:
+                self.resume_failed = True
+                await self.emit('resume_response', {'status': 'failed', 'message': '恢复回应失败，可重试：' + str(exc),
+                    'retryable': True, 'state': self.state.model_dump()})
+        finally:
+            self.processing = self.resume_running = False
+            self.knowledge_review_wake.set()
 
     def retry_knowledge_reviews(self):
         for item in self.state.pending_reviews:
             item.status, item.error = 'pending', ''
         self.knowledge_review_wake.set()
+        if self.resume_failed and not self.muted:
+            self.resume_failed = False
+            self.resume_pending = True
+            self.student_work_wake.set()
 
     async def knowledge_review_loop(self):
         """课堂输入优先；复核只提交匹配快照的认知，失败不阻塞新输入。"""
@@ -417,11 +513,21 @@ class Session:
                 elif now - self.pending_since >= config.SEGMENT_MAX_WAIT:
                     await self.flush("max_wait")
             await self.try_speak(silence)
+            if not self.teaching_queue.empty() or (self.resume_pending and self.resume_ready()):
+                self.student_work_wake.set()
 
     async def try_speak(self, silence):
         if not self.candidate or self.finishing:
             return
         c = self.candidate
+        if c.get('control_revision', self.control_revision) != self.control_revision:
+            self.candidate = None
+            return
+        requests = {r.id: r for r in self.state.response_requests}
+        if any(rid not in requests or requests[rid].status != 'pending' for rid in c['reply'].response_request_ids):
+            self.candidate = None
+            await self.emit('suppressed', {'reason': '教师请求已取消或已回应，这次回复已取消'})
+            return
         facts = {k.id: k for k in self.state.knowledge}
         blocked = {r.knowledge_id for r in self.state.pending_reviews}
         if any(kid in blocked or kid not in facts or facts[kid].status in ('unclear', 'conflict', 'invalid')
@@ -472,7 +578,14 @@ class Session:
         await self.emit("speech_stopped", {"reason": reason})
 
     async def set_muted(self, muted):
+        changed = self.muted != muted
         self.muted = muted
+        if changed:
+            self.control_revision += 1
+            self.candidate = None
+            self.resume_failed = False
+            self.resume_pending = not muted and not (self.finishing or self.closed)
+            self.student_work_wake.set()
         if muted:
             self.candidate = None
             await self.stop_speech("静音已开启")
@@ -480,6 +593,14 @@ class Session:
 
     async def finish(self):
         self.finishing = True
+        self.resume_pending = False
+        # 恢复任务属于同一课堂工作器；取消它后重启工作器处理末尾讲授。
+        if self.resume_running:
+            worker = self.tasks[2]
+            worker.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await worker
+            self.tasks[2] = asyncio.create_task(self.learn_loop())
         await self.stop_speech("试讲结束")
         await self.stop_audio()
         await self.flush("session_end")

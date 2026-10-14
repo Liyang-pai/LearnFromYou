@@ -166,7 +166,22 @@ class Question(QuestionUpdate):
     attempts: int = 0
 
 
+class ResponseRequestUpdate(StrictModel):
+    id: str = Field(min_length=1, max_length=60)
+    text: str = Field(min_length=1, max_length=400)
+    sources: list[str] = Field(min_length=1, max_length=12)
+    status: Literal['pending', 'dismissed'] = 'pending'
+    reason: str = Field(default='', max_length=400)
+    resolution_sources: list[str] = Field(default_factory=list, max_length=12)
+
+
+class ResponseRequest(ResponseRequestUpdate):
+    status: Literal['pending', 'answered', 'dismissed'] = 'pending'
+
+
 class Candidate(StrictModel):
+    response_request_ids: list[str] = Field(default_factory=list,
+        description='answer/ack 实际回应的教师待回应请求 ID；发出前不算 answered；question/silence 填 []')
     knowledge_ids: list[str] = Field(default_factory=list, max_length=16,
         description="实际用于推导答案的可用知识前提 ID；仅复述、描述障碍或对比冲突双方不算采用前提，这些条目不列入；无推理前提时填 []，来源仍填 sources")
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
@@ -177,6 +192,7 @@ class Candidate(StrictModel):
 
 
 class StudentResult(StrictModel):
+    response_request_updates: list[ResponseRequestUpdate] = Field(default_factory=list, max_length=12)
     conflict_updates: list[KnowledgeConflict] = Field(default_factory=list, max_length=12)
     knowledge_updates: list[Knowledge] = Field(default_factory=list, max_length=16,
         description="仅定义、概念、规则、因果、方法和有依据的纠正结论；不包含教师提问或课堂组织事件")
@@ -188,6 +204,13 @@ class StudentResult(StrictModel):
     note: str = Field(default="", max_length=400)
 
 
+class ResumeResult(StrictModel):
+    response_request_updates: list[ResponseRequestUpdate] = Field(default_factory=list, max_length=12)
+    question_updates: list[QuestionUpdate] = Field(default_factory=list, max_length=12)
+    candidate: Candidate = Field(default_factory=Candidate)
+    note: str = Field(default='', max_length=400)
+
+
 class KnowledgeReviewResult(StrictModel):
     knowledge_updates: list[Knowledge] = Field(min_length=1, max_length=16)
     note: str = Field(default="", max_length=400)
@@ -195,6 +218,7 @@ class KnowledgeReviewResult(StrictModel):
 
 class StudentState(StrictModel):
     schema_version: Literal[2] = 2
+    response_requests: list[ResponseRequest] = Field(default_factory=list)
     conflicts: list[KnowledgeConflict] = Field(default_factory=list)
     pending_reviews: list[KnowledgeReview] = Field(default_factory=list)
     version: int = 0

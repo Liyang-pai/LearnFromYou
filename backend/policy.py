@@ -1,7 +1,7 @@
 """Deterministic rules: the model proposes; this module controls state and speech."""
 import re
 from difflib import SequenceMatcher
-from .schemas import StudentState, StudentResult, Question, Candidate
+from .schemas import StudentState, StudentResult, Question, Candidate, ResponseRequest
 from .cognition import apply_knowledge
 
 
@@ -76,7 +76,7 @@ def normalize(text: str) -> str:
     return re.sub(r"[\W_]", "", text).lower()
 
 
-def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str]):
+def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str], *, resume=False):
     """Validate everything before committing anything; source validity isn't semantic proof."""
     next_state = state.model_copy(deep=True)
     questions = {q.id: q for q in next_state.questions}
@@ -86,7 +86,36 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         if any(s not in sources for s in ids):
             raise ValueError("输出引用了不存在的课堂来源")
 
-    apply_knowledge(next_state, result, sources, current_ids)
+    # 恢复判断不重新应用认知规则，确保知识、历史和复核队列原样保留。
+    if not resume:
+        apply_knowledge(next_state, result, sources, current_ids)
+    requests = {r.id: r for r in next_state.response_requests}
+    if len({r.id for r in result.response_request_updates}) != len(result.response_request_updates):
+        raise ValueError('同轮教师请求 ID 不得重复')
+    for update in result.response_request_updates:
+        check(update.sources)
+        check(update.resolution_sources)
+        if any(not s.startswith('t') for s in update.sources + update.resolution_sources):
+            raise ValueError('教师回应请求只能引用教师来源')
+        old = requests.get(update.id)
+        if old and old.status != 'pending':
+            if update.status != old.status or update.text != old.text or update.sources != old.sources:
+                raise ValueError('已回应或已取消的请求不能重新激活或改写')
+            continue
+        if old and (update.text != old.text or update.sources != old.sources):
+            raise ValueError('已有教师请求必须保留正文和原始来源；新请求使用新 ID')
+        if not old:
+            if resume or update.status != 'pending' or not set(update.sources) & current_ids:
+                raise ValueError('新教师请求需要本轮教师来源；恢复判断不能新建请求')
+            if any(r.text == update.text and set(r.sources) == set(update.sources) for r in requests.values()):
+                raise ValueError('相同教师请求应沿用原 ID，不能重复登记')
+        if update.status == 'dismissed':
+            if not update.reason.strip() or not update.resolution_sources:
+                raise ValueError('取消教师请求需要原因和教师依据')
+            if not resume and not set(update.resolution_sources) & current_ids:
+                raise ValueError('取消教师请求需要本轮教师依据')
+        requests[update.id] = ResponseRequest(**update.model_dump())
+    next_state.response_requests = list(requests.values())
     events = {event.id: event for event in next_state.recent_events}
     for event in result.event_updates:
         check(event.sources)
@@ -127,6 +156,19 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         candidate.question_id = aliases[candidate.question_id]
     if candidate.kind != "silence" and (not candidate.text.strip() or not candidate.sources):
         raise ValueError("候选发言需要正文及课堂来源")
+    if len(set(candidate.response_request_ids)) != len(candidate.response_request_ids):
+        raise ValueError('候选教师请求 ID 不得重复')
+    if candidate.response_request_ids:
+        if candidate.kind not in ('answer', 'ack'):
+            raise ValueError('只有 answer/ack 可以回应教师请求')
+        if any(rid not in requests or requests[rid].status != 'pending' for rid in candidate.response_request_ids):
+            raise ValueError('候选回复必须关联尚未回应的教师请求')
+    if resume:
+        pending = {r.id for r in requests.values() if r.status == 'pending'}
+        if pending and (candidate.kind not in ('answer', 'ack') or set(candidate.response_request_ids) != pending):
+            raise ValueError('恢复回应须用一条 answer/ack 合并回应所有仍有效的教师请求，或先提供取消依据')
+        if not pending and candidate.kind in ('answer', 'ack'):
+            raise ValueError('没有教师待回应请求时只能有效提问或沉默')
     current = {k.id: k for k in next_state.knowledge}
     if any(kid not in current for kid in candidate.knowledge_ids):
         raise ValueError('候选回复引用了不存在的知识前提')
@@ -150,11 +192,20 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
 
 
 def mark_delivered(state, candidate):
+    changed = False
     if candidate.kind == "question":
         for q in state.questions:
             if q.id == candidate.question_id:
                 q.attempts += 1
                 q.status = "asked" if q.attempts < 2 else "deferred"
+    if candidate.kind in ('answer', 'ack'):
+        for request in state.response_requests:
+            if request.id in candidate.response_request_ids and request.status == 'pending':
+                request.status = 'answered'
+                request.reason = '学生已实际发出回应；不表示知识已经理解'
+                changed = True
+    if changed:
+        state.version += 1
 
 
 def speech_block(*, muted, stale, busy, speaking, silence, required_pause, candidate, addressed):

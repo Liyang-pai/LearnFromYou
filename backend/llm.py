@@ -28,12 +28,12 @@ class ModelClient:
         messages = [
             {"role": "system", "content": system + "\nJSON schema:\n" + json.dumps(output_type.model_json_schema(), ensure_ascii=False)},
             # 只有课堂调用使用实际师生历史；生成画像、转写审核与报告不混用。
-            *([dict(turn) for turn in history] if phase == 'student' else []),
+            *([dict(turn) for turn in history] if phase in ('student', 'student_resume') else []),
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ]
         for attempt in range(2):
             body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 6000 if phase in ('student', 'knowledge_review') else 3500}
+                    "temperature": 0.25, "max_tokens": 6000 if phase in ('student', 'student_resume', 'knowledge_review') else 3500}
             await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
             started = time.monotonic()
             try:
@@ -62,7 +62,7 @@ class ModelClient:
             except (ValidationError, ValueError, TypeError) as exc:
                 errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
                           if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
-                if phase in ('student', 'knowledge_review'):
+                if phase in ('student', 'student_resume', 'knowledge_review'):
                     await self.emit('student_validation_error', {'attempt': attempt + 1, 'errors': errors})
                 if attempt:
                     if report_phase:

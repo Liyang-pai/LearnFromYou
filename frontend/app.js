@@ -6,7 +6,7 @@ let sentAudioFrames = 0;
 let micStarting = false, micStopping = false;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
-const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', knowledge_review:'知识依赖复核'};
+const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', student_resume:'解除静音后的回应判断', knowledge_review:'知识依赖复核'};
 const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原文', bypassed:'文字输入 · 无需审核', disabled:'审核已关闭'};
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
@@ -90,6 +90,14 @@ function showState(state) {
   for (const conflict of state.conflicts ?? []) {
     const title = `冲突 ${conflict.id} · ${conflict.status === 'resolved' ? '已解决' : '双方矛盾部分暂停使用'}`;
     append(holder,recordNode(title,`${conflict.left_id} ↔ ${conflict.right_id}\n条件：${conflict.conditions}\n${conflict.reason}\n来源：${conflict.sources.join('、')}${conflict.resolution ? '\n解决：' + conflict.resolution + '\n解决来源：' + conflict.resolution_sources.join('、') : ''}`));
+  }
+  const requestHeading = document.createElement('div'); requestHeading.className = 'state-title';
+  requestHeading.textContent = '教师待回应请求'; holder.append(requestHeading);
+  const requests = state.response_requests ?? [];
+  if (!requests.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
+  for (const request of requests) {
+    const status = {pending:'待回应',answered:'已回应',dismissed:'无需回应'}[request.status] || request.status;
+    holder.append(recordNode(`${request.id} · ${status}`,`${request.text}\n来源：${request.sources.join('、')}${request.reason ? '\n' + request.reason : ''}${request.resolution_sources?.length ? '\n处理依据：' + request.resolution_sources.join('、') : ''}`));
   }
   if (state.knowledge_history?.length) {
     const detail = document.createElement('details'), summary = document.createElement('summary');
@@ -178,6 +186,13 @@ function handle(event) {
       if (d.state) showState(d.state);
       append($('events'),recordNode(`${stamp} · 知识依赖复核 · ${d.status}`,JSON.stringify(d,null,2),true),true);
       if (d.status === 'failed') showError('知识复核未完成，相关结论暂不作为确定前提；课堂可继续。' + d.message, true);
+      break;
+    case 'resume_response':
+      if (d.state) showState(d.state);
+      $('studentMood').textContent = d.message;
+      $('sessionStatus').textContent = $('mute').checked ? '静音中 · 继续学习' : (d.status === 'running' ? '正在判断是否需要回应' : '继续听课');
+      append($('events'),recordNode(`${stamp} · 解除静音回应 · ${d.status}`,JSON.stringify(d,null,2),true),true);
+      if (d.status === 'failed') showError(d.message, true);
       break;
     case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '轮到你继续讲了。'; break;
     case 'suppressed': append($('events'),recordNode(`${stamp} · 发言控制`,d.reason),true); break;
