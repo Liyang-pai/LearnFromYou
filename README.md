@@ -166,9 +166,13 @@ Windows 可双击 `启动试讲.bat`，macOS 可双击 `启动试讲.command`；
 
 “课堂推断理解”（understood）根据课堂行为推断，不代表标准答案或永久掌握。本版不提供教师评分、多学生、视觉、长期记忆或账号系统。
 
-认知状态分为 `knowledge`（定义、概念、规则、方法等）、`open_questions`（问题生命周期，保留 resolved 以防重复追问）和 `recent_events`（开场、任务、回答请求、结束等，最多最近 20 条）。语义分类由现有课堂 LLM 调用一次完成，不增加分类调用。旧 `questions` 输入仍可读取，新的状态日志输出 `open_questions`。
+认知结构版本为 `schema_version: 2`。`knowledge` 记录独立结论，`open_questions` 管理问题生命周期，`recent_events` 保留最近 20 条课堂事件；新增 `conflicts` 和 `pending_reviews` 管理矛盾与依赖复核。旧 `questions` 输入仍可读取，历史 `conflict` 不自动改成 `invalid`，原始日志不改写。
 
-知识的 tentative 是初步认知，understood 是课堂推断理解，unclear 是缺少必要信息，conflict 是冲突或失效。同 ID 修订保存旧版本；不同 ID 的纠正使用 `supersedes` 指向旧知识。旧版本保存在 `knowledge_history`，原始课堂日志不改写。传给课堂模型的当前知识集合仅含 tentative/understood，冲突、缺失和历史记录分开提供，提示模型遵循教师后续明确纠正。
+知识有五种状态：`understood`（课堂推断理解）、`tentative`（可补跳步或依赖未确认前提）、`unclear`（当前无法建立理解链条）、`conflict`（学生可识别的同条件矛盾）、`invalid`（明确撤回或纠正的旧知识）。冲突双方的矛盾部分暂停作确定前提；其他独立知识保留。例子、表格、类比等合理路径均可建立理解，不要求补齐原先的每个缺口。
+
+每条知识记录依据、来源、适用条件和版本化依赖。画像摘录的 `p` 基础也可修订，当前状态优先于原始画像。同 ID 纠正保存已失效的旧版本，不同 ID 替代用 `supersedes` 将旧条目置为 `invalid`。依赖 `tentative` 的结论不能自动成为 `understood`；前提变化先在本轮复核，剩余目标触发额外模型调用，每批最多 16 条。待复核结论暂不作确定前提，失败可手动重试且不阻塞继续输入。
+
+实施细节、验收边界及运行方式见 [五状态知识状态机](docs/五状态知识状态机.md) 和 [最终架构图](docs/状态机改进流程图/LearnFromYou-最终状态机架构.drawio)。离线专项测试：`./.venv/bin/python -m pytest -q tests/test_knowledge_machine.py tests/test_knowledge_review.py`；真实模型验收：`./.venv/bin/python tests/live_knowledge_machine.py --live`（八组固定案例，同一输出目录共享最多 48 次请求，含修复与失败）。浏览器展示检查：`node tests/knowledge_machine_browser.cjs`，需 Playwright，可设置 `CHROME_PATH`。
 
 真实星星运算文字回放：后台加载最新代码且课堂空闲时运行 `.venv\Scripts\python.exe scripts/verify_cognition.py`。需自行提供原始日志 `logs/3e206b001729.jsonl`；脚本回放教学片段并检查未讲规则、未完整纠正、普通课堂回答及结束事件，会调用实际模型并消耗 API 额度，不重新验证原始音频的 ASR 效果。详细机制与验证边界见 [V1 认知状态改造说明](docs/V1认知状态改造说明.md)。
 

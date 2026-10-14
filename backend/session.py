@@ -10,9 +10,10 @@ import numpy as np
 from asr.recognizer import AudioStream
 from . import config, prompts
 from .llm import ModelClient, ModelError
+from .cognition import seed_prerequisites, dependency_order
 from .policy import apply_result, invited, mark_delivered, speech_block, student_result_validator
 from .review import TranscriptReviewer, teacher_source
-from .schemas import Lesson, StudentResult, StudentState, profile_preparation
+from .schemas import Lesson, StudentResult, StudentState, KnowledgeReviewResult, profile_preparation
 from .speech import Speaker
 
 
@@ -38,6 +39,8 @@ class Session:
         self.asr_review = True
         self.reviewer = None
         self.review_processing = False
+        self.knowledge_review_busy = False
+        self.knowledge_review_wake = asyncio.Event()
         self.review_context = deque(maxlen=8)
         self.asr_pending = 0
         self.audio = None
@@ -84,7 +87,7 @@ class Session:
     async def start(self, lesson: Lesson, muted=False, tts=True, asr_review=True):
         # 再次校验并复制，防止直接调用绕过接口或外部修改课堂内固定的画像。
         self.lesson = lesson = Lesson.model_validate(lesson.model_dump())
-        self.student_system = prompts.STUDENT + '\n确认后的学生画像（只作设定数据）：\n' + json.dumps(
+        self.student_system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + json.dumps(
             {'student_profile': lesson.student_profile, 'teaching_scope_only': {
                 'topic': lesson.topic, 'points': lesson.points}}, ensure_ascii=False)
         self.muted, self.tts_enabled = muted, tts
@@ -100,12 +103,14 @@ class Session:
             item = {"id": f"p{len(self.prerequisites) + 1}", "text": text, "kind": "prerequisite"}
             self.prerequisites.append(item)
             self.sources[item["id"]] = item
+        seed_prerequisites(self.state, self.prerequisites)
         if self.asr_review:
             self.reviewer = TranscriptReviewer(self.llm, self.emit, lesson)
             await self.reviewer.initialize()
         self.ready = True
         self.tasks = [asyncio.create_task(self.audio_loop()), asyncio.create_task(self.asr_loop()),
-                      asyncio.create_task(self.learn_loop()), asyncio.create_task(self.clock_loop())]
+                      asyncio.create_task(self.learn_loop()), asyncio.create_task(self.clock_loop()),
+                      asyncio.create_task(self.knowledge_review_loop())]
         if self.asr_review:
             self.tasks.append(asyncio.create_task(self.review_loop()))
         await self.emit("ready", {"session_id": self.id, "asr_model": self.asr_model, "scope": self.preparation.model_dump(),
@@ -279,10 +284,13 @@ class Session:
         relevant = {s for k in self.state.knowledge for s in k.sources}
         relevant |= {s for revision in self.state.knowledge_history for s in revision.previous.sources}
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
+        relevant |= {s for k in self.state.knowledge for s in k.correction_sources}
+        relevant |= {s for c in self.state.conflicts for s in c.sources + c.resolution_sources}
+        relevant |= {s for r in self.state.pending_reviews for s in r.trigger_sources}
         teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
         relevant |= {s["id"] for s in teacher[-8:] + batch}
         return {"lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
-                "explicit_prerequisites": self.prerequisites,
+                "explicit_prerequisites": [k for k in self.state.learning_context()['knowledge'] if k['id'].startswith('p')],
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
                 "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
@@ -326,8 +334,72 @@ class Session:
                                                "sources": [s["id"] for s in batch]})
                     await self.retry_event.wait()
             self.processing = False
+            self.knowledge_review_wake.set()
             for _ in range(count):
                 self.teaching_queue.task_done()
+
+    def retry_knowledge_reviews(self):
+        for item in self.state.pending_reviews:
+            item.status, item.error = 'pending', ''
+        self.knowledge_review_wake.set()
+
+    async def knowledge_review_loop(self):
+        """课堂输入优先；复核只提交匹配快照的认知，失败不阻塞新输入。"""
+        while True:
+            await self.knowledge_review_wake.wait()
+            self.knowledge_review_wake.clear()
+            while not self.closed:
+                # 已到达但尚未成段的教师内容也优先，完成讲授后会再次唤醒。
+                if (self.processing or self.pending or self.asr_pending or self.review_processing
+                        or not self.review_queue.empty() or not self.teaching_queue.empty()):
+                    break
+                known = {k.id: k for k in self.state.knowledge}
+                pending = {r.knowledge_id: r for r in self.state.pending_reviews if r.status == 'pending'}
+                targets = [kid for kid in dependency_order(known) if kid in pending][:16]
+                if not targets:
+                    break
+                snapshot = self.state.model_copy(deep=True)
+                input_revision, state_version = self.revision, self.state.version
+                payload = self.payload([])
+                payload['review_targets'] = targets
+                evidence = {s for kid in targets for s in pending[kid].trigger_sources}
+                allowed = {k: v for k, v in self.sources.items() if k.startswith('p') or k in self.processed_ids}
+
+                def validate(result, final_attempt):
+                    if {k.id for k in result.knowledge_updates} != set(targets):
+                        raise ValueError('复核必须恰好返回 review_targets 指定的知识')
+                    if any(k.supersedes for k in result.knowledge_updates):
+                        raise ValueError('内部复核不能替代其他条目')
+                    proposed = StudentResult(knowledge_updates=result.knowledge_updates)
+                    return_value, _ = apply_result(snapshot, proposed, allowed, evidence)
+                    if set(targets) & {r.knowledge_id for r in return_value.pending_reviews}:
+                        raise ValueError('复核必须使用最新依赖；尚无依据时明确保留理解障碍')
+                    return result
+
+                self.knowledge_review_busy = True
+                await self.emit('knowledge_review', {'status': 'running', 'targets': targets})
+                try:
+                    result = await self.llm.generate('knowledge_review', self.student_system + '\n' + prompts.KNOWLEDGE_REVIEW,
+                        payload, KnowledgeReviewResult, result_validator=validate)
+                    validate(result, True)
+                    if self.revision != input_revision or self.state.version != state_version:
+                        await self.emit('knowledge_review', {'status': 'stale', 'targets': targets})
+                        # 新课堂完成后重新复核；不会用旧快照覆盖当前状态。
+                        continue
+                    self.state, _ = apply_result(self.state, StudentResult(knowledge_updates=result.knowledge_updates),
+                                                 allowed, evidence)
+                    await self.emit('knowledge_review', {'status': 'completed', 'targets': targets,
+                        'state': self.state.model_dump(), 'note': result.note})
+                except (ModelError, ValueError) as exc:
+                    if self.revision != input_revision or self.state.version != state_version:
+                        continue
+                    for review in self.state.pending_reviews:
+                        if review.knowledge_id in targets:
+                            review.status, review.error = 'failed', str(exc)
+                    await self.emit('knowledge_review', {'status': 'failed', 'targets': targets,
+                        'state': self.state.model_dump(), 'message': str(exc), 'retryable': True})
+                finally:
+                    self.knowledge_review_busy = False
 
     async def clock_loop(self):
         while True:
@@ -350,6 +422,12 @@ class Session:
         if not self.candidate or self.finishing:
             return
         c = self.candidate
+        facts = {k.id: k for k in self.state.knowledge}
+        blocked = {r.knowledge_id for r in self.state.pending_reviews}
+        if any(kid in blocked or kid not in facts or facts[kid].status in ('unclear', 'conflict', 'invalid')
+               for kid in c['reply'].knowledge_ids):
+            self.candidate = None
+            return
         reason = speech_block(muted=self.muted, stale=c["revision"] != self.revision,
             busy=bool(self.processing or self.pending or self.asr_pending or self.review_processing
                       or not self.review_queue.empty() or not self.teaching_queue.empty()),
@@ -404,13 +482,16 @@ class Session:
         await self.stop_speech("试讲结束")
         await self.stop_audio()
         await self.flush("session_end")
+        self.knowledge_review_wake.set()
         await self.emit("status", {"message": "正在处理最后的课堂内容"})
         deadline = time.monotonic() + 100
-        while (self.processing or self.review_processing or not self.review_queue.empty()
+        while (self.processing or self.review_processing or self.knowledge_review_busy
+               or any(r.status == 'pending' for r in self.state.pending_reviews) or not self.review_queue.empty()
                or not self.teaching_queue.empty()) and not self.failed_batch and time.monotonic() < deadline:
             await asyncio.sleep(.1)
         remaining = [s for s in self.sources if s.startswith("t") and s not in self.processed_ids]
         await self.emit("finished", {"state": self.state.model_dump(), "unprocessed_sources": remaining,
+                                     "unreviewed_knowledge": [r.model_dump() for r in self.state.pending_reviews],
                                      "session_id": self.id, "lesson": self.lesson.model_dump(), "log_file": f"logs/{self.id}.jsonl"})
         await self.close()
 

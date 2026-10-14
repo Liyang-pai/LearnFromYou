@@ -87,7 +87,8 @@ def test_profile_snapshot_sources_and_delivered_history(monkeypatch, tmp_path):
             await session.start(lesson, muted=True, tts=False, asr_review=False)
             lesson.student_profile = '外部修改'
             assert session.lesson.student_profile == PROFILE
-            assert session.state.version == 0 and session.state.knowledge == []
+            assert session.state.version == 0
+            assert [(k.id, k.status, k.reason) for k in session.state.knowledge] == [('p1', 'understood', '画像确认基础')]
             assert session.sources == {'p1': {'id': 'p1', 'text': '知道整数加法。', 'kind': 'prerequisite'}}
             assert next(e['data'] for e in events if e['type'] == 'ready')['lesson']['student_profile'] == PROFILE
             await session.add_transcript('请回答：星星运算是什么？'); await session.flush()

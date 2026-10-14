@@ -316,6 +316,7 @@ async def websocket(ws: WebSocket):
                     await session.stop_speech("手动停止播报")
                 elif kind == "retry":
                     session.retry_event.set()
+                    session.retry_knowledge_reviews()
                     await session.emit("status", {"message": "正在重试，未处理内容仍按顺序保留"})
                 elif kind == "end":
                     # A normal end must register the independent report even

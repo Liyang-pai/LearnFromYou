@@ -33,7 +33,7 @@ class ModelClient:
         ]
         for attempt in range(2):
             body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 3500}
+                    "temperature": 0.25, "max_tokens": 6000 if phase in ('student', 'knowledge_review') else 3500}
             await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
             started = time.monotonic()
             try:
@@ -62,7 +62,7 @@ class ModelClient:
             except (ValidationError, ValueError, TypeError) as exc:
                 errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
                           if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
-                if phase == 'student':
+                if phase in ('student', 'knowledge_review'):
                     await self.emit('student_validation_error', {'attempt': attempt + 1, 'errors': errors})
                 if attempt:
                     if report_phase:

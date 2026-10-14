@@ -1,7 +1,8 @@
 """Deterministic rules: the model proposes; this module controls state and speech."""
 import re
 from difflib import SequenceMatcher
-from .schemas import StudentState, StudentResult, Question, KnowledgeRevision, Candidate
+from .schemas import StudentState, StudentResult, Question, Candidate
+from .cognition import apply_knowledge
 
 
 class MissingQuestionError(ValueError):
@@ -44,7 +45,6 @@ def normalize(text: str) -> str:
 def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str]):
     """Validate everything before committing anything; source validity isn't semantic proof."""
     next_state = state.model_copy(deep=True)
-    known = {k.id: k for k in next_state.knowledge}
     questions = {q.id: q for q in next_state.questions}
     aliases = {}
 
@@ -52,26 +52,7 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         if any(s not in sources for s in ids):
             raise ValueError("输出引用了不存在的课堂来源")
 
-    for item in result.knowledge_updates:
-        check(item.sources)
-        old = known.get(item.id)
-        if item.id in item.supersedes:
-            if old is None:
-                raise ValueError("纠正必须关联到已有知识条目")
-            # A same-ID correction already archives the previous version below.
-            item = item.model_copy(update={"supersedes": [id for id in item.supersedes if id != item.id]})
-        if old and old != item:
-            next_state.knowledge_history.append(KnowledgeRevision(
-                version=state.version + 1, previous=old.model_copy(deep=True), replacement_id=item.id))
-        for old_id in item.supersedes:
-            if old_id not in known:
-                raise ValueError("纠正必须关联到已有的其他知识条目")
-            replaced = known[old_id]
-            if replaced.status != "conflict":
-                next_state.knowledge_history.append(KnowledgeRevision(
-                    version=state.version + 1, previous=replaced.model_copy(deep=True), replacement_id=item.id))
-                known[old_id] = replaced.model_copy(update={"status": "conflict"})
-        known[item.id] = item
+    apply_knowledge(next_state, result, sources, current_ids)
     events = {event.id: event for event in next_state.recent_events}
     for event in result.event_updates:
         check(event.sources)
@@ -112,13 +93,19 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         candidate.question_id = aliases[candidate.question_id]
     if candidate.kind != "silence" and (not candidate.text.strip() or not candidate.sources):
         raise ValueError("候选发言需要正文及课堂来源")
+    current = {k.id: k for k in next_state.knowledge}
+    if any(kid not in current for kid in candidate.knowledge_ids):
+        raise ValueError('候选回复引用了不存在的知识前提')
+    blocked = {r.knowledge_id for r in next_state.pending_reviews}
+    if any(kid in blocked or current[kid].status in ('unclear', 'conflict', 'invalid')
+           for kid in candidate.knowledge_ids):
+        candidate = Candidate()
     if candidate.kind == "question":
         q = questions.get(candidate.question_id)
         if not q:
             raise MissingQuestionError(candidate.question_id)
         if q.status in ("resolved", "deferred") or q.attempts >= 2:
             candidate.kind, candidate.text = "silence", ""
-    next_state.knowledge = list(known.values())
     next_state.questions = list(questions.values())
     next_state.version += 1
     return next_state, candidate

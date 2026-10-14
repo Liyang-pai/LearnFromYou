@@ -16,7 +16,7 @@ from test_session import until
 def result(question_id='q2', source='t3'):
     # 固定复现：此前 q1 已解决，这轮准备问 q2，却未登记它。
     return {'knowledge_updates': [{'id': 'k_new', 'text': '去括号后得到2x+6=4x-6。',
-            'status': 'tentative', 'sources': [source]}], 'question_updates': [],
+            'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': [source]}], 'question_updates': [],
             'event_updates': [{'id': 'e_new', 'kind': 'task', 'text': '教师示范第二道方程。', 'sources': [source]}],
             'candidate': {'kind': 'question', 'question_id': question_id,
                           'text': '为什么负6移到另一边变成正6？', 'sources': [source]}}
@@ -110,7 +110,7 @@ def test_repair_registers_question_and_commits_only_once(tmp_path, monkeypatch):
 @pytest.mark.parametrize('missing_id', ['q2', None, ''])
 def test_second_missing_reference_silences_and_continues_next_batch(tmp_path, monkeypatch, missing_id):
     following = {'knowledge_updates': [{'id': 'k_next', 'text': '教师继续解释同类项合并。',
-                  'status': 'tentative', 'sources': ['t4']}], 'candidate': {'kind': 'silence'}}
+                  'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': ['t4']}], 'candidate': {'kind': 'silence'}}
     async def run():
         session, events, requests = await make_session(tmp_path, monkeypatch,
             [result(), result(missing_id), following])

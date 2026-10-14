@@ -8,7 +8,7 @@ SOURCES = {"p1": {"text": "知道数组"}, "t1": {"text": "节点通过指针连
 def test_source_rejection_is_atomic():
     state = StudentState()
     result = StudentResult.model_validate({"knowledge_updates": [
-        {"id": "k1", "text": "节点连接", "status": "tentative", "sources": ["t1"]},
+        {"id": "k1", "text": "节点连接", "status": "tentative", "reason": "已有基础支持补出教师跳步", "sources": ["t1"]},
         {"id": "k2", "text": "未讲算法", "status": "understood", "sources": ["student_reply"]}]})
     with pytest.raises(ValueError):
         apply_result(state, result, SOURCES, {"t1"})

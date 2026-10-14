@@ -8,7 +8,7 @@
         <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;LearnFromYou｜最终知识状态机架构&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
         </mxCell>
-        <mxCell id="subtitle" value="确认版设计 · 2026-10-14 · 本文件定义目标架构，尚未实施到代码。&lt;br&gt;范围：五种知识状态、冲突关系、前置知识修订及推导依赖；问题生命周期独立管理。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="已实施 · schema v2 · 2026-10-14 · 五状态、版本依赖与内部复核已实现。&lt;br&gt;范围：五种知识状态、冲突关系、前置知识修订及推导依赖；问题生命周期独立管理。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
         </mxCell>
         <mxCell id="input" value="&lt;b&gt;01 课堂输入与学生基础&lt;/b&gt;&lt;br&gt;教师讲授 / 纠正、确认画像、前置知识 p&lt;br&gt;教师来源 t、当前知识 k 与版本历史" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#F3F5F8;strokeColor=#BBC5D3;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
@@ -67,7 +67,7 @@
         <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜五状态判定&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
         </mxCell>
-        <mxCell id="subtitle" value="确认版设计 · 2026-10-14 · 状态描述学生当前的理解与接受情况，不直接裁定教师对错；尚未实施到代码。&lt;br&gt;先拆分独立结论及适用范围；明确失效走左侧独立路径，其他当前知识走主判定流程。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="已实施 · schema v2 · 2026-10-14 · 状态描述学生当前的理解与接受情况，不直接裁定教师对错。&lt;br&gt;先拆分独立结论及适用范围；明确失效走左侧独立路径，其他当前知识走主判定流程。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
         </mxCell>
         <mxCell id="input" value="&lt;b&gt;教师新讲授内容 + 当前认知&lt;/b&gt;&lt;br&gt;确认画像、前置知识 p、课堂知识 k、教师来源 t、历史及依赖关系" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
@@ -144,7 +144,7 @@
         <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜冲突与失效&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
         </mxCell>
-        <mxCell id="subtitle" value="确认版设计 · conflict 是双方的待解决矛盾，invalid 是旧条目已明确失效。&lt;br&gt;教师讲错但学生无法识别时，按当时依据判断理解程度；教师明确纠正后再更新，保留真实历史。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="已实施 · schema v2 · conflict 是双方的待解决矛盾，invalid 是旧条目已明确失效。&lt;br&gt;教师讲错但学生无法识别时，按当时依据判断理解程度；教师明确纠正后再更新，保留真实历史。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
         </mxCell>
         <mxCell id="new" value="&lt;b&gt;教师新增说法 / 纠正说明&lt;/b&gt;&lt;br&gt;结合学生可获得的已有知识与来源判断" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#EDF4FF;strokeColor=#91B5EA;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
@@ -224,7 +224,7 @@
         <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜多路径理解与依赖传递&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
         </mxCell>
-        <mxCell id="subtitle" value="确认版设计 · 缺口用于诊断，不是固定补讲清单。允许其他讲解路径，但不把部分理解当成整片掌握。&lt;br&gt;有未确认前提的推导继承待确认性质；有独立、充分的依据后可单独 understood。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="已实施 · schema v2 · 缺口用于诊断，不是固定补讲清单。允许其他讲解路径，但不把部分理解当成整片掌握。&lt;br&gt;有未确认前提的推导继承待确认性质；有独立、充分的依据后可单独 understood。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
         </mxCell>
         <mxCell id="lefttitle" value="&lt;b&gt;&lt;font style=&quot;font-size:23px&quot;&gt;A｜不同路径都可以支持理解&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
@@ -307,7 +307,7 @@
         <mxCell id="title" value="&lt;b&gt;&lt;font style=&quot;font-size:30px&quot;&gt;最终状态机架构｜状态使用与转换&lt;/font&gt;&lt;/b&gt;" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="25" width="1500" height="55" />
         </mxCell>
-        <mxCell id="subtitle" value="确认版设计 · 新讲解、课堂表现或相关依赖变化触发重新判断；没有新的判断依据时保持状态。&lt;br&gt;五状态没有固定升级顺序；明确失效的旧版本保留历史，新规则独立判定。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
+        <mxCell id="subtitle" value="已实施 · schema v2 · 新讲解、课堂表现或相关依赖变化触发重新判断；没有新的判断依据时保持状态。&lt;br&gt;五状态没有固定升级顺序；明确失效的旧版本保留历史，新规则独立判定。" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;text;strokeColor=none;fillColor=none;align=left;spacing=0;" vertex="1" parent="1">
           <mxGeometry as="geometry" x="50" y="85" width="1500" height="65" />
         </mxCell>
         <mxCell id="unclear" value="&lt;b&gt;unclear&lt;/b&gt;&lt;br&gt;关键基础或信息不足" style="html=1;whiteSpace=wrap;fontFamily=PingFang SC;fontSize=17;fontColor=#24344B;align=center;verticalAlign=middle;spacing=14;fillColor=#FFF5DF;strokeColor=#D9B15C;strokeWidth=1.5;rounded=1;arcSize=12;" vertex="1" parent="1">
