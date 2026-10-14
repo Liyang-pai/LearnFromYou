@@ -168,7 +168,7 @@ class Question(QuestionUpdate):
 
 class Candidate(StrictModel):
     knowledge_ids: list[str] = Field(default_factory=list, max_length=16,
-        description="回答实际采用的知识前提 ID；仅说明障碍不列为使用的前提")
+        description="实际用于推导答案的可用知识前提 ID；仅复述、描述障碍或对比冲突双方不算采用前提，这些条目不列入；无推理前提时填 []，来源仍填 sources")
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
     text: str = Field(default="", max_length=600)
     question_id: str | None = Field(default=None,

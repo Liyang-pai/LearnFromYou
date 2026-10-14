@@ -160,6 +160,7 @@ function handle(event) {
       append($('events'),recordNode(`${stamp} · 模型结果校验 · ${d.attempt === 1 ? '正在修复' : '未通过'}`,
         JSON.stringify(d.errors,null,2),true),true); break;
     case 'student_recovery':
+      $('studentMood').textContent = d.message;
       append($('events'),recordNode(`${stamp} · ${d.message}`,JSON.stringify(d,null,2),true),true); break;
     case 'llm_request':
       if (d.phase === 'student') { studentBusy = true; studentFailed = false; }

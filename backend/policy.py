@@ -13,29 +13,63 @@ class MissingQuestionError(ValueError):
                          '请在 question_updates 中补齐对应疑问记录，或将 candidate 改为 silence。')
 
 
+class RestrictedKnowledgeError(ValueError):
+    """候选将不可用知识声明为推理前提，需要模型修正发言或关联。"""
+    def __init__(self, knowledge_ids):
+        self.knowledge_ids = knowledge_ids
+        super().__init__(f'candidate.knowledge_ids 引用了不可作为确定前提的知识：{knowledge_ids!r}。'
+                         '若只是复述旧说法、描述冲突或说明不懂，请保留 sources，'
+                         '从 knowledge_ids 移除仅被提及的条目；若确实用它们推导答案，'
+                         '请改为说明障碍，不要给出确定结论。新追问仍须在 question_updates 登记。')
+
+
+class DeferredQuestionReplyError(ValueError):
+    """教师正在询问学生，但候选再次追问已暂缓的旧问题。"""
+    def __init__(self, question_id):
+        self.question_id = question_id
+        super().__init__(f'疑问 {question_id!r} 已暂缓或达到两次提问上限，不能再次输出 question。'
+                         '但本轮教师明确要求回应，不能因此沉默。请改为 answer 或 ack，'
+                         '简短说明目前的理解或尚未想明白的地方，不再重复请求解释；'
+                         'question_id=null，保留有效 sources，仅说明障碍时 knowledge_ids=[]。'
+                         '保持原疑问 deferred，不重建同义疑问，不增加提问次数。')
+
+
 def student_result_validator(state, sources, current_ids, recovery):
-    """在状态副本上预校验，最后一次只允许跳过漏登记的追问。"""
+    """在状态副本上预校验，最后一次可跳过关联错误的发言。"""
     snapshot = state.model_copy(deep=True)
 
     def validate(result, final_attempt):
         try:
             apply_result(snapshot, result, sources, current_ids)
-        except MissingQuestionError as exc:
+        except (MissingQuestionError, RestrictedKnowledgeError, DeferredQuestionReplyError) as exc:
             if not final_attempt:
                 raise
-            cleaned = result.model_copy(update={'candidate': Candidate()}, deep=True)
-            # 丢弃候选后仍需完整校验；不能把其他错误一起忽略或提前写入状态。
+            replacement = Candidate()
+            if isinstance(exc, DeferredQuestionReplyError):
+                # 只确认仍在听、不作领域断言；不会将第三次追问改名后放行。
+                replacement = Candidate(kind='ack', text='我在听，刚才的问题还没想明白，我先继续听您讲。',
+                                        sources=sorted(current_ids))
+            cleaned = result.model_copy(update={'candidate': replacement}, deep=True)
+            # 替换候选后仍需完整校验；不能把其他错误一起忽略或提前写入状态。
             apply_result(snapshot, cleaned, sources, current_ids)
-            recovery.append({'code': 'missing_question_reference', 'question_id': exc.question_id,
-                             'sources': list(result.candidate.sources), 'reason': str(exc),
-                             'message': '异常追问已跳过，课堂继续', 'attempt': 2})
+            detail = {'sources': list(result.candidate.sources), 'reason': str(exc), 'attempt': 2}
+            if isinstance(exc, MissingQuestionError):
+                detail.update(code='missing_question_reference', question_id=exc.question_id,
+                              message='异常追问已跳过，课堂继续')
+            elif isinstance(exc, RestrictedKnowledgeError):
+                detail.update(code='restricted_knowledge_reference', knowledge_ids=exc.knowledge_ids,
+                              message='回复仍使用不可用的知识前提，已跳过；课堂继续')
+            else:
+                detail.update(code='deferred_question_reply', question_id=exc.question_id,
+                              message='重复追问已改为简短回应，课堂继续')
+            recovery.append(detail)
             return cleaned
         return result
     return validate
 
 
 def invited(text: str) -> bool:
-    return bool(re.search(r"(你.{0,4}(懂|理解|明白|觉得|知道|回答|说说|复述)|听(懂|明白)了吗|有什么(问题|疑问)|请(回答|复述)|学生.{0,3}(回答|说)|能.{0,3}(解释|举例).{0,3}吗)", text))
+    return bool(re.search(r"(你.{0,4}(懂|理解|明白|觉得|知道|回答|说说|复述)|听(懂|明白)了吗|有什么(问题|疑问)|还有(?:什么)?(?:问题|疑问)吗|请(回答|复述)|学生.{0,3}(回答|说)|能.{0,3}(解释|举例).{0,3}吗)", text))
 
 
 def normalize(text: str) -> str:
@@ -96,16 +130,20 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
     current = {k.id: k for k in next_state.knowledge}
     if any(kid not in current for kid in candidate.knowledge_ids):
         raise ValueError('候选回复引用了不存在的知识前提')
-    blocked = {r.knowledge_id for r in next_state.pending_reviews}
-    if any(kid in blocked or current[kid].status in ('unclear', 'conflict', 'invalid')
-           for kid in candidate.knowledge_ids):
-        candidate = Candidate()
     if candidate.kind == "question":
         q = questions.get(candidate.question_id)
         if not q:
             raise MissingQuestionError(candidate.question_id)
+        addressed = result.addressed or invited('\n'.join(sources[sid].get('text', '') for sid in sorted(current_ids)))
+        if q.status != 'resolved' and (q.status == 'deferred' or q.attempts >= 2) and addressed:
+            raise DeferredQuestionReplyError(q.id)
         if q.status in ("resolved", "deferred") or q.attempts >= 2:
             candidate.kind, candidate.text = "silence", ""
+    blocked = {r.knowledge_id for r in next_state.pending_reviews}
+    restricted = [kid for kid in candidate.knowledge_ids
+                  if kid in blocked or current[kid].status in ('unclear', 'conflict', 'invalid')]
+    if candidate.kind != 'silence' and restricted:
+        raise RestrictedKnowledgeError(restricted)
     next_state.questions = list(questions.values())
     next_state.version += 1
     return next_state, candidate

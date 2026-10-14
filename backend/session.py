@@ -427,6 +427,7 @@ class Session:
         if any(kid in blocked or kid not in facts or facts[kid].status in ('unclear', 'conflict', 'invalid')
                for kid in c['reply'].knowledge_ids):
             self.candidate = None
+            await self.emit('suppressed', {'reason': '回复生成后所用知识已不可用，这次回复已取消'})
             return
         reason = speech_block(muted=self.muted, stale=c["revision"] != self.revision,
             busy=bool(self.processing or self.pending or self.asr_pending or self.review_processing

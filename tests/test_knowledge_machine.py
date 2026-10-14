@@ -168,9 +168,9 @@ def test_unrelated_split_fact_survives_explicit_replacement():
 
 def test_candidate_cannot_use_blocked_knowledge_as_a_fact():
     state = apply(StudentState(), [k(status='unclear', reason='关键定义缺失')])
-    _, candidate = apply_result(state, StudentResult(candidate={'kind': 'answer', 'text': '确定答案',
-        'sources': ['t1'], 'knowledge_ids': ['a']}), SOURCES, {'t2'})
-    assert candidate.kind == 'silence'
+    with pytest.raises(ValueError, match='candidate.knowledge_ids'):
+        apply_result(state, StudentResult(candidate={'kind': 'answer', 'text': '确定答案',
+            'sources': ['t1'], 'knowledge_ids': ['a']}), SOURCES, {'t2'})
 
 
 def test_cannot_erase_dependency_by_reusing_historical_correction_source():
