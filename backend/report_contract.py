@@ -81,6 +81,10 @@ class TeachingReport(StrictModel):
 
     @model_validator(mode='after')
     def concise_body(self):
+        if (self.finding.kind == '首要问题'
+                and not any(dim.label == '可改进' for dim in self.dimensions.__dict__.values())):
+            raise ValueError('报告结论不一致：已列首要问题，相关维度须说明该未解决障碍并标为可改进；'
+                             '若实际只是可选提升，请核对全课后修改发现，不能凭空制造缺点')
         observed = (self.dimensions.accuracy, self.dimensions.clarity, self.dimensions.coherence)
         if self.finding.kind == '材料不足' and all(dim.label != '暂不能判断' for dim in observed):
             raise ValueError('已能评价讲授内容、讲解和结构；不能仅因互动材料不足将整体发现标为材料不足。请选具体问题或可选提升')
@@ -106,17 +110,27 @@ DIMENSION_NAMES = [('accuracy', '内容准确'), ('clarity', '讲解清楚'),
                    ('coherence', '结构连贯'), ('checking', '师生互动')]
 
 
-def validate_sources(report, allowed):
+def invalid_sources(value, allowed):
+    invalid = set()
     def walk(value):
         if isinstance(value, dict):
-            if 'source_ids' in value and not set(value['source_ids']) <= allowed:
-                raise ValueError('引用了不存在或不属于本阶段的教师讲授编号')
+            ids = value.get('source_ids')
+            if isinstance(ids, list):
+                invalid.update(s for s in ids if isinstance(s, str) and s not in allowed)
             for child in value.values():
                 walk(child)
         elif isinstance(value, list):
             for child in value:
                 walk(child)
-    walk(report.model_dump())
+    walk(value)
+    return invalid
+
+
+def validate_sources(report, allowed):
+    invalid = invalid_sources(report.model_dump(), allowed)
+    if invalid:
+        raise ValueError('引用了不存在或不属于本阶段的教师讲授编号：' + ', '.join(sorted(invalid)) +
+                         '；仅可使用：' + ', '.join(sorted(allowed)))
 
 
 def worked_example_sources(turns):
@@ -163,6 +177,14 @@ def validate_grounding(report, turns):
     """Check observable facts/quoted attribution, not general teaching quality."""
     by_id = {turn['id']: turn for turn in turns}
     facts = interaction_facts(turns)
+    if any(turn.get('image_id') for turn in turns):
+        system_limit = (r'(?:本次报告|本报告|报告模块|系统|分析端).{0,12}'
+                        r'(?:未收到|未获得|看不到|无法(?:查看|读取|核对))|'
+                        r'(?:图片|截图|图像)(?:内容|原图)(?:未提供|未收到).{0,12}'
+                        r'(?:无法|不能|难以).{0,6}(?:核对|评价|判断|验证)')
+        if re.search(system_limit, report.finding.text):
+            raise ValueError('课堂已经展示截图；报告未收到原图是系统评价边界，不能作为教师的教学发现。'
+                             '请评价已有文字支持的教学动作，或保留并精简已有效的做法')
     observed = [report.overview, *report.dimensions.__dict__.values(), report.finding]
     if report.keep:
         observed.append(report.keep)
@@ -206,6 +228,24 @@ def validate_grounding(report, turns):
 def source_bound(schema, allowed, turns=None):
     # Reference validation participates in ModelClient's one correction attempt.
     class Bound(schema):
+        @model_validator(mode='before')
+        @classmethod
+        def notes_repair_details(cls, value):
+            # Report all independently visible note problems in the one repair
+            # budget; a list-length error must not hide wrong-role references.
+            if issubclass(schema, AnalysisNotes) and isinstance(value, dict):
+                notes = value.get('notes')
+                errors = []
+                if isinstance(notes, list) and len(notes) > 20:
+                    errors.append(f'笔记最多20条，当前{len(notes)}条；按主题合并，不得丢弃后半段或更正')
+                invalid = invalid_sources(value, allowed)
+                if invalid:
+                    errors.append('来源不能使用' + ', '.join(sorted(invalid)) +
+                                  '；仅可使用本阶段教师编号：' + ', '.join(sorted(allowed)))
+                if errors:
+                    raise ValueError('；'.join(errors))
+            return value
+
         @model_validator(mode='after')
         def valid_references(self):
             validate_sources(self, allowed)

@@ -10,6 +10,8 @@ from .report_prompt import ANALYZE_CHUNK, MERGE_NOTES, TEACHING_REPORT
 
 SHORT_LIMIT = 24000
 CHUNK_LIMIT = 12000
+# Short, dense Q/A turns can exceed the notes budget long before the text limit.
+CHUNK_TEACHER_LIMIT = 8
 
 
 def encode(value):
@@ -47,7 +49,9 @@ def chunks(payload):
         for text in split_text(turn['text']):
             part = {**turn, 'text': text}
             candidate = {'lesson': lesson, 'turns': [*current, part]}
-            if current and len(encode(candidate)) > CHUNK_LIMIT:
+            teachers = sum(t['role'] == 'teacher' and not t.get('context_only') for t in current)
+            dense = part['role'] == 'teacher' and teachers >= CHUNK_TEACHER_LIMIT
+            if current and (len(encode(candidate)) > CHUNK_LIMIT or dense):
                 yield {'lesson': lesson, 'turns': current}
                 current = []
                 if part['role'] == 'ai' and previous_teacher:
@@ -76,6 +80,22 @@ def batches(groups):
         yield current
 
 
+def notes_input(payload, allowed):
+    """Keep AI speech and its order, but expose teacher anchors as citable IDs."""
+    result = {**payload, 'allowed_teacher_source_ids': sorted(allowed)}
+    if 'turns' in payload:
+        turns, previous = [], []
+        for turn in payload['turns']:
+            if turn['role'] == 'teacher':
+                previous = [turn['id']]
+                turns.append(dict(turn))
+            else:
+                turns.append({**{k: v for k, v in turn.items() if k != 'id'},
+                              'teacher_source_ids': list(previous)})
+        result['turns'] = turns
+    return result
+
+
 class ReportPipeline:
     def __init__(self, model, root: Path, sid, digest, progress):
         self.model, self.progress = model, progress
@@ -86,13 +106,20 @@ class ReportPipeline:
         self.directory.mkdir(parents=True, exist_ok=True)
 
     async def stage(self, phase, prompt, payload, schema, allowed):
+        if phase in ('teaching_report_chunk', 'teaching_report_merge'):
+            payload = notes_input(payload, allowed)
         if self.has_visual_material:
             prompt += ('\n本课堂包含实际展示的截图，但本次报告没有收到图片内容。'
                        '不能将没有口述图中内容判为漏讲，也不能臆测图里的知识错误、解释或答案。'
                        '图片缺失不等于AI回应缺失：实际AI文字仍在turns或笔记中，必须按角色读取。'
                        '可评价教师设问及回应处理，但不能仅凭AI复述就认定图中公式正确，'
                        '更不能把AI计算写成教师示范。不能独立核对的图片内容应在对应维度保守判断，'
-                       '不要将局部限制扩大成整次课堂材料不足。')
+                       '不要将局部限制扩大成整次课堂材料不足。'
+                       '用户确实已上传截图；报告自身未收到原图是系统边界，绝不能放入finding、'
+                       '影响、改法或练习，不能说用户没有提供图片，也不能要求教师重复口述来补偿。'
+                       '例如已要求先读坐标轴和单位且得到相应回应，就肯定并精简该做法，'
+                       '不要再把先读坐标轴、单位作为新增提升。若实际AI明确表示图中文字太小，'
+                       '可依据真实回应建议裁剪放大，这与报告自身看不到图不同。')
         bound = source_bound(schema, allowed, self.turns)
         key = hashlib.sha256(encode({'phase': phase, 'prompt': prompt, 'payload': payload,
                                     'schema': schema.model_json_schema()}).encode('utf-8')).hexdigest()
