@@ -6,12 +6,12 @@ let sentAudioFrames = 0;
 let micStarting = false, micStopping = false;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
-const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新'};
+const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', student_resume:'解除静音后的回应判断', knowledge_review:'知识依赖复核'};
 const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原文', bypassed:'文字输入 · 无需审核', disabled:'审核已关闭'};
 let asrReady = false, asrBusy = false, asrDownloading = false;
 let asrDebugAvailable = null;
 let audioUploadAvailable = null;
-const labels = {tentative:'暂定理解',understood:'课堂推断理解',unclear:'信息缺失',conflict:'冲突或失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
+const labels = {tentative:'推断待确认',understood:'课堂推断理解',unclear:'理解障碍',conflict:'矛盾待解决',invalid:'已失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
 function showError(message, retry = false) {
@@ -52,11 +52,22 @@ function bubble(text, teacher = false) {
   const body = document.createElement('div'); body.textContent = text; node.append(label, body); $('conversation').append(node);
   $('conversation').scrollTop = $('conversation').scrollHeight;
 }
+function showRuntime(runtime, promptFingerprint) {
+  const node = $('runtimeVersion');
+  if (!runtime?.capabilities?.includes('question_release_v1')) {
+    node.textContent = '当前后台尚未支持新版提问放行机制，请重启后台并刷新页面。';
+    return;
+  }
+  node.textContent = `运行版本 ${runtime.rules_fingerprint.slice(0, 12)} · 进程 ${runtime.pid}`;
+  node.title = `目录：${runtime.code_root}\n启动：${runtime.started_at}\n提交：${runtime.commit || '未提供'}\n规则：${runtime.rules_fingerprint}${promptFingerprint ? '\n课堂提示词：' + promptFingerprint : ''}`;
+}
+
 function showState(state) {
   $('stateVersion').textContent = state.version;
   $('stateJson').textContent = JSON.stringify(state, null, 2);
   const holder = $('stateCards'); holder.textContent = ''; holder.classList.remove('empty');
-  for (const [name, items] of [['当前认知',state.knowledge],['问题与解答',state.open_questions ?? state.questions ?? []],['近期课堂事件',state.recent_events ?? []]]) {
+  const reviews = new Map((state.pending_reviews ?? []).map(r => [r.knowledge_id, r]));
+  for (const [name, items] of [['当前认知',state.knowledge ?? []],['问题与解答',state.open_questions ?? state.questions ?? []],['近期课堂事件',state.recent_events ?? []]]) {
     const heading = document.createElement('div'); heading.className = 'state-title'; heading.textContent = name; holder.append(heading);
     if (!items.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
     for (const item of items) {
@@ -64,8 +75,49 @@ function showState(state) {
       const tag = document.createElement('span'); tag.className = 'tag'; tag.textContent = labels[item.status] || '课堂事件';
       const text = document.createElement('span'); text.textContent = item.text;
       const meta = document.createElement('small'); meta.textContent = `${item.id} · 来源 ${item.sources.join('、')}${item.attempts !== undefined ? ' · 已提问 ' + item.attempts + ' 次' : ''}${item.resolution_sources?.length ? ' · 解答来源 ' + item.resolution_sources.join('、') : ''}`;
-      row.append(tag,text,meta); holder.append(row);
+      row.append(tag,text,meta);
+      const review = reviews.get(item.id);
+      if (review) {
+        const badge = document.createElement('span'); badge.className = 'tag review-badge';
+        badge.textContent = review.status === 'failed' ? '待复核 · 可重试' : '待复核 · 暂不作确定前提';
+        row.append(badge);
+      }
+      if (item.reason || item.conditions || item.dependencies?.length || item.correction_sources?.length || review) {
+        const detail = document.createElement('details'), summary = document.createElement('summary');
+        summary.textContent = '判断依据与关联'; detail.append(summary);
+        const lines = [item.reason && `依据：${item.reason}`, item.conditions && `适用范围：${item.conditions}`,
+          item.revision && `修订号：${item.revision}`,
+          item.dependencies?.length && `依赖：${item.dependencies.map(d => `${d.id}（修订 ${d.revision}）`).join('、')}`,
+          item.independent_sources?.length && `独立依据来源：${item.independent_sources.join('、')}`,
+          item.correction_sources?.length && `纠正来源：${item.correction_sources.join('、')}`,
+          review && `复核：${review.reason}${review.error ? ' · ' + review.error : ''}`].filter(Boolean);
+        for (const line of lines) { const p = document.createElement('div'); p.textContent = line; detail.append(p); }
+        row.append(detail);
+      }
+      holder.append(row);
     }
+  }
+  for (const conflict of state.conflicts ?? []) {
+    const title = `冲突 ${conflict.id} · ${conflict.status === 'resolved' ? '已解决' : '双方矛盾部分暂停使用'}`;
+    append(holder,recordNode(title,`${conflict.left_id} ↔ ${conflict.right_id}\n条件：${conflict.conditions}\n${conflict.reason}\n来源：${conflict.sources.join('、')}${conflict.resolution ? '\n解决：' + conflict.resolution + '\n解决来源：' + conflict.resolution_sources.join('、') : ''}`));
+  }
+  const requestHeading = document.createElement('div'); requestHeading.className = 'state-title';
+  requestHeading.textContent = '教师待回应请求'; holder.append(requestHeading);
+  const requests = state.response_requests ?? [];
+  if (!requests.length) { const p = document.createElement('p'); p.className = 'hint'; p.textContent = '暂无记录'; holder.append(p); }
+  for (const request of requests) {
+    const status = {pending:'待回应',answered:'已回应',dismissed:'无需回应'}[request.status] || request.status;
+    holder.append(recordNode(`${request.id} · ${status}`,`${({invite_questions:'邀请说明疑问',answer:'回答请求',check_understanding:'确认理解',check_audio:'检查声音'})[request.kind || 'answer']}：${request.text}${request.invitation_quote ? '\n邀请原文：' + request.invitation_quote : ''}\n来源：${request.sources.join('、')}${request.reason ? '\n' + request.reason : ''}${request.resolution_sources?.length ? '\n处理依据：' + request.resolution_sources.join('、') : ''}`));
+  }
+  if (state.knowledge_history?.length) {
+    const detail = document.createElement('details'), summary = document.createElement('summary');
+    summary.textContent = `知识修订历史（${state.knowledge_history.length}）`; detail.append(summary);
+    for (const revision of state.knowledge_history) {
+      const old = revision.previous;
+      detail.append(recordNode(`${old.id} · 修订 ${old.revision ?? 1} · 当时${labels[old.status] || old.status}${revision.invalidated ? ' · 此版本已失效' : ''}`,
+        `${old.text}\n${revision.change_reason || ''}\n变更来源：${(revision.change_sources ?? old.sources ?? []).join('、')}\n后续条目：${revision.replacement_id}`));
+    }
+    holder.append(detail);
   }
 }
 function showActivity() {
@@ -82,6 +134,7 @@ function handle(event) {
   window.lessonUpload?.handle(event);
   switch (event.type) {
     case 'ready':
+      showRuntime(d.runtime, d.student_prompt_fingerprint);
       $('asrReview').checked = d.asr_review !== false;
       starting = false; running = true; sessionId = d.session_id; $('sessionStatus').textContent = '课堂已就绪'; $('studentMood').textContent = '这节课的内容，我准备开始听了。';
       $('scope').classList.remove('hidden'); $('scopeTags').textContent = '';
@@ -126,6 +179,7 @@ function handle(event) {
       append($('events'),recordNode(`${stamp} · 模型结果校验 · ${d.attempt === 1 ? '正在修复' : '未通过'}`,
         JSON.stringify(d.errors,null,2),true),true); break;
     case 'student_recovery':
+      $('studentMood').textContent = d.message;
       append($('events'),recordNode(`${stamp} · ${d.message}`,JSON.stringify(d,null,2),true),true); break;
     case 'llm_request':
       if (d.phase === 'student') { studentBusy = true; studentFailed = false; }
@@ -137,10 +191,30 @@ function handle(event) {
     case 'state':
       studentBusy = studentFailed = false;
       showState(d.state); $('sessionStatus').textContent = $('mute').checked ? '静音中 · 继续学习' : '继续听课';
-      $('studentMood').textContent = d.note || '正在等待你继续讲。';
+      $('studentMood').textContent = d.candidate?.kind && d.candidate.kind !== 'silence' ? '已生成候选，尚未发言。' : (d.note || '正在等待你继续讲。');
       append($('events'),recordNode(`${stamp} · 认知更新与候选回复`,JSON.stringify(d,null,2),true),true); break;
-    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '轮到你继续讲了。'; break;
-    case 'suppressed': append($('events'),recordNode(`${stamp} · 发言控制`,d.reason),true); break;
+    case 'knowledge_review':
+      if (d.state) showState(d.state);
+      append($('events'),recordNode(`${stamp} · 知识依赖复核 · ${d.status}`,JSON.stringify(d,null,2),true),true);
+      if (d.status === 'failed') showError('知识复核未完成，相关结论暂不作为确定前提；课堂可继续。' + d.message, true);
+      break;
+    case 'resume_response':
+      if (d.state) showState(d.state);
+      $('studentMood').textContent = d.message;
+      $('sessionStatus').textContent = $('mute').checked ? '静音中 · 继续学习' : (d.status === 'running' ? '正在判断是否需要回应' : '继续听课');
+      append($('events'),recordNode(`${stamp} · 解除静音回应 · ${d.status}`,JSON.stringify(d,null,2),true),true);
+      if (d.status === 'failed') showError(d.message, true);
+      break;
+    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '学生已发言，轮到你继续讲了。'; break;
+    case 'question_release': {
+      const status = {requested:'模型申请',approved:'已获准 · 等待发言',waiting:'等待发言',delivered:'已实际发出',cancelled:'已取消',denied:'未通过 · 跳过候选',rejected:'未通过 · 尝试修复'}[d.status] || d.status;
+      $('studentMood').textContent = `提问申请：${status}`;
+      append($('events'),recordNode(`${stamp} · 提问申请 · ${status}`,JSON.stringify(d,null,2),true),true); break;
+    }
+    case 'invitation_expired':
+      if (d.state) showState(d.state);
+      append($('events'),recordNode(`${stamp} · 教师邀请已失效`,d.reason),true); break;
+    case 'suppressed': $('studentMood').textContent = d.reason; append($('events'),recordNode(`${stamp} · 发言控制`,d.reason),true); break;
     case 'mute': $('mute').checked = d.muted; $('sessionStatus').textContent = d.muted ? '静音中 · 继续学习' : '继续听课'; break;
     case 'speech': $('avatar').classList.toggle('speaking',d.speaking); if(d.speaking) $('studentMood').textContent = '学生正在回应……'; break;
     case 'speech_stopped': $('avatar').classList.remove('speaking'); break;
@@ -161,6 +235,7 @@ function handle(event) {
       running = false; ending = false; showState(d.state); syncControls(); $('sessionStatus').textContent = '本次试讲已结束';
       $('studentMood').textContent = '这节课结束了。我的当前理解保留在下方。';
       append($('events'),recordNode('结束记录',JSON.stringify(d,null,2),true),true);
+      if(d.unreviewed_knowledge?.length) showError('部分知识复核未完成，已保留使用限制与复核记录。');
       if(d.unprocessed_sources.length) showError('部分课堂内容尚未处理：' + d.unprocessed_sources.join('、') + '。原文已保存在本次记录中。');
       window.teachingReport?.open(d.session_id, true);
       break;
@@ -395,6 +470,7 @@ async function refreshASR() {
   refreshingASR = true;
   try {
     const [state, health] = await Promise.all([asrRequest('/api/asr/models'), asrRequest('/api/health')]);
+    if (!running && !starting) showRuntime(health.runtime);
     asrDebugAvailable = health.asr_debug_available === true;
     audioUploadAvailable = health.audio_upload_available === true;
     lastASRState = state; asrReady = state.asr_ready; asrBusy = state.busy;

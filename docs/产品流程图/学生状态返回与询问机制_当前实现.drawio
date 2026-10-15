@@ -1,0 +1,443 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="draw.io" agent="Codex" version="26.0.0" type="device" compressed="false">
+  <diagram id="student-1" name="01｜学生到底返回了什么">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="01｜学生到底返回了什么" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="阅读导航：02 返回字段 → 03 知识状态 → 04 疑问与回应 → 05 实际发言 → 06 异常恢复 → 07 内部复核与界面事件。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/schemas.py · backend/session.py · frontend/app.js" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;核心区分：一次学习可以更新状态，但不一定发出回复&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;认知记录、问题生命周期、发言候选分别管理；真正发言以 reply 事件为准。note 只是模型备注。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=20;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="180" width="1480" height="100" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;① 模型提出 StudentResult&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;knowledge_updates｜知识增量&lt;br&gt;conflict_updates｜冲突增量&lt;br&gt;question_updates｜疑问增量&lt;br&gt;event_updates｜课堂事件&lt;br&gt;addressed + candidate + note&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="320" width="460" height="230" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;② 程序提交 StudentState&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;knowledge｜完整当前认知&lt;br&gt;open_questions｜疑问及次数&lt;br&gt;conflicts｜双方冲突与解决依据&lt;br&gt;pending_reviews｜待复核队列&lt;br&gt;knowledge_history + version&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="570" y="320" width="460" height="230" />
+        </mxCell>
+        <mxCell id="n7" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;③ 程序决定是否投递 reply&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;先完整校验，再等发言时机&lt;br&gt;状态更新不等于候选已获放行&lt;br&gt;静音时仍学习；新输入废弃旧候选&lt;br&gt;实际追问才增加 attempts&lt;br&gt;文字显示后，可选语音播报&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1080" y="320" width="460" height="230" />
+        </mxCell>
+        <mxCell id="e8" value="" edge="1" parent="1" source="n5" target="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e9" value="" edge="1" parent="1" source="n6" target="n7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="n10" value="一次课堂处理的主链路" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=23;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="580" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n11" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;教师输入&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;文字 / 麦克风 / 上传音频&lt;br&gt;生成 t 来源并撤销旧候选&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="650" width="250" height="160" />
+        </mxCell>
+        <mxCell id="n12" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;形成教学片段&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;按停顿或最长等待分段&lt;br&gt;语音可先校正转写&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="360" y="650" width="250" height="160" />
+        </mxCell>
+        <mxCell id="n13" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;模型分析与完整校验&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;知识、疑问、事件同时处理&lt;br&gt;副本验证；需要时修复一次&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="660" y="650" width="270" height="160" />
+        </mxCell>
+        <mxCell id="n14" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;原子提交 + state&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;保留有效学习进度&lt;br&gt;返回候选、备注、处理来源&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="980" y="650" width="250" height="160" />
+        </mxCell>
+        <mxCell id="n15" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;发言检查 + reply&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;检查时机与知识是否仍可用&lt;br&gt;发送文字；可选 TTS&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1280" y="650" width="260" height="160" />
+        </mxCell>
+        <mxCell id="e16" value="" edge="1" parent="1" source="n11" target="n12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e17" value="" edge="1" parent="1" source="n12" target="n13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e18" value="" edge="1" parent="1" source="n13" target="n14" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e19" value="" edge="1" parent="1" source="n14" target="n15" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="n20" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;课前基础的来源&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;只从教师确认的学生画像中逐字摘录明确已知陈述，建立 p1、p2…；初始 status=understood，reason=画像确认基础。&lt;br&gt;主题、年级、水平、待讲知识点不能自动补成已知知识；学生自己的发言也不能作为新知识来源。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="860" width="940" height="190" />
+        </mxCell>
+        <mxCell id="n21" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;这张图描述的范围&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;依据当前本地代码，不是改造建议。&lt;br&gt;教学报告另走独立流程，评价实际讲授。&lt;br&gt;understood 表示课堂推断理解，&lt;br&gt;不保证教师讲的内容客观正确。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1050" y="860" width="490" height="190" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-2" name="02｜返回字段与保存字段">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="02｜返回字段与保存字段" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="左侧是模型本轮提出的增量；右侧是程序累计保存的状态。字段名与当前接口保持一致。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/schemas.py · backend/policy.py · backend/session.py" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="StudentResult｜本轮模型输出" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=24;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="175" width="710" height="45" />
+        </mxCell>
+        <mxCell id="n5" value="StudentState｜提交后的完整状态" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=24;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="175" width="710" height="45" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;knowledge_updates（≤16）&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;Knowledge 条目：定义、规则、方法等；每条有依据和来源。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="235" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n7" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;conflict_updates（≤12）&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;冲突双方、适用条件、矛盾说明及解决依据。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="347" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;question_updates（≤12）&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;疑问 ID、topic、text、status、sources、resolution_sources。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="459" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;event_updates（≤12）&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;opening / task / request / lesson_end / organization。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="571" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;addressed + note&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;是否被直接询问；note 为整轮简短可观察说明（≤400 字）。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="683" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n11" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;candidate｜只提出一个候选&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;kind：silence / answer / question / ack；正文 text ≤600 字。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="795" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n12" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;schema_version=2 + version&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;结构版本固定为 2；每次有效 apply_result 提交递增 version。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="235" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n13" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;knowledge&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;保存五状态的完整知识条目，包含条件、依据、修订与依赖。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="347" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n14" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;open_questions&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;保存 Question；含 attempts。字段名不是“只存未解决”。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="459" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n15" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;conflicts&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;status=open / resolved；保留双方关联及解决记录。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="571" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n16" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;pending_reviews&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;KnowledgeReview 队列；status=pending / failed，不是知识状态。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="683" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n17" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;recent_events + knowledge_history&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;近期课堂事件保留最新 20 条；知识修订历史保留旧版本。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="795" width="710" height="98" />
+        </mxCell>
+        <mxCell id="n18" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;candidate 关联字段&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;question_id：question 必须关联已有或本轮登记的疑问；新疑问需同轮登记同一 ID。&lt;br&gt;sources：非 silence 必须有正文及有效来源。knowledge_ids：只列实际用于推理的知识前提。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="925" width="1480" height="110" />
+        </mxCell>
+        <mxCell id="n19" value="来源约定：p = 确认画像中的基础；t = 教师课堂片段。未知知识被问到时，可引用该教师问题的 t 来源说明“还没学到”。&lt;br&gt;兼容旧日志 questions → 当前 open_questions；resolved / deferred 记录也保留，不因状态名而从列表删除。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=17;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1045" width="1480" height="65" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-3" name="03｜五种知识状态与依据">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="03｜五种知识状态与依据" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="模型按学生已有基础和讲解判断；程序校验来源、冲突、版本与依赖，并执行使用限制。没有固定的逐级升级顺序。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/cognition.py · backend/schemas.py · backend/prompts.py" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;understood｜课堂推断理解&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;基础足够、理解链条完整，或任一合理路径提供充分依据。&lt;br&gt;可用于推理；仍需排除未解冲突 / 待复核。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="180" width="1480" height="105" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;tentative｜推断待确认&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;可凭已有内容补出的跳步，或依赖未确认前提。&lt;br&gt;条件性使用；依赖它的结论也保留待确认性质。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="300" width="1480" height="105" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;unclear｜理解障碍&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;缺关键概念或步骤；前提不可用且没有独立依据。&lt;br&gt;不可作确定前提；记录具体缺口，允许换路径理解。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="420" width="1480" height="105" />
+        </mxCell>
+        <mxCell id="n7" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;conflict｜矛盾待解决&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;学生能发现同一条件下两种说法互相矛盾。&lt;br&gt;暂停双方相关知识作确定前提；新说法不自动优先。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="540" width="1480" height="105" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;invalid｜已失效&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;教师明确撤回、纠正或替代可定位的旧条目。&lt;br&gt;停止使用、保留历史；不能复活，重新采用须新建 ID。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="660" width="1480" height="105" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;每条 Knowledge 返回的内容&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;id / text / status / sources&lt;br&gt;conditions｜适用条件；reason｜逐条非空状态依据&lt;br&gt;revision｜知识修订号；dependencies｜前提 ID + 修订号&lt;br&gt;independent_sources｜删除旧依赖的独立教师依据&lt;br&gt;correction_sources + supersedes｜纠正来源及被替代旧 ID&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=17;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="810" width="470" height="265" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;知识变化如何传递&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;内容、状态、条件、依赖变化 → 修订号递增。&lt;br&gt;只改 reason 等依据说明：留历史，不触发下游复核。&lt;br&gt;前提变化 → 下游待复核；未复核前限制使用。&lt;br&gt;前提失效不自动让下游 invalid；保留依赖，&lt;br&gt;依据不足时重新判为 unclear。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="560" y="810" width="470" height="265" />
+        </mxCell>
+        <mxCell id="n11" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;冲突与纠正如何保存&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;冲突：左右 ID、条件、reason、sources、状态，&lt;br&gt;以及 resolution / resolution_sources。&lt;br&gt;澄清条件或撤回一方后，重新判断相关知识。&lt;br&gt;同 ID 纠正：previous 留旧版本并标 invalidated。&lt;br&gt;不同 ID 替代：旧条目 invalid，关联 replacement_id。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1060" y="810" width="480" height="265" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-4" name="04｜疑问生命周期与教师询问">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="04｜疑问生命周期与教师询问" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="主动追问最多两次实际投递；“暂缓”表示停止重复追问，不表示疑问已经解决，也不禁止回应教师。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/policy.py · backend/prompts.py · backend/session.py" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;pending｜待提问&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;登记新疑问；通常 attempts=0&lt;br&gt;模型生成候选不算已经问过。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="195" width="350" height="135" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;asked｜已提问&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;第一次实际 reply：attempts=1&lt;br&gt;仍未解决时，可追加一次澄清。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="595" y="195" width="400" height="135" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;deferred｜暂缓&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;第二次实际 reply：attempts=2&lt;br&gt;停止主动重复同题。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1190" y="195" width="350" height="135" />
+        </mxCell>
+        <mxCell id="e7" value="第 1 次实际投递" edge="1" parent="1" source="n4" target="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e8" value="第 2 次实际投递" edge="1" parent="1" source="n5" target="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;resolved｜已解决&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;教师解释后关闭；resolution_sources 必须含教师 t 来源。&lt;br&gt;已关闭问题不能换 ID、换说法重新打开；解决问题不会自动把知识升级为 understood。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="400" y="445" width="800" height="130" />
+        </mxCell>
+        <mxCell id="e10" value="教师已解释" edge="1" parent="1" source="n4" target="n9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.2;entryY=0;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="235" y="390" />
+              <mxPoint x="560" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e11" value="教师已解释" edge="1" parent="1" source="n5" target="n9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e12" value="教师已解释" edge="1" parent="1" source="n6" target="n9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.8;entryY=0;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="1365" y="390" />
+              <mxPoint x="1040" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n13" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;同题识别与次数规则&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;同 ID 沿用；新 ID 但 topic 规范化后相同，或问题文本相似度 &amp;gt;0.82，也会合并旧疑问。&lt;br&gt;attempts 由程序在实际 reply 时累加，模型不输出次数；asked 不能退回 pending。&lt;br&gt;旧问题达到两次后，未解决更新保持 deferred；新问题标 asked 会改为 pending。&lt;br&gt;未被询问时，resolved / deferred / 次数已满的 question 候选被清为空白 silence。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="620" width="1480" height="190" />
+        </mxCell>
+        <mxCell id="n14" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;教师没直接问学生&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;有实际未解决疑问：最多提出一个 question。&lt;br&gt;新问题必须同步登记；已有未解决问题可直接关联。&lt;br&gt;没有需要追问的问题：silence，继续听课。&lt;br&gt;有知识障碍不等于已登记疑问，也不必每段都问。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="855" width="710" height="210" />
+        </mxCell>
+        <mxCell id="n15" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;教师直接询问 / 点名&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;addressed = 模型判断 OR 程序 invited 文本匹配。&lt;br&gt;优先 answer / ack：回答、确认或说明还没理解的地方。&lt;br&gt;旧疑问 deferred：简短说明现状，不再次请求解释；&lt;br&gt;question_id=null；仅描述卡点时 knowledge_ids=[]。&lt;br&gt;仍生成第三次旧题 question 时，进入第 06 页恢复流程。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="855" width="710" height="210" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-5" name="05｜候选怎样变成真正发言">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="05｜候选怎样变成真正发言" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="程序按下列顺序检查。取消候选不会撤回已经成功提交的学习记录；等待类原因会保留候选继续检查。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/session.py:try_speak · backend/policy.py:speech_block · backend/config.py" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;0｜入口：有候选，且课堂未进入结束收尾&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;不满足则直接返回；结束收尾仍处理认知，不再发言。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="185" width="970" height="110" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;1｜发言前重新检查实际知识前提&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;不存在 / unclear / conflict / invalid / 待复核 → 取消，记录 suppressed。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="325" width="970" height="110" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;2｜静音，或候选已被新教师输入覆盖&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;静音或 revision 不匹配 → 取消候选；继续更新认知。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="465" width="970" height="110" />
+        </mxCell>
+        <mxCell id="n7" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;3｜未处理内容、教师仍在讲、停顿不足&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;继续等待：处理 / 待成段 / ASR / 转写审核 / 课堂队列忙，或 active=true。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="605" width="970" height="110" />
+        </mxCell>
+        <mxCell id="n8" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;4｜候选 silence，或未点名的 answer / ack&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;取消：本轮无需发言，或未被点名，继续听课。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="745" width="970" height="110" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;5｜检查全部通过 → 实际发送 reply&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;question 此时累加 attempts；记录师生历史，显示文字；开启 TTS 才播报。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="885" width="970" height="110" />
+        </mxCell>
+        <mxCell id="e10" value="继续检查" edge="1" parent="1" source="n4" target="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e11" value="继续检查" edge="1" parent="1" source="n5" target="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e12" value="继续检查" edge="1" parent="1" source="n6" target="n7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e13" value="时机满足后" edge="1" parent="1" source="n7" target="n8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e14" value="继续检查" edge="1" parent="1" source="n8" target="n9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="n15" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;取消 vs 等待&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;取消：本条候选清空，不会解除静音后补说。&lt;br&gt;等待：忙碌 / 教师在讲 / 停顿不足；&lt;br&gt;条件变化后继续尝试。&lt;br&gt;新教师文本或新转写到达：&lt;br&gt;立即撤销旧候选；生成中的旧批次&lt;br&gt;仍可提交认知，但其旧回复过期。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="185" width="440" height="250" />
+        </mxCell>
+        <mxCell id="n16" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;停顿与分段（默认值）&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;直接被询问：发言停顿 ≥1 秒。&lt;br&gt;主动追问：发言停顿 ≥5 秒。&lt;br&gt;分段：直接询问 1 秒；&lt;br&gt;长文本 &amp;gt;300 字时 1 秒；其他 3 秒。&lt;br&gt;待成段最长等待 20 秒。&lt;br&gt;这些是 config 默认，可由环境变量修改。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="480" width="440" height="250" />
+        </mxCell>
+        <mxCell id="n17" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;reply 与语音是两步&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;reply：正文、kind、question_id、&lt;br&gt;sources、knowledge_ids、最新 state。&lt;br&gt;先发文字，才可选启动 TTS。&lt;br&gt;语音异常不会倒退提问次数。&lt;br&gt;speech / speech_stopped 展示播放状态；&lt;br&gt;新教师输入、静音、结束可停止播报。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="775" width="440" height="250" />
+        </mxCell>
+        <mxCell id="n18" value="注意：knowledge_ids 只表示“实际采用的推理前提”。复述旧说法、对比矛盾或描述障碍保留 sources，不能误填不可用知识。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=18;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1060" width="1480" height="45" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-6" name="06｜校验、一次修复与课堂恢复">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="06｜校验、一次修复与课堂恢复" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="JSON / 字段结构 / 课堂关联共用总共两次模型请求：首次生成 + 一次修复。不会在课堂外层叠加自动重试。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/llm.py · backend/policy.py:student_result_validator · backend/session.py:learn_loop" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;第 1 次模型输出&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;解析结构，副本完整预校验&lt;br&gt;不提前修改知识、疑问或历史。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="185" width="400" height="140" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;通过 → 正常提交&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;原子更新一次，发送 state&lt;br&gt;候选进入发言时机检查。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="570" y="185" width="400" height="140" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;失败 → 第 2 次修复&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;带具体错误及刚才的原始输出&lt;br&gt;再次返回完整 JSON 并完整校验。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1080" y="185" width="460" height="140" />
+        </mxCell>
+        <mxCell id="e7" value="通过" edge="1" parent="1" source="n4" target="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e8" value="校验失败" edge="1" parent="1" source="n4" target="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=1;">
+          <mxGeometry as="geometry" relative="1">
+            <Array as="points">
+              <mxPoint x="260" y="365" />
+              <mxPoint x="1310" y="365" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n9" value="第 2 次仍出现以下三类候选关联错误：先替换候选，再重新完整校验其他记录" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=23;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="415" width="1480" height="45" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;A｜追问漏登记&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;MissingQuestionError&lt;br&gt;question_id 不存在 / 缺失 / 为空。&lt;br&gt;仍失败 → candidate=silence。&lt;br&gt;不补建疑问、不发异常问题、不加次数。&lt;br&gt;student_recovery：&lt;br&gt;missing_question_reference&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="490" width="460" height="250" />
+        </mxCell>
+        <mxCell id="n11" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;B｜实际采用不可用知识&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;RestrictedKnowledgeError&lt;br&gt;使用 unclear / conflict / invalid / 待复核前提。&lt;br&gt;修复应区分“提及”与“采用”，或说明障碍。&lt;br&gt;仍失败 → candidate=silence。&lt;br&gt;student_recovery：&lt;br&gt;restricted_knowledge_reference&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="570" y="490" width="460" height="250" />
+        </mxCell>
+        <mxCell id="n12" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;C｜点名后重复暂缓旧题&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;DeferredQuestionReplyError&lt;br&gt;教师要求回应，旧题未解决且暂缓 / 已问两次。&lt;br&gt;先要求改为 answer / ack，不解封旧疑问。&lt;br&gt;仍失败 → 固定 ack（无领域结论及知识前提）。&lt;br&gt;student_recovery：deferred_question_reply&lt;br&gt;仍受静音、停顿和新输入取消控制。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1080" y="490" width="460" height="250" />
+        </mxCell>
+        <mxCell id="n13" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;C 类最终固定确认语&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;“我在听，刚才的问题还没想明白，我先继续听您讲。”&lt;br&gt;只引用本轮教师来源；不是第三次追问，也不增加 attempts。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="775" width="710" height="130" />
+        </mxCell>
+        <mxCell id="n14" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;三类恢复的共同前提&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;替换候选后，其余知识、疑问、事件及来源全部有效。&lt;br&gt;保留有效学习进度，课堂继续；原始 llm_output 仍留日志。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="775" width="710" height="130" />
+        </mxCell>
+        <mxCell id="n15" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;其他错误或网络失败 → 整轮失败，等待手动重试&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;无效知识 / 来源 / 纠正关联 / 问题关闭依据、最终 JSON 不可解析、连接失败等：状态不提交，教师批次保留，后续内容按序等待。&lt;br&gt;发送 error(code=model_failure, retryable=true)；手动重试当前失败批次。自动修复过程只发 student_validation_error，不要求手动重试。&lt;br&gt;限制边界：教师明确询问但模型直接输出 silence，当前程序没有通用的兜底回复；C 类恢复只针对重复暂缓旧题的 question。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="945" width="1480" height="145" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="student-7" name="07｜依赖复核与前端可见事件">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1200" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" value="07｜依赖复核与前端可见事件" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=32;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="30" width="1480" height="55" />
+        </mxCell>
+        <mxCell id="n2" value="复核是内部认知维护，不是额外学生提问；模型原始输出、状态提交、实际发言在界面上各有事件。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=19;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="95" width="1480" height="65" />
+        </mxCell>
+        <mxCell id="n3" value="2026-10-14 · 当前工作区实现（含未提交修改）｜依据：backend/session.py:knowledge_review_loop / finish / emit · frontend/app.js:handle / showState" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=15;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1130" width="1480" height="40" />
+        </mxCell>
+        <mxCell id="n4" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;前提修订 / 条件变化&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;本轮优先重判受影响结论&lt;br&gt;未处理目标加入 pending_reviews。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="190" width="440" height="135" />
+        </mxCell>
+        <mxCell id="n5" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;内部复核：教师新输入优先&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;按依赖顺序，每批最多 16 个目标&lt;br&gt;只返回知识更新及 note，不生成发言。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="580" y="190" width="440" height="135" />
+        </mxCell>
+        <mxCell id="n6" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;提交前核对输入与状态版本&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;版本匹配：提交认知并返回 completed。&lt;br&gt;版本过期：stale，丢弃旧结果重排。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=19;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="1100" y="190" width="440" height="135" />
+        </mxCell>
+        <mxCell id="e7" value="" edge="1" parent="1" source="n4" target="n5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="e8" value="" edge="1" parent="1" source="n5" target="n6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#6985AB;fontFamily=PingFang SC;fontSize=16;fontColor=#52657D;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="n9" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;复核失败仍可继续讲课&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;目标保留 failed 和错误，仍限制使用；手动重试可重置 pending。&lt;br&gt;无关新讲授不会自动重试同一失败目标；与课堂生成失败的阻塞不同。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#FFF0ED;strokeColor=#CE9B91;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="370" width="710" height="125" />
+        </mxCell>
+        <mxCell id="n10" value="&lt;div style=&quot;font-size:23px;font-weight:bold;line-height:1.3&quot;&gt;结束课堂如何收尾&lt;/div&gt;&lt;div style=&quot;margin-top:12px;line-height:1.45&quot;&gt;最长等待 100 秒；finished 返回最终 state、未处理来源、未完成复核等。&lt;br&gt;unprocessed_sources / unreviewed_knowledge 保留缺口；关闭后不继续后台复核。&lt;/div&gt;" style="rounded=1;arcSize=8;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=20;fontFamily=PingFang SC;fontSize=18;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="830" y="370" width="710" height="125" />
+        </mxCell>
+        <mxCell id="n11" value="事件内容与界面含义｜统一信封：{ type, time（UTC）, elapsed（秒）, data }；同一事件追加到本地课堂日志" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=21;fontColor=#52657D;fontStyle=1;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="525" width="1480" height="45" />
+        </mxCell>
+        <mxCell id="n12" value="ready / status" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="590" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n13" value="ready 含课堂、范围、画像基础、state 等；status 主要是运行提示，不是知识状态。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="590" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n14" value="state" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="665" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n15" value="state + note + processed_sources + candidate + addressed；前端刷新认知并记录候选。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EAF7F0;strokeColor=#83B59B;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="665" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n16" value="reply / suppressed" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="740" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n17" value="reply 才显示学生对话，并携带投递后 state；suppressed 记录取消或等待的具体原因。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#FFF6DF;strokeColor=#CFB46C;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="740" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n18" value="student_validation_error / student_recovery" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="815" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n19" value="自动修复错误记录 / 定向恢复 code、message、关联来源与原因；恢复成功不暂停课堂。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#F3EFFF;strokeColor=#B4A0D4;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="815" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n20" value="knowledge_review" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="890" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n21" value="running / stale / completed / failed；后两者含 state，failed 带可重试提示。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#EDF4FF;strokeColor=#8CAED8;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="890" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n22" value="finished / error / llm_request / llm_output" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1;fontSize=19;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="965" width="560" height="65" />
+        </mxCell>
+        <mxCell id="n23" value="finished 保存结束快照；error 提示失败；llm_* 留请求与原始输出，不代表状态已接受。" style="html=1;whiteSpace=wrap;align=left;verticalAlign=middle;spacing=15;fontFamily=PingFang SC;fontColor=#17304F;fillColor=#F2F5F8;strokeColor=#B8C5D2;strokeWidth=1;fontSize=17;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="620" y="965" width="920" height="65" />
+        </mxCell>
+        <mxCell id="n24" value="前端显示：当前认知、问题与解答（含已解决 / 暂缓）、近期课堂事件；另展示冲突、判断依据与关联、知识修订历史。&lt;br&gt;pending_reviews 显示“待复核 · 暂不作确定前提”或“待复核 · 可重试”。转写审核与教学报告不改为学生知识状态。" style="text;html=1;whiteSpace=wrap;align=left;verticalAlign=middle;fontFamily=PingFang SC;fontSize=17;fontColor=#52657D;fontStyle=0;spacing=0;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="1060" width="1480" height="55" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

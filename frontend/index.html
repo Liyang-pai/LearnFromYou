@@ -11,6 +11,7 @@
 </head>
 <body>
   <header><a class="brand" href="/">讲给我听<span>Learn From You</span></a><span id="health" class="pill">正在连接本机服务</span></header>
+  <p id="runtimeVersion" class="hint" role="status"></p>
   <main>
     <aside class="development-note"><strong>开发调试界面</strong><span>当前页面用于验证 ASR 和试讲链路。面向用户的正式前端将另行开发。</span></aside>
     <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button></nav>
@@ -69,7 +70,7 @@
             <label class="toggle"><input id="tts" type="checkbox" checked>语音播报</label>
             <button id="end" class="quiet" disabled>结束试讲</button>
           </div>
-          <p class="hint control-hint" id="micHint">建议戴耳机，避免学生语音被麦克风收回。静音时，学生仍继续听课。</p>
+          <p class="hint control-hint" id="micHint">建议戴耳机，避免学生语音被麦克风收回。静音时继续学习并保留待回应事项；解除静音后按最新内容判断是否回应，可能增加一次模型调用（含修复最多两次）。</p>
           <div class="audio-upload" aria-label="上传音频测试课堂链路">
             <label for="lessonUploadFile">上传音频测试 · 与麦克风同等的课堂输入</label>
             <input id="lessonUploadFile" type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4">

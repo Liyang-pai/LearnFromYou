@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" version="24.7.17" type="device">
+  <diagram id="page1" name="01 现状与重复来源">
+    <mxGraphModel dx="1400" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="01 现状与重复来源" style="text;html=0;align=left;fontSize=30;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1280" height="44" />
+        </mxCell>
+        <mxCell id="subtitle" value="依据：2026-10-15 教师职业道德试讲 · 会话 6a06f0778766 · 最后一次学生请求" style="text;html=0;align=left;fontSize=16;fontColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="85" width="1280" height="30" />
+        </mxCell>
+        <mxCell id="a" value="&lt;b&gt;历史对话 conversation&lt;/b&gt;&lt;br&gt;&lt;br&gt;此前 165 段教师讲授 + 1 条学生实际回复&lt;br&gt;每轮重新带入；容器最多 16 条消息&lt;br&gt;本次教师历史 26,034 字符" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#eff6ff;strokeColor=#93b4e8;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="140" width="580" height="125" />
+        </mxCell>
+        <mxCell id="b" value="&lt;b&gt;当前输入 new_teacher_segments&lt;/b&gt;&lt;br&gt;&lt;br&gt;同学，现在有什么问题吗&lt;br&gt;本轮完整教师片段：88 字符" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#eff6ff;strokeColor=#93b4e8;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="140" width="580" height="125" />
+        </mxCell>
+        <mxCell id="c" value="&lt;b&gt;教师来源 teacher_sources&lt;/b&gt;&lt;br&gt;&lt;br&gt;共 119 段，20,002 字符&lt;br&gt;其中 118 段与历史教师消息完全相同&lt;br&gt;另 1 段就是当前这句话" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#fff1f2;strokeColor=#eaa1aa;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="335" width="580" height="145" />
+        </mxCell>
+        <mxCell id="d" value="&lt;b&gt;认知状态 current_state&lt;/b&gt;&lt;br&gt;&lt;br&gt;14,329 字符，其中确定知识 34 条&lt;br&gt;前置知识还在单独字段重复提供&lt;br&gt;随讲授积累，整份状态继续变大" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#fffbeb;strokeColor=#e5c779;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="335" width="580" height="145" />
+        </mxCell>
+        <mxCell id="e" value="&lt;b&gt;固定系统消息&lt;/b&gt;&lt;br&gt;&lt;br&gt;15,532 字符&lt;br&gt;规则及画像等 7,541 + Schema 7,977&lt;br&gt;另有 14 字符分隔符" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f5f3ff;strokeColor=#b9a6eb;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="550" width="580" height="125" />
+        </mxCell>
+        <mxCell id="f" value="&lt;b&gt;完整请求 messages&lt;/b&gt;&lt;br&gt;&lt;br&gt;10 条消息，共 77,570 字符&lt;br&gt;实测输入 34,602 token；输出 219 token&lt;br&gt;输入缓存命中 18,304；未命中 16,298" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ecfdf5;strokeColor=#89c9af;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="760" y="550" width="580" height="125" />
+        </mxCell>
+        <mxCell id="note" value="&lt;b&gt;要区分两种重复&lt;/b&gt;&lt;br&gt;&lt;br&gt;跨请求：为承接上下文，后续请求仍需要部分历史；模型不会自动记住上一轮。&lt;br&gt;同一请求：历史消息、来源表、新片段出现相同原文，可先消除这种冗余。&lt;br&gt;去重不能直接删全部历史：本次还有 47 段旧讲授未被当轮来源表覆盖。" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f1f5f9;strokeColor=#b6c2d1;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="760" width="1280" height="150" />
+        </mxCell>
+        <mxCell id="edge0" value="同一次请求重复 118 段" source="a" target="c" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge1" value="本轮数据一并发送" source="b" target="d" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge2" value="" source="c" target="f" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge3" value="" source="d" target="f" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge4" value="" source="e" target="f" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page2" name="02 建议的数据组织与组装流程">
+    <mxGraphModel dx="1400" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="02 建议的数据组织与组装流程" style="text;html=0;align=left;fontSize=30;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1280" height="44" />
+        </mxCell>
+        <mxCell id="subtitle" value="建议方案，尚未修改运行代码 · 先做无损去重，再做上下文选择" style="text;html=0;align=left;fontSize=16;fontColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="85" width="1280" height="30" />
+        </mxCell>
+        <mxCell id="store" value="&lt;b&gt;本地权威记录：完整保留，可追溯&lt;/b&gt;&lt;br&gt;&lt;br&gt;教师原文按 source_id 唯一保存；知识状态、修订、依赖、问题及实际发言分别记录。&lt;br&gt;本地存全量 ≠ 每次把全量都发给模型。" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#eff6ff;strokeColor=#93b4e8;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="140" width="1280" height="105" />
+        </mxCell>
+        <mxCell id="task" value="&lt;b&gt;识别本轮任务与所需范围&lt;/b&gt;&lt;br&gt;&lt;br&gt;普通讲授 / 具体追问 / 纠错 / 全课复述或疑问邀请" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f5f3ff;strokeColor=#b9a6eb;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="470" y="295" width="460" height="90" />
+        </mxCell>
+        <mxCell id="global" value="&lt;b&gt;全课简明索引&lt;/b&gt;&lt;br&gt;&lt;br&gt;覆盖已讲主题、知识 ID、状态&lt;br&gt;保留活跃疑问与回应任务&lt;br&gt;保证“刚刚讲了什么”有全课视野&lt;br&gt;索引不添加未讲过的新知识" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#eff6ff;strokeColor=#93b4e8;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="445" width="390" height="150" />
+        </mxCell>
+        <mxCell id="detail" value="&lt;b&gt;按任务补齐详细上下文&lt;/b&gt;&lt;br&gt;&lt;br&gt;相关知识与近期实际问答&lt;br&gt;补齐依赖、冲突双方、最新修订&lt;br&gt;保留纠正、失效及复核依据&lt;br&gt;选择不足时扩大范围" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#fffbeb;strokeColor=#e5c779;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="505" y="445" width="390" height="150" />
+        </mxCell>
+        <mxCell id="source" value="&lt;b&gt;生成唯一来源表&lt;/b&gt;&lt;br&gt;&lt;br&gt;所需教师原文只放一份&lt;br&gt;本轮与历史均按 source_id 引用&lt;br&gt;对话结构用来源 ID 关联原话&lt;br&gt;ID 与内容不一致时先查明" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ecfdf5;strokeColor=#89c9af;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="950" y="445" width="390" height="150" />
+        </mxCell>
+        <mxCell id="build" value="&lt;b&gt;组装发送给模型的 messages&lt;/b&gt;&lt;br&gt;&lt;br&gt;稳定前缀：合并后的行为规则 + 精简 Schema&lt;br&gt;动态数据：全课索引 + 必要详细状态 + 问答关系 + 唯一来源表&lt;br&gt;前置知识只保留一个权威入口；不再在多处复制教师原文" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ecfdf5;strokeColor=#89c9af;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="280" y="675" width="840" height="120" />
+        </mxCell>
+        <mxCell id="validate" value="&lt;b&gt;模型输出 → 完整后端校验 → 更新本地记录&lt;/b&gt;&lt;br&gt;&lt;br&gt;继续校验来源、依赖、失效状态、提问次数及字段上限" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f5f3ff;strokeColor=#b9a6eb;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="280" y="860" width="840" height="90" />
+        </mxCell>
+        <mxCell id="edge0" value="" source="store" target="task" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge1" value="" source="task" target="global" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge2" value="" source="task" target="detail" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge3" value="" source="task" target="source" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge4" value="" source="global" target="build" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge5" value="" source="detail" target="build" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge6" value="" source="source" target="build" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge7" value="" source="build" target="validate" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="page3" name="03 实施顺序与验收">
+    <mxGraphModel dx="1400" dy="1050" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="03 实施顺序与验收" style="text;html=0;align=left;fontSize=30;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="35" width="1280" height="44" />
+        </mxCell>
+        <mxCell id="subtitle" value="每一步独立比较；以行为正确、实际 token 与费用共同判断效果" style="text;html=0;align=left;fontSize=16;fontColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="85" width="1280" height="30" />
+        </mxCell>
+        <mxCell id="s1" value="&lt;b&gt;第一步：消除同次请求内重复&lt;/b&gt;&lt;br&gt;&lt;br&gt;统一教师来源表；新旧片段以 ID 关联；前置知识只保留一处&lt;br&gt;第一阶段保留当前已提供的教师信息并集，避免去重同时丢内容&lt;br&gt;精简 JSON 空格，移除 Schema 中无用 title" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ecfdf5;strokeColor=#89c9af;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="140" width="800" height="125" />
+        </mxCell>
+        <mxCell id="s2" value="&lt;b&gt;第二步：合并系统规则与字段说明&lt;/b&gt;&lt;br&gt;&lt;br&gt;按“意图 → 更新 → 回应 → 障碍 → 次数 → 输出”整理规则&lt;br&gt;保留知识边界、依赖、纠错、暂缓与邀请例外&lt;br&gt;保留 sources 等字段上限，避免增加修复请求" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#eff6ff;strokeColor=#93b4e8;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="320" width="800" height="125" />
+        </mxCell>
+        <mxCell id="s3" value="&lt;b&gt;第三步：选择本轮必要的详细上下文&lt;/b&gt;&lt;br&gt;&lt;br&gt;全课索引 + 相关知识及来源 + 依赖与纠正链&lt;br&gt;不要只截取最近 N 条；全课复述和疑问邀请扩大覆盖&lt;br&gt;先测量选择效果，再考虑额外模型摘要" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#fffbeb;strokeColor=#e5c779;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="500" width="800" height="125" />
+        </mxCell>
+        <mxCell id="s4" value="&lt;b&gt;第四步：必要时评估按职责拆分&lt;/b&gt;&lt;br&gt;&lt;br&gt;区分认知更新与发言结构，再决定是否拆成多次调用&lt;br&gt;拆分可能增加调用、重复输入、等待时间及状态同步成本&lt;br&gt;只有实测总成本更低且行为正确才采用" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f5f3ff;strokeColor=#b9a6eb;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="680" width="800" height="125" />
+        </mxCell>
+        <mxCell id="guard" value="&lt;b&gt;每一步都检查行为&lt;/b&gt;&lt;br&gt;&lt;br&gt;未讲知识不能提前会&lt;br&gt;纠错后不继续采用旧结论&lt;br&gt;依赖失效正确传播&lt;br&gt;提问次数、邀请例外正常&lt;br&gt;静音恢复与问答承接正常&lt;br&gt;全课复述不漏掉早期主线&lt;br&gt;保留来源引用与后端完整校验" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#fff1f2;strokeColor=#eaa1aa;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="930" y="140" width="410" height="300" />
+        </mxCell>
+        <mxCell id="metric" value="&lt;b&gt;比较实际成本与质量&lt;/b&gt;&lt;br&gt;&lt;br&gt;先做离线结构和内容覆盖检查&lt;br&gt;真实回放需另计 API 费用&lt;br&gt;记录输入 / 输出 token&lt;br&gt;区分缓存命中与未命中&lt;br&gt;同时比较重试、耗时与实际费用&lt;br&gt;不能用字符数直接推算节省金额&lt;br&gt;不预先承诺具体节省比例" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#f1f5f9;strokeColor=#b6c2d1;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="930" y="500" width="410" height="305" />
+        </mxCell>
+        <mxCell id="foot" value="&lt;b&gt;建议先实施第一步&lt;/b&gt;&lt;br&gt;&lt;br&gt;本次最明确的问题是 118 段教师原文在同次请求内重复。先无损去重，再逐步缩小上下文。&lt;br&gt;本图为设计建议；没有修改课堂代码，也没有执行收费回放。" style="rounded=1;whiteSpace=wrap;html=1;arcSize=12;fillColor=#ecfdf5;strokeColor=#89c9af;fontColor=#1e293b;fontSize=17;align=left;verticalAlign=middle;spacingLeft=18;spacingRight=14;spacingTop=10;spacingBottom=10;" vertex="1" parent="1">
+          <mxGeometry as="geometry" x="60" y="865" width="1280" height="95" />
+        </mxCell>
+        <mxCell id="edge0" value="" source="s1" target="s2" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge1" value="" source="s2" target="s3" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+        <mxCell id="edge2" value="" source="s3" target="s4" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;strokeColor=#94a3b8;strokeWidth=2;fontColor=#b42338;fontSize=15;labelBackgroundColor=#ffffff;">
+          <mxGeometry as="geometry" relative="1" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

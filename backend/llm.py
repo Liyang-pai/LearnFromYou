@@ -4,6 +4,7 @@ import time
 import httpx
 from pydantic import ValidationError
 from . import config
+from .runtime import RUNTIME, fingerprint
 
 REPORT_REQUEST_TIMEOUT = 60
 
@@ -28,13 +29,14 @@ class ModelClient:
         messages = [
             {"role": "system", "content": system + "\nJSON schema:\n" + json.dumps(output_type.model_json_schema(), ensure_ascii=False)},
             # 只有课堂调用使用实际师生历史；生成画像、转写审核与报告不混用。
-            *([dict(turn) for turn in history] if phase == 'student' else []),
+            *([dict(turn) for turn in history] if phase in ('student', 'student_resume') else []),
             {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ]
         for attempt in range(2):
             body = {"model": config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
-                    "temperature": 0.25, "max_tokens": 3500}
-            await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body})
+                    "temperature": 0.25, "max_tokens": 6000 if phase in ('student', 'student_resume', 'knowledge_review') else 3500}
+            await self.emit("llm_request", {"phase": phase, "attempt": attempt + 1, "body": body,
+                "runtime": RUNTIME, "prompt_fingerprint": fingerprint(messages[0]['content'])})
             started = time.monotonic()
             try:
                 async with asyncio.timeout(REPORT_REQUEST_TIMEOUT if report_phase else 90):
@@ -53,6 +55,14 @@ class ModelClient:
                 raise ModelError("模型服务连接失败或返回格式异常；课堂内容已保留，可重试") from None
             await self.emit("llm_output", {"phase": phase, "attempt": attempt + 1, "raw": raw,
                 "seconds": round(time.monotonic() - started, 3), "usage": envelope.get("usage", {})})
+            if phase in ('student', 'student_resume'):
+                try:
+                    draft = json.loads(raw)
+                    release = draft.get('candidate', {}).get('question_release_request')
+                    if release:
+                        await self.emit('question_release', {**release, 'status': 'requested', 'attempt': attempt + 1})
+                except (ValueError, TypeError, AttributeError):
+                    pass  # Invalid output is handled by the shared repair budget below.
             if report_phase and envelope['choices'][0].get('finish_reason') == 'length':
                 raise ModelError('模型报告输出被截断，未保存为成功报告；请检查输出额度或缩小试讲范围后重试')
             try:
@@ -62,8 +72,11 @@ class ModelClient:
             except (ValidationError, ValueError, TypeError) as exc:
                 errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
                           if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
-                if phase == 'student':
+                if phase in ('student', 'student_resume', 'knowledge_review'):
                     await self.emit('student_validation_error', {'attempt': attempt + 1, 'errors': errors})
+                    if getattr(exc, 'question_id', None) is not None and '例外申请' in str(exc):
+                        await self.emit('question_release', {'status': 'rejected', 'question_id': exc.question_id,
+                            'response_request_id': getattr(exc, 'request_id', None), 'reason': str(exc), 'attempt': attempt + 1})
                 if attempt:
                     if report_phase:
                         raise ModelError('模型两次未返回有效报告结构；课堂内容保留，可以重试教学报告') from None

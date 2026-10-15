@@ -1,0 +1,3477 @@
+{
+  "requests": 48,
+  "attempts": [
+    {
+      "case": "advanced",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "4fb95c0855ad"
+    },
+    {
+      "case": "complete",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "5c5bb245150c"
+    },
+    {
+      "case": "skipped",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "6aa31bedd677"
+    },
+    {
+      "case": "profile_conflict",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "e1f9f3ee8c90"
+    },
+    {
+      "case": "conditions",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "533fc2370ff3"
+    },
+    {
+      "case": "correction",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "2ecdf3aa9608"
+    },
+    {
+      "case": "multiple_routes",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "f684241eecaa"
+    },
+    {
+      "case": "dependencies",
+      "status": "failed",
+      "snapshots": [],
+      "error": "模型服务连接失败或返回格式异常；课堂内容已保留，可重试",
+      "session_id": "58b964154f8c"
+    },
+    {
+      "case": "advanced",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "一次函数写成y=kx+b，k是斜率，图像与y轴的交点是(0,b)，下面直接用斜率判断图像增减。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_linear_function_form",
+                "text": "一次函数写成 y=kx+b。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数",
+                "reason": "学生没有学过字母表示数、变量和函数，不知道 y、k、x、b 分别代表什么，无法建立理解链条。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_slope",
+                "text": "k 是斜率。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=kx+b 中",
+                "reason": "缺少“斜率”的定义和含义，学生无法理解 k 代表什么。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_y_intercept",
+                "text": "图像与 y 轴的交点是 (0,b)。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=kx+b 的图像",
+                "reason": "学生没有学过坐标和图像，不知道 y 轴、交点坐标 (0,b) 的含义，无法理解。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_slope_determines_increase",
+                "text": "可以直接用斜率判断图像增减。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数图像",
+                "reason": "学生不知道斜率的含义，也没有学过图像增减，无法理解为什么能用斜率判断。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_what_is_slope",
+                "topic": "斜率的含义",
+                "text": "斜率 k 到底表示什么？为什么可以用它判断图像增减？",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，我还没学过字母表示数和图像，不太明白 y=kx+b 里的 k 是什么，为什么看 k 就能知道图像是增还是减？",
+            "question_id": "q_what_is_slope",
+            "sources": [
+              "t1"
+            ]
+          }
+        }
+      ],
+      "session_id": "f13942d37ba6"
+    },
+    {
+      "case": "complete",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "朵运算是把两个整数相加。例如2朵3，就是2加3，结果5。规则只有这一步。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k1",
+                "text": "“朵运算”是把两个整数相加，例如2朵3就是2加3，结果5；规则只有这一步。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "两个整数之间做“朵运算”时",
+                "reason": "教师直接给出定义和例子，学生已有整数加法基础，理解链条完整。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "session_id": "268206fbd2b2"
+    },
+    {
+      "case": "skipped",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "现在定义花数为一个整数的3倍再加2。求花数为14时的原数，我略去中间变形和计算，直接得到4。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_flower_rule",
+                "text": "花数 = 一个整数的3倍再加2。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "按教师给出的定义",
+                "reason": "教师直接给出定义，学生已有整数乘法和加法基础，能理解这个关系式。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_flower_solve",
+                "text": "当花数为14时，原数是4。",
+                "status": "tentative",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "花数 = 原数的3倍再加2",
+                "reason": "教师略去中间变形和计算直接给出结果4；学生虽会乘除加减，但没有听到从3x+2=14推出x=4的步骤，只能先记住这个结果，待确认。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_flower_rule",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_flower_steps",
+                "topic": "花数求原数的中间步骤",
+                "text": "花数为14时，怎么从3倍再加2一步步算出原数是4？",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_task_flower",
+                "kind": "task",
+                "text": "教师给出花数定义并要求求花数为14时的原数。",
+                "sources": [
+                  "t1"
+                ]
+              }
+            ],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [
+              "k_flower_rule"
+            ],
+            "kind": "question",
+            "text": "老师，花数是14的时候，中间是怎么一步步算出原数是4的？我还没跟上这一步。",
+            "question_id": "q_flower_steps",
+            "sources": [
+              "t1"
+            ]
+          }
+        }
+      ],
+      "session_id": "09ed646ff098"
+    },
+    {
+      "case": "profile_conflict",
+      "status": "failed",
+      "snapshots": [
+        {
+          "teacher": "我们仍讨论当前红盒，同样输入整数，输出应该是输入数加2。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                "status": "invalid",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "conditions": "",
+                "reason": "教师本轮明确把当前红盒规则改为输出输入数加2，原加1规则被替代。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [
+                  "t1"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_red_box_plus2",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加2。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "当前红盒规则",
+                "reason": "教师直接说明当前红盒输出为输入数加2，且学生已会整数加法，理解链条完整。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [
+                  "t1"
+                ],
+                "supersedes": [
+                  "p1"
+                ]
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": [
+              {
+                "version": 1,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "understood",
+                  "sources": [
+                    "p1"
+                  ],
+                  "conditions": "",
+                  "reason": "画像确认基础",
+                  "revision": 1,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": true,
+                "change_reason": "教师本轮明确把当前红盒规则改为输出输入数加2，原加1规则被替代。",
+                "change_sources": [
+                  "t1"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "error": "未关联画像矛盾",
+      "session_id": "23807488fa39"
+    },
+    {
+      "case": "conditions",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "我们仍讨论当前红盒，同样输入整数，输出应该是输入数加2。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [
+              {
+                "id": "c_red_box_plus1_vs_plus2",
+                "left_id": "p1",
+                "right_id": "k_red_box_plus2",
+                "conditions": "当前红盒，输入为整数",
+                "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "status": "open",
+                "resolution": "",
+                "resolution_sources": []
+              }
+            ],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                "status": "conflict",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "conditions": "",
+                "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_red_box_plus2",
+                "text": "当前红盒规则改为：输入一个整数，输出是输入数加2。",
+                "status": "conflict",
+                "sources": [
+                  "t1",
+                  "p1"
+                ],
+                "conditions": "当前红盒，输入为整数",
+                "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_red_box_rule_change",
+                "topic": "当前红盒规则到底是加1还是加2",
+                "text": "老师，红盒规则是改成加2了吗？那之前说的加1还算吗？",
+                "status": "pending",
+                "sources": [
+                  "t1",
+                  "p1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": [
+              {
+                "version": 1,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "understood",
+                  "sources": [
+                    "p1"
+                  ],
+                  "conditions": "",
+                  "reason": "画像确认基础",
+                  "revision": 1,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": false,
+                "change_reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "change_sources": [
+                  "p1",
+                  "t1"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，红盒规则是改成加2了吗？那之前说的加1还算吗？",
+            "question_id": "q_red_box_rule_change",
+            "sources": [
+              "t1",
+              "p1"
+            ]
+          }
+        },
+        {
+          "teacher": "把适用范围说明清楚：刚才加2讲的是蓝盒，红盒仍然加1。两种规则分别用于不同颜色的盒子。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [
+              {
+                "id": "c_red_box_plus1_vs_plus2",
+                "left_id": "p1",
+                "right_id": "k_red_box_plus2",
+                "conditions": "当前红盒，输入为整数",
+                "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "status": "resolved",
+                "resolution": "老师澄清：加2讲的是蓝盒，红盒仍然加1；两种规则分别用于不同颜色的盒子，因此原冲突不再成立。",
+                "resolution_sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                "status": "understood",
+                "sources": [
+                  "p1",
+                  "t2"
+                ],
+                "conditions": "红盒，输入为整数",
+                "reason": "老师澄清红盒仍然加1，原有画像基础继续成立。",
+                "revision": 3,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_red_box_plus2",
+                "text": "蓝盒规则：输入一个整数，输出是输入数加2。",
+                "status": "understood",
+                "sources": [
+                  "t1",
+                  "t2"
+                ],
+                "conditions": "蓝盒，输入为整数",
+                "reason": "老师澄清刚才的加2规则适用于蓝盒，并说明不同颜色盒子规则不同。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_red_box_rule_change",
+                "topic": "当前红盒规则到底是加1还是加2",
+                "text": "老师，红盒规则是改成加2了吗？那之前说的加1还算吗？",
+                "status": "resolved",
+                "sources": [
+                  "t1",
+                  "p1"
+                ],
+                "resolution_sources": [
+                  "t2"
+                ],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": [
+              {
+                "version": 1,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "understood",
+                  "sources": [
+                    "p1"
+                  ],
+                  "conditions": "",
+                  "reason": "画像确认基础",
+                  "revision": 1,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": false,
+                "change_reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                "change_sources": [
+                  "p1",
+                  "t1"
+                ]
+              },
+              {
+                "version": 2,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "conflict",
+                  "sources": [
+                    "p1",
+                    "t1"
+                  ],
+                  "conditions": "",
+                  "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                  "revision": 2,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": false,
+                "change_reason": "老师澄清红盒仍然加1，原有画像基础继续成立。",
+                "change_sources": [
+                  "p1",
+                  "t2"
+                ]
+              },
+              {
+                "version": 2,
+                "previous": {
+                  "id": "k_red_box_plus2",
+                  "text": "当前红盒规则改为：输入一个整数，输出是输入数加2。",
+                  "status": "conflict",
+                  "sources": [
+                    "t1",
+                    "p1"
+                  ],
+                  "conditions": "当前红盒，输入为整数",
+                  "reason": "同一红盒、同一整数输入下，旧规则说输出加1，新说法说输出加2，两者不能同时成立。",
+                  "revision": 1,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_red_box_plus2",
+                "invalidated": false,
+                "change_reason": "老师澄清刚才的加2规则适用于蓝盒，并说明不同颜色盒子规则不同。",
+                "change_sources": [
+                  "t1",
+                  "t2"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [
+              "p1",
+              "k_red_box_plus2"
+            ],
+            "kind": "ack",
+            "text": "明白了，红盒还是加1，加2是蓝盒的规则，两种盒子规则不一样。",
+            "question_id": null,
+            "sources": [
+              "t2"
+            ]
+          }
+        }
+      ],
+      "session_id": "e874d0bac9cc"
+    },
+    {
+      "case": "correction",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "朵运算是将两个整数相加，3朵3就是6。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_duo_add",
+                "text": "“朵运算”是将两个整数相加，例如3朵3等于6。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "两个整数之间做朵运算",
+                "reason": "教师直接给出朵运算的定义和例子；学生已会整数加法（p1），能理解3+3=6。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        },
+        {
+          "teacher": "刚才朵运算只相加的规则讲错了，我明确撤回它。正确规则下一段再讲。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_duo_add",
+                "text": "“朵运算”是将两个整数相加，例如3朵3等于6。",
+                "status": "invalid",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "两个整数之间做朵运算",
+                "reason": "教师明确撤回“朵运算只相加”的规则，旧定义立即停止使用。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [
+                  "t2"
+                ],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [
+              {
+                "id": "e_duo_retract",
+                "kind": "organization",
+                "text": "教师撤回刚才关于朵运算只相加的规则，并说明正确规则下一段再讲。",
+                "sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "knowledge_history": [
+              {
+                "version": 2,
+                "previous": {
+                  "id": "k_duo_add",
+                  "text": "“朵运算”是将两个整数相加，例如3朵3等于6。",
+                  "status": "understood",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "两个整数之间做朵运算",
+                  "reason": "教师直接给出朵运算的定义和例子；学生已会整数加法（p1），能理解3+3=6。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    }
+                  ],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_duo_add",
+                "invalidated": true,
+                "change_reason": "教师明确撤回“朵运算只相加”的规则，旧定义立即停止使用。",
+                "change_sources": [
+                  "t2"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        },
+        {
+          "teacher": "正确的朵运算是两数相加后再减1，先相加，再减去1。这取代原来的只相加规则。请回答3朵3是多少。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 3,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_duo_add",
+                "text": "“朵运算”是将两个整数相加，例如3朵3等于6。",
+                "status": "invalid",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "两个整数之间做朵运算",
+                "reason": "教师明确撤回“朵运算只相加”的规则，旧定义立即停止使用。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [
+                  "t2"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_duo_add_v2",
+                "text": "“朵运算”是将两个整数相加后再减1，例如先算两数之和，再减去1。",
+                "status": "understood",
+                "sources": [
+                  "t3"
+                ],
+                "conditions": "两个整数之间做朵运算",
+                "reason": "教师明确给出正确规则：先相加再减1，并说明取代原来的只相加规则；学生已会整数加法和减法（p1），能理解计算链条。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [
+                  "t3"
+                ],
+                "supersedes": [
+                  "k_duo_add"
+                ]
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [
+              {
+                "id": "e_duo_retract",
+                "kind": "organization",
+                "text": "教师撤回刚才关于朵运算只相加的规则，并说明正确规则下一段再讲。",
+                "sources": [
+                  "t2"
+                ]
+              },
+              {
+                "id": "e_duo_task",
+                "kind": "task",
+                "text": "教师给出正确朵运算规则后，要求学生回答3朵3是多少。",
+                "sources": [
+                  "t3"
+                ]
+              }
+            ],
+            "knowledge_history": [
+              {
+                "version": 2,
+                "previous": {
+                  "id": "k_duo_add",
+                  "text": "“朵运算”是将两个整数相加，例如3朵3等于6。",
+                  "status": "understood",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "两个整数之间做朵运算",
+                  "reason": "教师直接给出朵运算的定义和例子；学生已会整数加法（p1），能理解3+3=6。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    }
+                  ],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_duo_add",
+                "invalidated": true,
+                "change_reason": "教师明确撤回“朵运算只相加”的规则，旧定义立即停止使用。",
+                "change_sources": [
+                  "t2"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [
+              "k_duo_add_v2",
+              "p1"
+            ],
+            "kind": "answer",
+            "text": "3朵3就是先算3加3等于6，再减1，所以是5。",
+            "question_id": null,
+            "sources": [
+              "t3"
+            ]
+          }
+        }
+      ],
+      "session_id": "50a06351230d"
+    },
+    {
+      "case": "multiple_routes",
+      "status": "failed",
+      "snapshots": [
+        {
+          "teacher": "一次函数y=2x+1的图像是一条直线，通过斜率和截距就能读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_linear_function_graph",
+                "text": "一次函数 y=2x+1 的图像是一条直线，可以通过斜率和截距来读图。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生没有学过字母表示数、变量、坐标、函数和图像，也缺少斜率和截距的定义，无法建立理解链条。",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，斜率和截距是什么意思呀？我还没学过，不知道怎么用它们读图。",
+            "question_id": "q_slope_intercept",
+            "sources": [
+              "t1"
+            ]
+          }
+        },
+        {
+          "teacher": "先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。规则是把输入数乘2再加1，也可每当输入增加1，输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_linear_function_graph",
+                "text": "一次函数 y=2x+1 的图像是一条直线，可以通过斜率和截距来读图。",
+                "status": "invalid",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "教师明确说先不谈字母和图像，本轮只学表格的变化关系，不学如何读图，原说法被撤回。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [
+                  "t2"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_table_rule_multiply_add",
+                "text": "输入0输出1，输入1输出3，输入2输出5；规则是把输入数乘2再加1。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "该数字对应表",
+                "reason": "教师直接给出表格与规则，学生有整数加减和表格数字对应基础，能逐行验证：0×2+1=1，1×2+1=3，2×2+1=5。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_table_increment_two",
+                "text": "在这个表格中，每当输入增加1，输出增加2；相邻两行1到3增加2，3到5增加2。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "该数字对应表",
+                "reason": "教师直接指出相邻两行的变化，学生有整数减法基础，能算出3-1=2、5-3=2，理解链条完整。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "deferred",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_t2_scope",
+                "kind": "organization",
+                "text": "教师说明本轮先不谈字母和图像，只学数字对应表的变化关系，不学如何读图。",
+                "sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "knowledge_history": [
+              {
+                "version": 2,
+                "previous": {
+                  "id": "k_linear_function_graph",
+                  "text": "一次函数 y=2x+1 的图像是一条直线，可以通过斜率和截距来读图。",
+                  "status": "unclear",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "一次函数 y=2x+1",
+                  "reason": "学生没有学过字母表示数、变量、坐标、函数和图像，也缺少斜率和截距的定义，无法建立理解链条。",
+                  "revision": 1,
+                  "dependencies": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_linear_function_graph",
+                "invalidated": true,
+                "change_reason": "教师明确说先不谈字母和图像，本轮只学表格的变化关系，不学如何读图，原说法被撤回。",
+                "change_sources": [
+                  "t2"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "error": "把表格理解当成会读图",
+      "session_id": "276ca1aec92f"
+    },
+    {
+      "case": "dependencies",
+      "status": "failed",
+      "snapshots": [
+        {
+          "teacher": "盒规则是把输入数乘3再加2。要使输出为14，我跳过中间计算，暂时推得输入是4。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出数。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "使用该盒规则时",
+                "reason": "教师直接给出规则，学生已有整数乘法和加法基础，能理解“乘3再加2”的计算步骤。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "当盒规则为乘3再加2、输出为14时，输入是4。",
+                "status": "tentative",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "盒规则为乘3再加2，且输出为14",
+                "reason": "教师跳过中间计算直接给出输入是4，学生能凭已知乘法和加法验证4×3+2=14，但教师未展示求解过程，结论依赖未确认的求解步骤。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_box_rule",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_solve_steps",
+                "topic": "由输出反推输入的步骤",
+                "text": "老师跳过了中间计算，我想知道从输出14反推输入4的完整步骤是什么。",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [
+              "k_box_rule"
+            ],
+            "kind": "question",
+            "text": "老师，盒规则我明白了，但您跳过中间计算直接说输入是4，能讲讲从14反推回4的步骤吗？",
+            "question_id": "q_solve_steps",
+            "sources": [
+              "t1"
+            ]
+          }
+        },
+        {
+          "teacher": "沿用刚才尚待确认的输入推断，把这个输入数再加1，结果就是5；这个结论只根据前面的输入推断得到。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出数。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "使用该盒规则时",
+                "reason": "教师直接给出规则，学生已有整数乘法和加法基础，能理解“乘3再加2”的计算步骤。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "当盒规则为乘3再加2、输出为14时，输入是4。",
+                "status": "tentative",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "盒规则为乘3再加2，且输出为14",
+                "reason": "教师跳过中间计算直接给出输入是4，学生能凭已知乘法和加法验证4×3+2=14，但教师未展示求解过程，结论依赖未确认的求解步骤。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_box_rule",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_plus1",
+                "text": "在刚才推断的输入数基础上再加1，结果是5。",
+                "status": "tentative",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "沿用盒规则为乘3再加2、输出为14时推断的输入数",
+                "reason": "教师明确说这个结论只根据前面尚待确认的输入推断得到，因此它继承 k_input_4 的待确认性质；学生能理解“再加1”的加法步骤，但前提输入4本身仍未确认。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_input_4",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_solve_steps",
+                "topic": "由输出反推输入的步骤",
+                "text": "老师跳过了中间计算，我想知道从输出14反推输入4的完整步骤是什么。",
+                "status": "pending",
+                "sources": [
+                  "t1",
+                  "t2"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，从输出14反推输入4的中间步骤能再讲一下吗？现在后面的5也是建立在这个还没确认的输入上。",
+            "question_id": "q_solve_steps",
+            "sources": [
+              "t1",
+              "t2"
+            ]
+          }
+        },
+        {
+          "teacher": "刚才盒规则乘3再加2讲错了，明确撤回它，以及由这条规则推出的输入为4。正确规则暂时不讲；由那个输入推断出的后续结果需要重新考虑。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 3,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出数。",
+                "status": "invalid",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "使用该盒规则时",
+                "reason": "教师明确撤回该规则，称“刚才盒规则乘3再加2讲错了”，旧规则立即停止使用。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [
+                  "t3"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "当盒规则为乘3再加2、输出为14时，输入是4。",
+                "status": "invalid",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "盒规则为乘3再加2，且输出为14",
+                "reason": "教师明确撤回由该规则推出的输入为4，该结论失去前提且被直接撤回。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [
+                  "t3"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_plus1",
+                "text": "在刚才推断的输入数基础上再加1，结果是5。",
+                "status": "unclear",
+                "sources": [
+                  "t2",
+                  "t3"
+                ],
+                "conditions": "沿用盒规则为乘3再加2、输出为14时推断的输入数",
+                "reason": "教师撤回输入为4并说后续结果需要重新考虑，该结论依赖的输入前提已失效，目前无法确认。",
+                "revision": 2,
+                "dependencies": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_solve_steps",
+                "topic": "由输出反推输入的步骤",
+                "text": "老师跳过了中间计算，我想知道从输出14反推输入4的完整步骤是什么。",
+                "status": "deferred",
+                "sources": [
+                  "t1",
+                  "t2",
+                  "t3"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_rule_retracted",
+                "kind": "organization",
+                "text": "教师撤回盒规则乘3再加2及由它推出的输入为4，正确规则暂时不讲。",
+                "sources": [
+                  "t3"
+                ]
+              }
+            ],
+            "knowledge_history": [
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_box_rule",
+                  "text": "盒规则：把输入数乘3再加2，得到输出数。",
+                  "status": "understood",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "使用该盒规则时",
+                  "reason": "教师直接给出规则，学生已有整数乘法和加法基础，能理解“乘3再加2”的计算步骤。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p2",
+                      "revision": 1
+                    }
+                  ],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_box_rule",
+                "invalidated": true,
+                "change_reason": "教师明确撤回该规则，称“刚才盒规则乘3再加2讲错了”，旧规则立即停止使用。",
+                "change_sources": [
+                  "t3"
+                ]
+              },
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_input_4",
+                  "text": "当盒规则为乘3再加2、输出为14时，输入是4。",
+                  "status": "tentative",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "盒规则为乘3再加2，且输出为14",
+                  "reason": "教师跳过中间计算直接给出输入是4，学生能凭已知乘法和加法验证4×3+2=14，但教师未展示求解过程，结论依赖未确认的求解步骤。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "k_box_rule",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p2",
+                      "revision": 1
+                    }
+                  ],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_input_4",
+                "invalidated": true,
+                "change_reason": "教师明确撤回由该规则推出的输入为4，该结论失去前提且被直接撤回。",
+                "change_sources": [
+                  "t3"
+                ]
+              },
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_input_plus1",
+                  "text": "在刚才推断的输入数基础上再加1，结果是5。",
+                  "status": "tentative",
+                  "sources": [
+                    "t2"
+                  ],
+                  "conditions": "沿用盒规则为乘3再加2、输出为14时推断的输入数",
+                  "reason": "教师明确说这个结论只根据前面尚待确认的输入推断得到，因此它继承 k_input_4 的待确认性质；学生能理解“再加1”的加法步骤，但前提输入4本身仍未确认。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "k_input_4",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    }
+                  ],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_input_plus1",
+                "invalidated": false,
+                "change_reason": "教师撤回输入为4并说后续结果需要重新考虑，该结论依赖的输入前提已失效，目前无法确认。",
+                "change_sources": [
+                  "t2",
+                  "t3"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "error": "前提失效后未保留推导障碍",
+      "session_id": "91f70f737764"
+    },
+    {
+      "case": "profile_conflict",
+      "status": "failed",
+      "snapshots": [
+        {
+          "teacher": "我们仍讨论当前红盒，同样输入整数，输出应该是输入数加2。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                "status": "invalid",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "conditions": "",
+                "reason": "教师明确说当前红盒输出应为输入数加2，撤回并替代原先加1的规则。",
+                "revision": 2,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [
+                  "t1"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_red_box_plus2",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加2。",
+                "status": "understood",
+                "sources": [
+                  "t1",
+                  "p2"
+                ],
+                "conditions": "当前红盒，输入为整数",
+                "reason": "教师直接给出新规则，且学生已会整数加法，能直接理解加2的含义。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [
+                  "t1"
+                ],
+                "supersedes": [
+                  "p1"
+                ]
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": [
+              {
+                "version": 1,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "understood",
+                  "sources": [
+                    "p1"
+                  ],
+                  "conditions": "",
+                  "reason": "画像确认基础",
+                  "revision": 1,
+                  "dependencies": [],
+                  "independent_sources": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": true,
+                "change_reason": "教师明确说当前红盒输出应为输入数加2，撤回并替代原先加1的规则。",
+                "change_sources": [
+                  "t1"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "error": "未关联画像矛盾",
+      "session_id": "2b0e8c5158c5"
+    },
+    {
+      "case": "multiple_routes",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "一次函数y=2x+1的图像是一条直线，通过斜率和截距就能读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_linear_function_graph",
+                "text": "一次函数 y=2x+1 的图像是一条直线，可以通过斜率和截距来读图。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生没有学过字母表示数、变量、坐标、函数和图像，缺少理解“一次函数”“图像”“斜率”“截距”的关键概念，无法建立理解链条。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_linear_function_terms",
+                "topic": "一次函数图像中的斜率和截距",
+                "text": "老师说的“斜率”和“截距”是什么意思？我还没学过这些。",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，我还没学过函数和图像，“斜率”和“截距”是什么意思呀？",
+            "question_id": "q_linear_function_terms",
+            "sources": [
+              "t1"
+            ]
+          }
+        },
+        {
+          "teacher": "先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。规则是把输入数乘2再加1，也可每当输入增加1，输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_linear_function_graph",
+                "text": "一次函数 y=2x+1 的图像是一条直线，可以通过斜率和截距来读图。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生没有学过字母表示数、变量、坐标、函数和图像，缺少理解“一次函数”“图像”“斜率”“截距”的关键概念，无法建立理解链条。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_output_rule",
+                "text": "在这个表格里，规则是把输入数乘2再加1：输入0得1，输入1得3，输入2得5。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格的输入输出对应关系",
+                "reason": "教师直接给出表格和规则，学生有整数乘加和表格数字对应基础，能逐行验证。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_output_increase_by_2",
+                "text": "在这个表格里，每当输入增加1，输出就增加2；例如1到3增加2，3到5增加2。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格中相邻输入每次增加1",
+                "reason": "教师用相邻两行数字变化直接说明，学生有整数加减和表格对应基础，能核对1到3、3到5都增加2。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_linear_function_terms",
+                "topic": "一次函数图像中的斜率和截距",
+                "text": "老师说的“斜率”和“截距”是什么意思？我还没学过这些。",
+                "status": "deferred",
+                "sources": [
+                  "t1",
+                  "t2"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_scope_table_only",
+                "kind": "organization",
+                "text": "教师说明先不谈字母和图像，只学这个表格的变化关系，不学如何读图。",
+                "sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "session_id": "8f349d2e2442"
+    },
+    {
+      "case": "dependencies",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "盒规则是把输入数乘3再加2。要使输出为14，我跳过中间计算，暂时推得输入是4。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "该盒规则下",
+                "reason": "教师直接给出规则，学生已会整数乘法和加法，能理解“乘3再加2”的计算链条。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "要使输出为14，输入是4。",
+                "status": "tentative",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "盒规则为输入乘3再加2时",
+                "reason": "教师说“跳过中间计算，暂时推得输入是4”，没有展示逆推步骤；学生能补出：4×3+2=14，所以暂时接受，但依赖尚未确认的逆推过程。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_box_rule",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        },
+        {
+          "teacher": "沿用刚才尚待确认的输入推断，把这个输入数再加1，结果就是5；这个结论只根据前面的输入推断得到。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出。",
+                "status": "understood",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "该盒规则下",
+                "reason": "教师直接给出规则，学生已会整数乘法和加法，能理解“乘3再加2”的计算链条。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "要使输出为14，输入是4。",
+                "status": "tentative",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "盒规则为输入乘3再加2时",
+                "reason": "教师说“跳过中间计算，暂时推得输入是4”，没有展示逆推步骤；学生能补出：4×3+2=14，所以暂时接受，但依赖尚未确认的逆推过程。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_box_rule",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_plus1",
+                "text": "把前面推断的输入数再加1，结果是5。",
+                "status": "tentative",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "沿用前面“输入是4”的推断时",
+                "reason": "教师明确说这个结论只根据前面尚待确认的输入推断得到；4+1=5，学生能补出加法步骤，但依赖 k_input_4 仍未确认，所以仍是待确认结论。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "k_input_4",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        },
+        {
+          "teacher": "刚才盒规则乘3再加2讲错了，明确撤回它，以及由这条规则推出的输入为4。正确规则暂时不讲；由那个输入推断出的后续结果需要重新考虑。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 3,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数乘法和除法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p3",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p3"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_box_rule",
+                "text": "盒规则：把输入数乘3再加2，得到输出。",
+                "status": "invalid",
+                "sources": [
+                  "t1",
+                  "t3"
+                ],
+                "conditions": "该盒规则下",
+                "reason": "教师 t3 明确说“刚才盒规则乘3再加2讲错了，明确撤回它”，旧规则立即停止使用。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [
+                  "t3"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_4",
+                "text": "要使输出为14，输入是4。",
+                "status": "invalid",
+                "sources": [
+                  "t1",
+                  "t3"
+                ],
+                "conditions": "盒规则为输入乘3再加2时",
+                "reason": "教师 t3 明确撤回“由这条规则推出的输入为4”，该结论失效。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "k_box_rule",
+                    "revision": 2
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  },
+                  {
+                    "id": "p2",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [
+                  "t3"
+                ],
+                "supersedes": []
+              },
+              {
+                "id": "k_input_plus1",
+                "text": "把前面推断的输入数再加1，结果是5。",
+                "status": "unclear",
+                "sources": [
+                  "t2",
+                  "t3"
+                ],
+                "conditions": "沿用前面“输入是4”的推断时",
+                "reason": "教师 t3 说“由那个输入推断出的后续结果需要重新考虑”，其依赖 k_input_4 已失效，且正确规则暂不讲，无法继续确认。",
+                "revision": 2,
+                "dependencies": [
+                  {
+                    "id": "k_input_4",
+                    "revision": 2
+                  },
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [],
+            "recent_events": [
+              {
+                "id": "e_rule_retracted",
+                "kind": "organization",
+                "text": "教师明确撤回盒规则“乘3再加2”及由它推出的输入为4，正确规则暂时不讲。",
+                "sources": [
+                  "t3"
+                ]
+              }
+            ],
+            "knowledge_history": [
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_box_rule",
+                  "text": "盒规则：把输入数乘3再加2，得到输出。",
+                  "status": "understood",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "该盒规则下",
+                  "reason": "教师直接给出规则，学生已会整数乘法和加法，能理解“乘3再加2”的计算链条。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p2",
+                      "revision": 1
+                    }
+                  ],
+                  "independent_sources": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_box_rule",
+                "invalidated": true,
+                "change_reason": "教师 t3 明确说“刚才盒规则乘3再加2讲错了，明确撤回它”，旧规则立即停止使用。",
+                "change_sources": [
+                  "t3"
+                ]
+              },
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_input_4",
+                  "text": "要使输出为14，输入是4。",
+                  "status": "tentative",
+                  "sources": [
+                    "t1"
+                  ],
+                  "conditions": "盒规则为输入乘3再加2时",
+                  "reason": "教师说“跳过中间计算，暂时推得输入是4”，没有展示逆推步骤；学生能补出：4×3+2=14，所以暂时接受，但依赖尚未确认的逆推过程。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "k_box_rule",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p2",
+                      "revision": 1
+                    }
+                  ],
+                  "independent_sources": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_input_4",
+                "invalidated": true,
+                "change_reason": "教师 t3 明确撤回“由这条规则推出的输入为4”，该结论失效。",
+                "change_sources": [
+                  "t3"
+                ]
+              },
+              {
+                "version": 3,
+                "previous": {
+                  "id": "k_input_plus1",
+                  "text": "把前面推断的输入数再加1，结果是5。",
+                  "status": "tentative",
+                  "sources": [
+                    "t2"
+                  ],
+                  "conditions": "沿用前面“输入是4”的推断时",
+                  "reason": "教师明确说这个结论只根据前面尚待确认的输入推断得到；4+1=5，学生能补出加法步骤，但依赖 k_input_4 仍未确认，所以仍是待确认结论。",
+                  "revision": 1,
+                  "dependencies": [
+                    {
+                      "id": "k_input_4",
+                      "revision": 1
+                    },
+                    {
+                      "id": "p1",
+                      "revision": 1
+                    }
+                  ],
+                  "independent_sources": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "k_input_plus1",
+                "invalidated": false,
+                "change_reason": "教师 t3 说“由那个输入推断出的后续结果需要重新考虑”，其依赖 k_input_4 已失效，且正确规则暂不讲，无法继续确认。",
+                "change_sources": [
+                  "t2",
+                  "t3"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "session_id": "e328840a70f3"
+    },
+    {
+      "case": "profile_conflict",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "我们仍讨论当前红盒，同样输入整数，输出应该是输入数加2。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [
+              {
+                "id": "c_redbox_plus1_plus2",
+                "left_id": "p1",
+                "right_id": "k_redbox_plus2",
+                "conditions": "当前红盒，输入整数",
+                "reason": "p1 说输出是输入数加1，t1 说输出应该是输入数加2，同一红盒同一输入下两个结果不同，学生凭已有内容即可发现矛盾。",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "status": "open",
+                "resolution": "",
+                "resolution_sources": []
+              }
+            ],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                "status": "conflict",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "conditions": "",
+                "reason": "p1 说输出是输入数加1，t1 说输出应该是输入数加2，同一红盒同一输入下两个结果不同，学生凭已有内容即可发现矛盾。",
+                "revision": 2,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_redbox_plus2",
+                "text": "当前红盒规则中，输入一个整数，输出是输入数加2。",
+                "status": "conflict",
+                "sources": [
+                  "t1",
+                  "p1"
+                ],
+                "conditions": "当前红盒，输入整数",
+                "reason": "p1 说输出是输入数加1，t1 说输出应该是输入数加2，同一红盒同一输入下两个结果不同，学生凭已有内容即可发现矛盾。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_redbox_rule",
+                "topic": "当前红盒规则到底是加1还是加2",
+                "text": "当前红盒的规则到底是输入数加1，还是输入数加2？",
+                "status": "pending",
+                "sources": [
+                  "p1",
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": [
+              {
+                "version": 1,
+                "previous": {
+                  "id": "p1",
+                  "text": "当前红盒规则中，输入一个整数，输出是输入数加1。",
+                  "status": "understood",
+                  "sources": [
+                    "p1"
+                  ],
+                  "conditions": "",
+                  "reason": "画像确认基础",
+                  "revision": 1,
+                  "dependencies": [],
+                  "independent_sources": [],
+                  "correction_sources": [],
+                  "supersedes": []
+                },
+                "replacement_id": "p1",
+                "invalidated": false,
+                "change_reason": "p1 说输出是输入数加1，t1 说输出应该是输入数加2，同一红盒同一输入下两个结果不同，学生凭已有内容即可发现矛盾。",
+                "change_sources": [
+                  "p1",
+                  "t1"
+                ]
+              }
+            ]
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，之前红盒是输入数加1，现在您说应该是加2，那当前红盒到底按哪个规则呢？",
+            "question_id": "q_redbox_rule",
+            "sources": [
+              "p1",
+              "t1"
+            ]
+          }
+        }
+      ],
+      "session_id": "6cc190100cd5"
+    },
+    {
+      "case": "multiple_routes",
+      "status": "failed",
+      "snapshots": [
+        {
+          "teacher": "一次函数y=2x+1的图像是一条直线，通过斜率和截距就能读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_linear",
+                "text": "一次函数 y=2x+1 的图像是一条直线。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生未学过字母表示数、变量、坐标、函数和图像，无法理解“一次函数”“y=2x+1”“图像”等概念，缺少建立理解链条的关键定义。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_slope_intercept",
+                "text": "通过斜率和截距就能读一次函数 y=2x+1 的图像。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1 的图像",
+                "reason": "学生未学过斜率、截距、坐标和图像，无法理解“斜率”“截距”“读图”的含义，缺少必要概念。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，斜率和截距是什么意思？我还没学过，能先讲讲吗？",
+            "question_id": "q_slope_intercept",
+            "sources": [
+              "t1"
+            ]
+          }
+        },
+        {
+          "teacher": "先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。只用加法解释：把输入数加上它自己，再加1。输入0时是0加0再加1，得到1；输入1时是1加1再加1，得到3；输入2时是2加2再加1，得到5。输入每增加1，两份输入各增加1，所以输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_linear",
+                "text": "一次函数 y=2x+1 的图像是一条直线。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生未学过字母表示数、变量、坐标、函数和图像，无法理解“一次函数”“y=2x+1”“图像”等概念，缺少建立理解链条的关键定义。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_slope_intercept",
+                "text": "通过斜率和截距就能读一次函数 y=2x+1 的图像。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1 的图像",
+                "reason": "学生未学过斜率、截距、坐标和图像，无法理解“斜率”“截距”“读图”的含义，缺少必要概念。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t2_rule",
+                "text": "对表格中的每一行，输出等于输入数加上它自己，再加1。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格的输入输出对应关系",
+                "reason": "教师只用整数加法逐步演示：0+0+1=1、1+1+1=3、2+2+1=5，学生已有整数加法基础，链条完整。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t2_increase",
+                "text": "在这个表格里，输入每增加1，输出就增加2。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格的输入输出对应关系",
+                "reason": "教师解释输入增加1时两份输入各增加1，所以输出增加2，并用相邻行1到3、3到5都增加2验证；学生有整数加法基础可理解。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t2_scope",
+                "text": "本课只学这个表格的变化关系，不学如何读图。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本课范围",
+                "reason": "教师明确说明只学表格变化关系、不学读图，属于教学范围安排，学生可直接理解。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "deferred",
+                "sources": [
+                  "t1",
+                  "t2"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_t2_scope",
+                "kind": "organization",
+                "text": "教师说明先不谈字母和图像，本课只学这个表格的变化关系，不学如何读图。",
+                "sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "error": "未教清楚的图像知识被错误升级",
+      "session_id": "fa6aa47618b8"
+    },
+    {
+      "case": "multiple_routes",
+      "status": "passed",
+      "snapshots": [
+        {
+          "teacher": "一次函数y=2x+1的图像是一条直线，通过斜率和截距就能读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 1,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_linear",
+                "text": "一次函数 y=2x+1 的图像是一条直线。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生未学过字母表示数、变量、坐标、函数和图像，无法理解“一次函数”“y=2x+1”“图像”等概念，缺少建立理解链条的关键定义。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_slope_intercept",
+                "text": "通过斜率和截距就能读一次函数 y=2x+1 的图像。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1 的图像",
+                "reason": "学生未学过斜率、截距、坐标和图像，无法理解“斜率”“截距”“读图”的含义，缺少必要概念。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "pending",
+                "sources": [
+                  "t1"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "question",
+            "text": "老师，斜率和截距是什么意思？我还没学过，能先讲讲吗？",
+            "question_id": "q_slope_intercept",
+            "sources": [
+              "t1"
+            ]
+          }
+        },
+        {
+          "teacher": "先不谈字母和图像。看数字对应表：输入0输出1，输入1输出3，输入2输出5。只用加法解释：把输入数加上它自己，再加1。输入0时是0加0再加1，得到1；输入1时是1加1再加1，得到3；输入2时是2加2再加1，得到5。输入每增加1，两份输入各增加1，所以输出增加2。看相邻两行：1到3增加2，3到5增加2。这里只学这个表格的变化关系，不学如何读图。",
+          "state": {
+            "schema_version": 2,
+            "conflicts": [],
+            "pending_reviews": [],
+            "version": 2,
+            "knowledge": [
+              {
+                "id": "p1",
+                "text": "知道整数加法和减法。",
+                "status": "understood",
+                "sources": [
+                  "p1"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "p2",
+                "text": "理解表格中数字的对应。",
+                "status": "understood",
+                "sources": [
+                  "p2"
+                ],
+                "conditions": "",
+                "reason": "画像确认基础",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_linear",
+                "text": "一次函数 y=2x+1 的图像是一条直线。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1",
+                "reason": "学生未学过字母表示数、变量、坐标、函数和图像，无法理解“一次函数”“y=2x+1”“图像”等概念，缺少建立理解链条的关键定义。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t1_slope_intercept",
+                "text": "通过斜率和截距就能读一次函数 y=2x+1 的图像。",
+                "status": "unclear",
+                "sources": [
+                  "t1"
+                ],
+                "conditions": "一次函数 y=2x+1 的图像",
+                "reason": "学生未学过斜率、截距、坐标和图像，无法理解“斜率”“截距”“读图”的含义，缺少必要概念。",
+                "revision": 1,
+                "dependencies": [],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t2_table_rule",
+                "text": "表格中输出等于输入数加上它自己，再加1：输入0→1，输入1→3，输入2→5。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格的输入为0、1、2时",
+                "reason": "教师只用整数加法逐步算出三行输出，学生已有整数加法基础，理解链条完整。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              },
+              {
+                "id": "k_t2_output_increase",
+                "text": "输入每增加1，输出增加2；相邻两行输出从1到3、从3到5都增加2。",
+                "status": "understood",
+                "sources": [
+                  "t2"
+                ],
+                "conditions": "本表格中输入每次增加1时",
+                "reason": "教师用“两份输入各增加1，所以输出增加2”解释，并用相邻两行1→3、3→5验证，学生可用整数加法理解。",
+                "revision": 1,
+                "dependencies": [
+                  {
+                    "id": "p1",
+                    "revision": 1
+                  }
+                ],
+                "independent_sources": [],
+                "correction_sources": [],
+                "supersedes": []
+              }
+            ],
+            "open_questions": [
+              {
+                "id": "q_slope_intercept",
+                "topic": "斜率和截距的含义",
+                "text": "斜率和截距分别是什么意思？怎么用它们读图？",
+                "status": "deferred",
+                "sources": [
+                  "t1",
+                  "t2"
+                ],
+                "resolution_sources": [],
+                "attempts": 0
+              }
+            ],
+            "recent_events": [
+              {
+                "id": "e_t2_scope",
+                "kind": "organization",
+                "text": "教师说明先不谈字母和图像，这里只学这个表格的变化关系，不学如何读图。",
+                "sources": [
+                  "t2"
+                ]
+              }
+            ],
+            "knowledge_history": []
+          },
+          "candidate": {
+            "knowledge_ids": [],
+            "kind": "silence",
+            "text": "",
+            "question_id": null,
+            "sources": []
+          }
+        }
+      ],
+      "replayed_first_turn_from": "fa6aa47618b8",
+      "replay_note": "真实首轮状态与画像摘录复用；只重测第二轮，未重复调用准备或首轮模型",
+      "session_id": "1625551d2d19"
+    }
+  ]
+}

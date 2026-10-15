@@ -24,7 +24,7 @@ class FakeModel:
         if self.fail_once:
             self.fail_once=False
             raise ModelError('模拟网络失败')
-        return StudentResult.model_validate({'knowledge_updates':[{'id':'k'+ids[-1], 'text':'暂定理解','status':'tentative','sources':ids}],
+        return StudentResult.model_validate({'knowledge_updates':[{'id':'k'+ids[-1], 'text':'暂定理解','status':'tentative','reason':'教师省略中间步骤，已有基础支持暂定推断','sources':ids}],
             'addressed':True,'candidate':{'kind':'answer','text':'目前只是大概理解。','sources':ids}})
 
     async def close(self): pass

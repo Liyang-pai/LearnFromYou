@@ -20,6 +20,8 @@ SOURCES = {
 
 
 def rule(id='k_star', text='两个数字相加以后再减1。', status='understood', sources=None, **extra):
+    extra.setdefault('reason', '教师给出明确规则，学生具备所需加减法基础')
+    extra.setdefault('correction_sources', [] if sources else ['t2'])
     return Knowledge(id=id, text=text, status=status, sources=sources or ['t2'], **extra)
 
 
@@ -71,14 +73,14 @@ def test_d_correction_retains_history_but_old_rule_is_not_current(same_id):
     state, _ = apply_result(original, StudentResult(knowledge_updates=[corrected]), SOURCES, {'t2'})
     assert original.knowledge == [old] and not original.knowledge_history
     assert any(h.previous.text == old.text for h in state.knowledge_history)
-    assert state.learning_context()['knowledge'] == [corrected.model_dump()]
+    assert state.learning_context()['knowledge'] == [corrected.model_copy(update={'revision': 2 if same_id else 1}).model_dump()]
     if not same_id:
-        assert state.knowledge[0].status == 'conflict'
+        assert state.knowledge[0].status == 'invalid'
 
 
 def test_incomplete_correction_does_not_require_an_invented_new_rule():
     old = rule(text=SOURCES['t1']['text'], sources=['t1'])
-    conflict = old.model_copy(update={'status':'conflict', 'sources':['t2']})
+    conflict = old.model_copy(update={'status':'invalid', 'sources':['t2'], 'correction_sources':['t2']})
     state, _ = apply_result(StudentState(knowledge=[old]), StudentResult(knowledge_updates=[conflict]), SOURCES, {'t2'})
     assert state.learning_context()['knowledge'] == []
     assert state.knowledge_history[0].previous == old
@@ -134,7 +136,7 @@ def test_classroom_payload_keeps_revision_sources_and_filters_current_knowledge(
                               lesson=SimpleNamespace(student_level='normal'), prerequisites=[], history=[])
     before = state.model_dump()
     payload = Session.payload(session, [sources['t12']])
-    assert payload['current_state']['knowledge'] == [rule().model_dump()]
+    assert payload['current_state']['knowledge'] == [rule(revision=2).model_dump()]
     assert payload['current_state']['inactive_knowledge'][0]['id'] == 'k_missing'
     assert payload['current_state']['knowledge_history'][0]['previous'] == old.model_dump()
     assert payload['current_state']['open_questions'][0]['status'] == 'resolved'
@@ -169,7 +171,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
             if source_id == 't2':
                 return StudentResult(knowledge_updates=[rule()], addressed=True,
                     candidate={'kind': 'answer', 'text': '3加3再减1，得到5。', 'sources': ['t2']})
-            assert payload['current_state']['knowledge'] == [rule().model_dump()]
+            assert payload['current_state']['knowledge'] == [rule(revision=2).model_dump()]
             assert payload['current_state']['knowledge_history'][0]['previous']['sources'] == ['t1']
             return StudentResult(event_updates=[ClassroomEvent(
                 id='e_end', kind='lesson_end', text='今天学习结束。', sources=[source_id])])
@@ -209,7 +211,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
             assert receive(ws, 'state')['state']['version'] == 1
             ws.send_json({'type': 'text', 'text': SOURCES['t2']['text'] + '请回答3星星3。'})
             corrected = receive(ws, 'state')['state']
-            assert corrected['knowledge'] == [rule().model_dump()]
+            assert corrected['knowledge'] == [rule(revision=2).model_dump()]
             assert corrected['knowledge_history'][0]['previous']['sources'] == ['t1']
             assert receive(ws, 'reply')['text'] == '3加3再减1，得到5。'
             ws.send_json({'type': 'text', 'text': SOURCES['t4']['text']})

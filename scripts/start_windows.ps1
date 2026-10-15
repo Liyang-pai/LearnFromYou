@@ -118,15 +118,17 @@ function Show-InstallerDownloadProgress {
 }
 
 function Receive-InstallerDownload {
-    param([string]$Uri, [string]$Destination)
+    param([string]$Uri, [string]$Destination,
+          [ValidateRange(1, 2147483)][int]$IdleTimeoutSeconds = 180)
     # HttpClient streams the response; polling async operations keeps the console
-    # moving even during connection/read waits. The deadline covers the whole file.
+    # moving even during connection/read waits. Only inactivity is bounded;
+    # receiving another chunk resets the deadline, regardless of total duration.
     Add-Type -AssemblyName System.Net.Http
     $ProgressPreference = 'Continue'
     $client = New-Object System.Net.Http.HttpClient
-    $client.Timeout = [TimeSpan]::FromSeconds(180)
+    $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
     $cancel = New-Object System.Threading.CancellationTokenSource
-    $cancel.CancelAfter(180000)
+    $cancel.CancelAfter($IdleTimeoutSeconds * 1000)
     $clock = [Diagnostics.Stopwatch]::StartNew()
     $response = $null
     $source = $null
@@ -142,6 +144,7 @@ function Receive-InstallerDownload {
         }
         $response = $request.GetAwaiter().GetResult()
         $null = $response.EnsureSuccessStatusCode()
+        $cancel.CancelAfter($IdleTimeoutSeconds * 1000)
         if ($null -ne $response.Content.Headers.ContentLength) {
             $total = [long]$response.Content.Headers.ContentLength
         }
@@ -161,6 +164,7 @@ function Receive-InstallerDownload {
             if ($count -eq 0) { break }
             $destinationStream.Write($buffer, 0, $count)
             $received += $count
+            $cancel.CancelAfter($IdleTimeoutSeconds * 1000)
             if ($clock.Elapsed.TotalSeconds - $lastUpdate -ge 0.2) {
                 Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds
                 $lastUpdate = $clock.Elapsed.TotalSeconds
@@ -170,6 +174,13 @@ function Receive-InstallerDownload {
         $destinationStream.Flush()
         Show-InstallerDownloadProgress $received $total $clock.Elapsed.TotalSeconds -Finished
         Write-Host ('Download complete: {0:N2} MB. Checking SHA-256 and signature...' -f ($received / 1MB))
+    } catch {
+        if ($cancel.IsCancellationRequested) {
+            throw [System.TimeoutException]::new(
+                ('Python installer download stalled: no response or new data for {0} seconds; {1:N2} MB received in {2:N0} seconds.' -f
+                 $IdleTimeoutSeconds, ($received / 1MB), $clock.Elapsed.TotalSeconds), $_.Exception)
+        }
+        throw
     } finally {
         Write-Progress -Id 1 -Activity 'Downloading Python' -Completed
         if ($destinationStream) { $destinationStream.Dispose() }

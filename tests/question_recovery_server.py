@@ -29,7 +29,7 @@ class OfflineModel(ModelClient):
                            if m['role'] == 'user' and m['content'].startswith('{'))
             sid = payload['new_teacher_segments'][-1]['id']
             result = {'knowledge_updates': [{'id': 'k_' + sid, 'text': '教师讲授的方程变形。',
-                      'status': 'tentative', 'sources': [sid]}]}
+                      'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': [sid]}]}
             if sid == 't1':
                 result['candidate'] = {'kind': 'question', 'text': '为什么移项变号？',
                                        'question_id': 'q2', 'sources': [sid]}

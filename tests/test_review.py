@@ -58,7 +58,7 @@ class ReviewModel:
                 raise ModelError('模拟学生失败')
             ids = [s['id'] for s in payload['new_teacher_segments']]
             result = {'knowledge_updates': [{'id': 'k' + ids[-1], 'text': '暂定理解',
-                'status': 'tentative', 'sources': ids}], 'addressed': True,
+                'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': ids}], 'addressed': True,
                 'candidate': {'kind': 'answer', 'text': '我大概理解了。', 'sources': ids}}
         parsed = output_type.model_validate(result)
         return result_validator(parsed, False) if result_validator else parsed

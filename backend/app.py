@@ -17,6 +17,7 @@ from .llm import ModelError
 from .schemas import Lesson, TeachingSettings, StudentProfileResult, PROFILE_REQUIRED
 from .student_profile import generate_profile
 from .session import Session
+from .runtime import RUNTIME
 from .teaching_report import ReportService, export_markdown
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
@@ -70,6 +71,7 @@ async def index():
 async def health():
     state = await asyncio.to_thread(models.snapshot)
     return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "audio_upload_available": True, "model_configured": bool(config.API_KEY),
+            "runtime": RUNTIME,
             "student_model": config.MODEL, "asr_model": state["selected_id"],
             "vad_ready": state["vad_ready"], "engine_state": state["engine_state"],
             "asr_busy": state["busy"], "asr_activity": state["activity"], "error": state["error"], "notice": state["notice"]}
@@ -316,6 +318,7 @@ async def websocket(ws: WebSocket):
                     await session.stop_speech("手动停止播报")
                 elif kind == "retry":
                     session.retry_event.set()
+                    session.retry_knowledge_reviews()
                     await session.emit("status", {"message": "正在重试，未处理内容仍按顺序保留"})
                 elif kind == "end":
                     # A normal end must register the independent report even

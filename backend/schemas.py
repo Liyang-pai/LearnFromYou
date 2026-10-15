@@ -92,19 +92,58 @@ class ReviewResult(StrictModel):
     segments: list[CorrectedSource] = Field(min_length=1)
 
 
+class KnowledgeDependency(StrictModel):
+    id: str = Field(min_length=1, max_length=60)
+    revision: int = Field(ge=1, description="引用上下文中该知识的修订号；本轮新知识使用 1")
+
+
 class Knowledge(StrictModel):
-    id: str = Field(max_length=60)
+    id: str = Field(min_length=1, max_length=60)
     text: str = Field(min_length=1, max_length=400)
-    status: Literal["tentative", "understood", "unclear", "conflict"]
+    status: Literal["tentative", "understood", "unclear", "conflict", "invalid"]
     sources: list[str] = Field(min_length=1, max_length=12)
+    conditions: str = Field(default="", max_length=300, description="适用范围；空字符串表示未限定")
+    reason: str = Field(default="", max_length=400, description="必填的简短状态依据，指出理解链条、跳步或障碍")
+    revision: int = Field(default=1, ge=1, description="输出已有条目的当前修订号，程序负责递增")
+    dependencies: list[KnowledgeDependency] = Field(default_factory=list, max_length=16,
+        description="实际采用的推导前提；独立依据成立时移除不再需要的依赖并解释原因")
+    independent_sources: list[str] = Field(default_factory=list, max_length=12,
+        description="移除旧依赖必须提供本轮教师独立解释的来源；不能因前提失效就删除依赖")
+    correction_sources: list[str] = Field(default_factory=list, max_length=12,
+        description="教师明确指出旧说法有误、撤回或替代的 t 来源；仅说不同规则或应该如何不是纠正，必须为空并记录 conflict")
     supersedes: list[str] = Field(default_factory=list, max_length=12,
-                                  description="本条明确纠正并替代的旧知识 ID；普通补充不填写")
+                                  description="明确撤回/纠正旧说法才填写；教师仅提出不同说法（即使说应该）时为空，记录 conflict")
 
 
 class KnowledgeRevision(StrictModel):
     version: int
     previous: Knowledge
     replacement_id: str
+    invalidated: bool = False
+    change_reason: str = ""
+    change_sources: list[str] = Field(default_factory=list)
+
+
+class KnowledgeConflict(StrictModel):
+    id: str = Field(min_length=1, max_length=60)
+    left_id: str = Field(min_length=1, max_length=60)
+    right_id: str = Field(min_length=1, max_length=60)
+    conditions: str = Field(min_length=1, max_length=300)
+    reason: str = Field(min_length=1, max_length=400)
+    sources: list[str] = Field(min_length=1, max_length=24)
+    status: Literal["open", "resolved"] = "open"
+    resolution: str = Field(default="", max_length=400)
+    resolution_sources: list[str] = Field(default_factory=list, max_length=12)
+
+
+class KnowledgeReview(StrictModel):
+    dependency_revisions: dict[str, int] = Field(default_factory=dict)
+    knowledge_id: str
+    revision: int
+    reason: str
+    trigger_sources: list[str] = Field(default_factory=list)
+    status: Literal["pending", "failed"] = "pending"
+    error: str = ""
 
 
 class ClassroomEvent(StrictModel):
@@ -127,7 +166,35 @@ class Question(QuestionUpdate):
     attempts: int = 0
 
 
+class ResponseRequestUpdate(StrictModel):
+    id: str = Field(min_length=1, max_length=60)
+    text: str = Field(min_length=1, max_length=400)
+    sources: list[str] = Field(min_length=1, max_length=12)
+    status: Literal['pending', 'dismissed'] = 'pending'
+    reason: str = Field(default='', max_length=400)
+    resolution_sources: list[str] = Field(default_factory=list, max_length=12)
+    kind: Literal['answer', 'invite_questions', 'check_understanding', 'check_audio'] = 'answer'
+    invitation_source_id: str | None = None
+    invitation_quote: str = Field(default='', max_length=500)
+
+
+class ResponseRequest(ResponseRequestUpdate):
+    status: Literal['pending', 'answered', 'dismissed'] = 'pending'
+    input_revision: int = 0  # Set by the program, never supplied by the model.
+
+
+class QuestionReleaseRequest(StrictModel):
+    question_id: str = Field(min_length=1, max_length=60)
+    response_request_id: str = Field(min_length=1, max_length=60)
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=400)]
+
+
 class Candidate(StrictModel):
+    question_release_request: QuestionReleaseRequest | None = None
+    response_request_ids: list[str] = Field(default_factory=list,
+        description='实际回应的教师请求 ID；question 仅关联 invite_questions；silence 填 []；发出前不算 answered')
+    knowledge_ids: list[str] = Field(default_factory=list, max_length=16,
+        description="实际用于推导答案的可用知识前提 ID；仅复述、描述障碍或对比冲突双方不算采用前提，这些条目不列入；无推理前提时填 []，来源仍填 sources")
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
     text: str = Field(default="", max_length=600)
     question_id: str | None = Field(default=None,
@@ -136,6 +203,8 @@ class Candidate(StrictModel):
 
 
 class StudentResult(StrictModel):
+    response_request_updates: list[ResponseRequestUpdate] = Field(default_factory=list, max_length=12)
+    conflict_updates: list[KnowledgeConflict] = Field(default_factory=list, max_length=12)
     knowledge_updates: list[Knowledge] = Field(default_factory=list, max_length=16,
         description="仅定义、概念、规则、因果、方法和有依据的纠正结论；不包含教师提问或课堂组织事件")
     question_updates: list[QuestionUpdate] = Field(default_factory=list, max_length=12,
@@ -146,7 +215,23 @@ class StudentResult(StrictModel):
     note: str = Field(default="", max_length=400)
 
 
+class ResumeResult(StrictModel):
+    response_request_updates: list[ResponseRequestUpdate] = Field(default_factory=list, max_length=12)
+    question_updates: list[QuestionUpdate] = Field(default_factory=list, max_length=12)
+    candidate: Candidate = Field(default_factory=Candidate)
+    note: str = Field(default='', max_length=400)
+
+
+class KnowledgeReviewResult(StrictModel):
+    knowledge_updates: list[Knowledge] = Field(min_length=1, max_length=16)
+    note: str = Field(default="", max_length=400)
+
+
 class StudentState(StrictModel):
+    schema_version: Literal[2] = 2
+    response_requests: list[ResponseRequest] = Field(default_factory=list)
+    conflicts: list[KnowledgeConflict] = Field(default_factory=list)
+    pending_reviews: list[KnowledgeReview] = Field(default_factory=list)
     version: int = 0
     knowledge: list[Knowledge] = Field(default_factory=list)
     open_questions: list[Question] = Field(default_factory=list,
@@ -164,10 +249,16 @@ class StudentState(StrictModel):
         self.open_questions = value
 
     def learning_context(self):
-        """Keep historical/conflicted content outside the current fact collection."""
+        """仅确定且已完成复核的知识进入事实集合，旧日志不在此迁移。"""
         data = self.model_dump()
+        blocked = {r.knowledge_id for r in self.pending_reviews}
+        conflicted = {kid for c in self.conflicts if c.status == "open"
+                      for kid in (c.left_id, c.right_id)}
+        blocked |= conflicted
         data["knowledge"] = [k.model_dump() for k in self.knowledge
-                             if k.status in ("tentative", "understood")]
+                             if k.status == "understood" and k.id not in blocked]
+        data["tentative_knowledge"] = [k.model_dump() for k in self.knowledge
+                                       if k.status == "tentative" and k.id not in blocked]
         data["inactive_knowledge"] = [k.model_dump() for k in self.knowledge
-                                      if k.status in ("conflict", "unclear")]
+                                      if k.status in ("conflict", "unclear", "invalid") or k.id in blocked]
         return data
