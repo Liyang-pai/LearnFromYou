@@ -202,7 +202,7 @@ class Session:
             self.images[image.id] = image
             self.current_image = image.id
             self.revision += 1
-            self.candidate = None
+            await self.cancel_candidate('教学图片已切换', expire=True)
             await self.stop_speech('教学图片已切换')
             public = image.public(self.id)
             await self.emit('teaching_image', public)
@@ -217,7 +217,7 @@ class Session:
                 raise ValueError('课堂已结束，当前图片保留')
             self.current_image = None
             self.revision += 1
-            self.candidate = None
+            await self.cancel_candidate('当前教学图片已移除', expire=True)
             await self.stop_speech('当前教学图片已移除')
             await self.emit('teaching_image', {'cleared': True})
 
@@ -401,7 +401,7 @@ class Session:
                 self.review_processing = False
                 self.review_queue.task_done()
 
-    def payload(self, batch, trigger='teacher_input'):
+    def payload(self, batch, trigger='teacher_input', *, visual_sources=None):
         relevant = {s for k in self.state.knowledge for s in k.sources}
         relevant |= {s for revision in self.state.knowledge_history for s in revision.previous.sources}
         relevant |= {s for q in self.state.questions for s in q.sources + q.resolution_sources}
@@ -418,10 +418,11 @@ class Session:
                 "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
                 "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
                 "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
-        image_ids = list(dict.fromkeys(s['image_id'] for s in batch if s.get('image_id')))
+        visual = batch if visual_sources is None else visual_sources
+        image_ids = list(dict.fromkeys(s['image_id'] for s in visual if s.get('image_id') in self.images))
         if image_ids:
             result['teaching_images'] = [{'id': image_id, 'teacher_source_ids': [
-                s['id'] for s in batch if s.get('image_id') == image_id]} for image_id in image_ids]
+                s['id'] for s in visual if s.get('image_id') == image_id]} for image_id in image_ids]
         return result
 
     async def learn_loop(self):
@@ -514,6 +515,19 @@ class Session:
         snapshot = self.state.model_copy(deep=True)
         revisions = (self.revision, self.state.version, self.control_revision)
         allowed = {k: v for k, v in self.sources.items() if k.startswith('p') or k in self.processed_ids}
+        visible_image = self.current_image
+        # Reuse the latest outstanding task's actual material, never substitute
+        # the currently displayed picture for a historical teacher source.
+        pending = [r for r in self.state.response_requests if r.status == 'pending']
+        if pending:
+            source_ids = pending[-1].sources
+        else:
+            questions = [q for q in self.state.questions if q.status in ('pending', 'asked') and q.attempts < 2]
+            source_ids = questions[-1].sources if questions else []
+        visual_sources = [allowed[sid] for sid in source_ids if sid in allowed and sid in self.processed_ids]
+        payload = self.payload([], 'unmuted', visual_sources=visual_sources)
+        image_ids = [item['id'] for item in payload.get('teaching_images', [])]
+        images = [self.images[image_id] for image_id in image_ids]
 
         def stale():
             return (self.muted or self.finishing or self.closed
@@ -526,7 +540,8 @@ class Session:
         try:
             await self.emit('resume_response', {'status': 'running', 'message': '正在判断是否需要回应'})
             result = await self.llm.generate('student_resume', self.student_system + '\n' + prompts.RESUME,
-                self.payload([], 'unmuted'), ResumeResult, history=list(self.conversation), result_validator=validate)
+                payload, ResumeResult, history=list(self.conversation), result_validator=validate,
+                **({'images': images} if images else {}))
             if stale():
                 self.resume_pending = not (self.muted or self.finishing or self.closed)
                 await self.emit('resume_response', {'status': 'stale', 'message': '课堂或静音状态已变化，恢复结果已丢弃'})
@@ -535,7 +550,7 @@ class Session:
             self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True, input_revision=self.revision, allow_silence=bool(recovery))
             self.candidate = {'reply': candidate, 'revision': self.revision,
                               'control_revision': self.control_revision, 'addressed': bool(candidate.response_request_ids),
-                              'resume': True}
+                              'resume': True, 'image_id': visible_image}
             self.resume_failed = False
             self.last_block = None
             await self.candidate_ready()

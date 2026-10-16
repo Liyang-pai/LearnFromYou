@@ -130,7 +130,7 @@ def test_truncation_commits_state_only_after_full_valid_recovery(tmp_path, monke
             assert session.state.version == 0
             assert not session.state.knowledge
             raw = json.dumps({'knowledge_updates':[{'id':'k1','text':'被开方数必须非负。',
-                    'status':'tentative','sources':['t1']}],
+                    'status':'tentative','reason':'教师给出规则，尚待理解依据','sources':['t1']}],
                     'addressed':True,'candidate':{'kind':'answer','text':'0也可以。','sources':['t1']}})
             finish = 'stop' if recovers and len(calls)==2 else 'length'
             return httpx.Response(200, json=envelope(raw, finish))
