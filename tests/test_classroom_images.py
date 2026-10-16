@@ -318,3 +318,51 @@ def test_audio_worker_uses_segment_start_when_two_vad_transitions_share_frame(tm
             assert calls[0][1][0].id == first['id']
         finally: await session.close()
     asyncio.run(run())
+
+
+@pytest.mark.parametrize('with_old_image', [False, True])
+def test_text_keeps_entry_picture_while_stopping_speech(tmp_path, monkeypatch, with_old_image):
+    from PIL import Image
+    async def run():
+        session, _ = await make_session(tmp_path, monkeypatch)
+        # Pause workers so this test checks the source binding itself.
+        for task in session.tasks:
+            task.cancel()
+        await asyncio.gather(*session.tasks, return_exceptions=True)
+        entered, release = asyncio.Event(), asyncio.Event()
+        stop = session.stop_speech
+        async def delayed_stop(reason):
+            if reason == '收到新的教师文本':
+                entered.set()
+                await release.wait()
+            await stop(reason)
+        session.stop_speech = delayed_stop
+        try:
+            first = await session.set_image(PNG) if with_old_image else None
+            writing = asyncio.create_task(session.add_transcript('请看旧图。'))
+            await entered.wait()
+            new = io.BytesIO(); Image.new('RGB', (3, 3), 'blue').save(new, format='PNG')
+            second = await session.set_image(new.getvalue())
+            release.set()
+            await writing
+            assert session.current_image == second['id']
+            assert session.sources['t1'].get('image_id') == (first['id'] if first else None)
+            await session.add_transcript('现在看新图。')
+            assert session.sources['t2']['image_id'] == second['id']
+        finally:
+            release.set()
+            await session.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('damage', [b'broken', b'x' * 500])
+def test_reupload_repairs_corrupt_existing_picture_without_double_quota(tmp_path, monkeypatch, damage):
+    from backend import classroom_images as storage
+    image = storage.save_image(tmp_path, 'a'*12, PNG)
+    image.path.write_bytes(damage)
+    monkeypatch.setattr(storage, 'MAX_CLASSROOM_BYTES', len(PNG))
+    restored = storage.save_image(tmp_path, 'a'*12, PNG)
+    assert restored.id == image.id
+    assert restored.path.read_bytes() == PNG
+    assert restored.data_url().startswith('data:image/png;base64,')
+    assert len(list(image.path.parent.iterdir())) == 1

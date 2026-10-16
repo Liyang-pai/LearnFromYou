@@ -270,6 +270,9 @@ class Session:
             return
         if len(text) > 5000:
             raise ValueError("单次文本测试请限制在 5000 字内")
+        # Capture the material before stopping speech yields to an HTTP upload.
+        # An explicit None from ASR must remain a picture-free source.
+        bound_image = self.current_image if image_id is CURRENT_IMAGE else image_id
         if mode == "text":
             self.last_voice = time.monotonic()
             await self.stop_speech("收到新的教师文本")
@@ -281,7 +284,6 @@ class Session:
                 "review_status": "bypassed" if mode == "text" else ("pending" if self.asr_review else "disabled")}
         if source:
             item.update(source)
-        bound_image = self.current_image if image_id is CURRENT_IMAGE else image_id
         if bound_image:
             item['image_id'] = bound_image
         self.sources[item["id"]] = item
