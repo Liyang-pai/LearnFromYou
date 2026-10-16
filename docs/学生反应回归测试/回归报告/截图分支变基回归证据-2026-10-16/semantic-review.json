@@ -1,0 +1,556 @@
+{
+  "tested_commit": "2cdae434966408bb2bcb488cbf6face37341604e",
+  "review_method": "人工核对实际回复、固定画像、前文讲授及状态；未额外调用模型评审。",
+  "cases": [
+    {
+      "id": "01",
+      "status": "failed",
+      "rounds": [
+        {
+          "label": "B1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "代入正确；把同减5作为疑问提出，未宣称已掌握依据。",
+          "evidence": "summary.json cases[id=01].turns[label=B1]"
+        },
+        {
+          "label": "B2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "保留操作规则并追问变号依据。",
+          "evidence": "summary.json cases[id=01].turns[label=B2]"
+        },
+        {
+          "label": "B3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "按已给口令解得x=4。",
+          "evidence": "summary.json cases[id=01].turns[label=B3]"
+        },
+        {
+          "label": "B4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "承认缺少依据；指出尚需解释的环节。",
+          "evidence": "summary.json cases[id=01].turns[label=B4]"
+        },
+        {
+          "label": "B5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "x=5代回不成立，按已有口令定位变号错误。",
+          "evidence": "summary.json cases[id=01].turns[label=B5]"
+        },
+        {
+          "label": "B6",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "结合等式与运算解释题目展示的同减操作。",
+          "evidence": "summary.json cases[id=01].turns[label=B6]"
+        },
+        {
+          "label": "B7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "用两边同除4作自主推导；不能据此声称教师已讲过一般除法定理。",
+          "evidence": "summary.json cases[id=01].turns[label=B7]"
+        },
+        {
+          "label": "B8",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "解得x=5并代入检验；B中已出现自行补出依据，不能把后续补讲预设为恢复成功。",
+          "evidence": "summary.json cases[id=01].turns[label=B8]"
+        },
+        {
+          "label": "C1",
+          "understanding": "待复核",
+          "grounding": "待复核",
+          "delivery": "不适用（讲授）",
+          "note": "两次输出校验未通过，未提交本轮状态。",
+          "evidence": "summary.json cases[id=01].turns[label=C1]"
+        },
+        {
+          "label": "C3",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=01].turns[label=C3]"
+        },
+        {
+          "label": "C5",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=01].turns[label=C5]"
+        },
+        {
+          "label": "C6",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=01].turns[label=C6]"
+        },
+        {
+          "label": "C7",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=01].turns[label=C7]"
+        }
+      ]
+    },
+    {
+      "id": "02",
+      "status": "completed",
+      "rounds": [
+        {
+          "label": "B1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "区分已学正比例函数与尚未说明的常数项影响。",
+          "evidence": "summary.json cases[id=02].turns[label=B1]"
+        },
+        {
+          "label": "B2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "质疑两个点不足以支持一般结论。",
+          "evidence": "summary.json cases[id=02].turns[label=B2]"
+        },
+        {
+          "label": "B3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "按给定规则判断减小，并承认一般依据未知。",
+          "evidence": "summary.json cases[id=02].turns[label=B3]"
+        },
+        {
+          "label": "B4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "没有将两个样本提升成一般证明。",
+          "evidence": "summary.json cases[id=02].turns[label=B4]"
+        },
+        {
+          "label": "B5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "用100与98反驳“常数大所以增大”，保留一般证明缺口。",
+          "evidence": "summary.json cases[id=02].turns[label=B5]"
+        },
+        {
+          "label": "B6",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "计算-70、-68正确，承认两个点不足以证明全部位置。",
+          "evidence": "summary.json cases[id=02].turns[label=B6]"
+        },
+        {
+          "label": "B7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "依据k非零定义排除常函数，不套用正负k口令。",
+          "evidence": "summary.json cases[id=02].turns[label=B7]"
+        },
+        {
+          "label": "B8",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "取-6、-10作局部验证，仍区分一般依据。",
+          "evidence": "summary.json cases[id=02].turns[label=B8]"
+        },
+        {
+          "label": "C1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授，无需发言；开始补全比较方法。",
+          "evidence": "summary.json cases[id=02].turns[label=C1]"
+        },
+        {
+          "label": "C2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；状态保存k(x2-x1)及b抵消的一般解释。",
+          "evidence": "summary.json cases[id=02].turns[label=C2]"
+        },
+        {
+          "label": "C4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；记录平移、截距和k=0边界。",
+          "evidence": "summary.json cases[id=02].turns[label=C4]"
+        },
+        {
+          "label": "C5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "22变7，变化-15、截距(0,12)，理由正确。",
+          "evidence": "summary.json cases[id=02].turns[label=C5]"
+        },
+        {
+          "label": "C7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "y=-8为常函数，不由常数负号判断减小。",
+          "evidence": "summary.json cases[id=02].turns[label=C7]"
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "status": "completed",
+      "rounds": [
+        {
+          "label": "B1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "两个单位体积质量均2.7，不因总质量更大断言更密；未知物理名称。",
+          "evidence": "summary.json cases[id=03].turns[label=B1]"
+        },
+        {
+          "label": "B2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；记录公式及单位，无需发言。",
+          "evidence": "summary.json cases[id=03].turns[label=B2]"
+        },
+        {
+          "label": "B3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "81/30=2.7及单位正确；回复只引t3题干，公式依据需结合t2和状态追溯。",
+          "evidence": "summary.json cases[id=03].turns[label=B3]"
+        },
+        {
+          "label": "B4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "能从平均分解释每单位体积质量，保留物质性质的进一步疑问。",
+          "evidence": "summary.json cases[id=03].turns[label=B4]"
+        },
+        {
+          "label": "B5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "质量体积同比例变化，比值不变。",
+          "evidence": "summary.json cases[id=03].turns[label=B5]"
+        },
+        {
+          "label": "B6",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "甲2.7、乙8，比较正确。",
+          "evidence": "summary.json cases[id=03].turns[label=B6]"
+        },
+        {
+          "label": "B7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "如实报告立方单位换算缺口；未自主推出不等于无知识边界。",
+          "evidence": "summary.json cases[id=03].turns[label=B7]"
+        },
+        {
+          "label": "B8",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "缺体积不能求密度；再次保留换算困难。",
+          "evidence": "summary.json cases[id=03].turns[label=B8]"
+        },
+        {
+          "label": "C1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "补讲密度含义后仍追问尚未补上的单位换算。",
+          "evidence": "summary.json cases[id=03].turns[label=C1]"
+        },
+        {
+          "label": "C3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；状态保留同种、均匀、同温同状态条件。",
+          "evidence": "summary.json cases[id=03].turns[label=C3]"
+        },
+        {
+          "label": "C5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "换算800千克每立方米，说明质量体积都要换。",
+          "evidence": "summary.json cases[id=03].turns[label=C5]"
+        },
+        {
+          "label": "C6",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "拒绝质量增加必然密度增加的说法，保留适用条件。",
+          "evidence": "summary.json cases[id=03].turns[label=C6]"
+        },
+        {
+          "label": "C7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "只知24克和“很小”不能给确定密度，需要可测体积。",
+          "evidence": "summary.json cases[id=03].turns[label=C7]"
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "status": "failed",
+      "rounds": [
+        {
+          "label": "B1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "正确复述数学比例定义；未提前给出电学公式或电流数值。",
+          "evidence": "summary.json cases[id=04].turns[label=B1]"
+        },
+        {
+          "label": "B2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；公式与省略条件的说法进入后续待检验状态。",
+          "evidence": "summary.json cases[id=04].turns[label=B2]"
+        },
+        {
+          "label": "B3",
+          "understanding": "待复核",
+          "grounding": "待复核",
+          "delivery": "失败（调用未完成）",
+          "note": "请求90秒超时，无模型输出；不能据此判知识理解错误。",
+          "evidence": "summary.json cases[id=04].turns[label=B3]"
+        },
+        {
+          "label": "B4",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=B4]"
+        },
+        {
+          "label": "B5",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=B5]"
+        },
+        {
+          "label": "B6",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=B6]"
+        },
+        {
+          "label": "B7",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=B7]"
+        },
+        {
+          "label": "B8",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=B8]"
+        },
+        {
+          "label": "C1",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=C1]"
+        },
+        {
+          "label": "C2",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=C2]"
+        },
+        {
+          "label": "C3",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=C3]"
+        },
+        {
+          "label": "C6",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=C6]"
+        },
+        {
+          "label": "C7",
+          "understanding": "未执行",
+          "grounding": "未执行",
+          "delivery": "未执行",
+          "note": "该课堂前序调用失败后停止，未另起课堂跳过前置。",
+          "evidence": "summary.json cases[id=04].turns[label=C7]"
+        }
+      ]
+    },
+    {
+      "id": "05",
+      "status": "completed",
+      "rounds": [
+        {
+          "label": "B1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "区分气体逸出与称量范围，未提前宣称知道质量守恒。",
+          "evidence": "summary.json cases[id=05].turns[label=B1]"
+        },
+        {
+          "label": "B2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "对“一样重”提出具体范围疑问。",
+          "evidence": "summary.json cases[id=05].turns[label=B2]"
+        },
+        {
+          "label": "B3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "封闭装置150克，结合无物质进出和已讲定律推理。",
+          "evidence": "summary.json cases[id=05].turns[label=B3]"
+        },
+        {
+          "label": "B4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "减少2.2克；题目明确排除其他因素，解释与范围疑问合理。",
+          "evidence": "summary.json cases[id=05].turns[label=B4]"
+        },
+        {
+          "label": "B5",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "指出反应物漏计氧气，不能仅比较镁与产物。",
+          "evidence": "summary.json cases[id=05].turns[label=B5]"
+        },
+        {
+          "label": "B6",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "区分全部反应物/生成物与敞口烧杯称量。",
+          "evidence": "summary.json cases[id=05].turns[label=B6]"
+        },
+        {
+          "label": "B7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "缺少排除条件不能断言3克全是气体，更不能推出名称。",
+          "evidence": "summary.json cases[id=05].turns[label=B7]"
+        },
+        {
+          "label": "B8",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "比较气体逸出与空气成分进入的称量边界；B阶段已自行联系，不能预设C修复了原本不存在的缺口。",
+          "evidence": "summary.json cases[id=05].turns[label=B8]"
+        },
+        {
+          "label": "C1",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；程序将明确撤回的旧泛化k2标invalid，并保留纠正来源t9。",
+          "evidence": "summary.json cases[id=05].turns[label=C1]"
+        },
+        {
+          "label": "C2",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；区分物质范围变化与质量凭空产生消失。",
+          "evidence": "summary.json cases[id=05].turns[label=C2]"
+        },
+        {
+          "label": "C3",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "不要求发言",
+          "note": "纯讲授；补充封闭条件及归因读数差的排除条件。",
+          "evidence": "summary.json cases[id=05].turns[label=C3]"
+        },
+        {
+          "label": "C4",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "120-115.6=4.4克，总计仍120克。",
+          "evidence": "summary.json cases[id=05].turns[label=C4]"
+        },
+        {
+          "label": "C7",
+          "understanding": "通过（本次观察）",
+          "grounding": "通过（本次观察）",
+          "delivery": "通过",
+          "note": "有飞溅可能时不能认定气体恰为2克，列出需排除因素。",
+          "evidence": "summary.json cases[id=05].turns[label=C7]"
+        }
+      ]
+    }
+  ]
+}
