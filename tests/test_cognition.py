@@ -133,7 +133,7 @@ def test_classroom_payload_keeps_revision_sources_and_filters_current_knowledge(
                for i in range(1, 13)}
     session = SimpleNamespace(state=state, sources=sources, processed_ids=set(sources) - {'t12'},
                               preparation=SimpleNamespace(scope=['星星运算']),
-                              lesson=SimpleNamespace(student_level='normal'), prerequisites=[], history=[])
+                              lesson=SimpleNamespace(student_level='normal'), prerequisites=[], history=[], images={})
     before = state.model_dump()
     payload = Session.payload(session, [sources['t12']])
     assert payload['current_state']['knowledge'] == [rule(revision=2).model_dump()]

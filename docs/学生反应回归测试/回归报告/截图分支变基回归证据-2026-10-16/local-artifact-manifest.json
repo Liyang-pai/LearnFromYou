@@ -1,0 +1,42 @@
+{
+  "backend__cognition.py.snapshot": {
+    "bytes": 10989,
+    "sha256": "68c4b4ef5f76d33a020bde14738b257654d1b7d51e5d83eed83108a58157020f"
+  },
+  "backend__llm.py.snapshot": {
+    "bytes": 9215,
+    "sha256": "23d9724a0c55ad81225dbab541d71f6f0cefd208c8dcfcdd77711d4f4385df68"
+  },
+  "backend__policy.py.snapshot": {
+    "bytes": 18254,
+    "sha256": "01f3b4d7f30f08f08d360bd2cebcadfd8369ccb23b9e68f40e0b3c6110c33216"
+  },
+  "backend__prompts.py.snapshot": {
+    "bytes": 26923,
+    "sha256": "9deb4969a331af29dabb74d4a61eeaa50a037ea48f80a15705c6af589675b0db"
+  },
+  "backend__schemas.py.snapshot": {
+    "bytes": 12903,
+    "sha256": "85c2ec0c780e267222abbe8539c49f7ea4a5131ca6237ca8dc8950fc17670801"
+  },
+  "backend__session.py.snapshot": {
+    "bytes": 44608,
+    "sha256": "fc32c6c73af0d657de92f9cf4af3747142b80c826c7b448eb378ceeaf58d20df"
+  },
+  "budget.json": {
+    "bytes": 147,
+    "sha256": "deedd0da57f018a357fe7bdcb9244d66b727cab2811e0e8c7e114bbe4ca14c0e"
+  },
+  "events.jsonl": {
+    "bytes": 3069142,
+    "sha256": "5c2aa172e4d0403f908a3d04a425ca38a08284798815d1ea8041bbf1650161e2"
+  },
+  "summary.json": {
+    "bytes": 1589652,
+    "sha256": "97cbf1089a3cfb3562783bd9bd5d511534c03f3f95d56ce67bf0da28f7c53eaa"
+  },
+  "tests__live_screenshot_rebase_regression.py.snapshot": {
+    "bytes": 9911,
+    "sha256": "9cbf9836b2619ad4cda39885f16196afd00b8347fa103bca03ba8ca2ca437896"
+  }
+}

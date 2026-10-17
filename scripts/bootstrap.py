@@ -19,7 +19,7 @@ import unicodedata
 
 ROOT = Path(__file__).resolve().parents[1]
 MODULES = ('fastapi', 'uvicorn', 'httpx', 'anyio', 'dotenv', 'websockets',
-           'pydantic', 'numpy', 'sherpa_onnx', 'soundfile', 'packaging')
+           'pydantic', 'numpy', 'sherpa_onnx', 'soundfile', 'packaging', 'PIL')
 
 
 def supported_python(expected_venv=None):

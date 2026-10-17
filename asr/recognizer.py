@@ -77,11 +77,13 @@ class AudioStream:
         self.resampler = Resampler(sample_rate)
         self.buffer = np.empty(0, dtype=np.float32)
         self.active = False
+        self.segment_starts = []
 
     def feed(self, samples):
         samples = self.resampler.feed(samples)
         self.buffer = np.concatenate((self.buffer, samples))
         segments, transitions = [], []
+        self.segment_starts = []
         while len(self.buffer) >= 512:
             self.vad.accept_waveform(self.buffer[:512])
             self.buffer = self.buffer[512:]
@@ -90,6 +92,7 @@ class AudioStream:
                 transitions.append(active)
                 self.active = active
             while not self.vad.empty():
+                self.segment_starts.append(self.vad.front.start)
                 segments.append(np.array(self.vad.front.samples, dtype=np.float32, copy=True))
                 self.vad.pop()
         return segments, transitions, self.active
@@ -100,7 +103,9 @@ class AudioStream:
             self.buffer = np.empty(0, dtype=np.float32)
         self.vad.flush()
         segments = []
+        self.segment_starts = []
         while not self.vad.empty():
+            self.segment_starts.append(self.vad.front.start)
             segments.append(np.array(self.vad.front.samples, dtype=np.float32, copy=True))
             self.vad.pop()
         self.active = False

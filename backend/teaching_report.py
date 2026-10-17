@@ -8,7 +8,7 @@ import re
 from . import config
 from .llm import ModelClient, ModelError
 from .report_prompt import TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES
-from .report_contract import TeachingReport, DIMENSION_NAMES, validate_sources as check_sources
+from .report_contract import TeachingReport, DIMENSION_NAMES, validate_sources as check_sources, validate_grounding
 
 REPORT_BUDGET = 300
 
@@ -35,6 +35,8 @@ def read_classroom(root: Path, session_id: str):
                 if source_id in teachers:
                     raise ValueError('课堂讲授编号重复')
                 teachers[source_id] = {'id': source_id, 'text': data['text'], 'mode': data.get('mode', 'text')}
+                if data.get('image_id'):
+                    teachers[source_id]['image_id'] = data['image_id']
                 timeline.append(('teacher', source_id))
             elif kind == 'review_completed':
                 for segment in data.get('segments', []):
@@ -80,6 +82,8 @@ def source_hash(classroom, prompt=None):
 def validate_sources(report, classroom):
     teachers = {s['id'] for s in classroom['teacher_segments']}
     check_sources(report, teachers)
+    if 'turns' in classroom:
+        validate_grounding(report, classroom['turns'])
 
 
 def export_markdown(result):
@@ -134,7 +138,7 @@ class ReportService:
                     if result['status'] == 'ready':
                         report = TeachingReport.model_validate(result['report'])
                         validate_sources(report, classroom)
-                        result['report'] = report.model_dump()
+                        result['report'] = report.model_dump(exclude={'action_evidence'})
                     task = self.tasks.get(session_id)
                     if result['status'] == 'generating' and (not task or task.done()):
                         result.update(status='failed', report=None, error='上次生成因服务中断而停止，可重试；课堂内容已保留')

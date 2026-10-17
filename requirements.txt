@@ -10,3 +10,4 @@ sherpa-onnx==1.13.8
 soundfile>=0.13,<1
 pytest>=8,<10
 packaging>=24,<27
+Pillow>=11.3,<13

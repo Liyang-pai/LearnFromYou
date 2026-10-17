@@ -4,6 +4,8 @@
 
 一个本地语音识别、云端 Student LLM 的试讲练习工具。教师讲授时，AI 学生只根据明确的前置知识和本次课堂内容形成认知，不会因为课题名称就默认知道答案。
 
+课堂支持粘贴或上传试卷、PPT、教案及讲义截图：预览确认后替换当前图片，学生结合讲解与截图回应；上传本身不调用模型。有图请求默认使用 `LLM_IMAGE_MODEL=deepseek-flash`，文字请求保持原配置。使用方法、5 MiB限制和验证边界见[课堂截图上传](docs/classroom-screenshots.md)。
+
 > 当前版本主要在 **macOS Apple Silicon** 上验证。ASR 模型管理、下载和 CPU 识别面向 macOS / Windows x64，CI 覆盖两端。系统语音支持 macOS `say` 和 Windows 本地 System.Speech；Windows 优先选择已安装的中文语音。
 
 ## 下载者需要配置什么

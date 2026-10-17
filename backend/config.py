@@ -8,6 +8,7 @@ load_dotenv(ROOT / ".env", override=False)
 API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("Deepseek_API", "")
 BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/")
 MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+IMAGE_MODEL = os.getenv("LLM_IMAGE_MODEL", "deepseek-flash")
 MODELS_DIR = ROOT / "asr/models"
 ASR_THREADS = int(os.getenv("ASR_THREADS", "2"))
 SEGMENT_PAUSE = float(os.getenv("SEGMENT_PAUSE", "3"))

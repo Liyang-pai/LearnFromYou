@@ -1,0 +1,10 @@
+{
+  "limit": 80,
+  "requests": 67,
+  "phases": {
+    "preparation": 5,
+    "student": 60,
+    "knowledge_review": 2
+  },
+  "blocking_error": null
+}
