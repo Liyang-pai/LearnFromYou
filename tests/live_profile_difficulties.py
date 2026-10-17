@@ -3,6 +3,8 @@
 使用用户给出的三角矩阵画像；2个完整课堂、2个独立首次提问复测。
 共用同一组前置知识，保存真实Session状态、实际送达、请求与用量；最多12次请求。
 运行：.venv/bin/python tests/live_profile_difficulties.py --live --output logs/新目录
+定向回归：加 --focused --cached-preparation logs/profile-difficulties-ab-20261017/summary.json
+只执行困难组三轮，复用已验证前置，默认且最多6次请求（包含重试）。
 """
 import argparse
 import asyncio
@@ -53,6 +55,18 @@ def now():
 
 
 async def run(args):
+    limit = args.request_limit if args.request_limit is not None else (6 if args.focused else 12)
+    if limit < 1 or (args.focused and limit > 6):
+        raise ValueError('定向回归请求上限必须为1到6')
+    if args.focused and not args.cached_preparation:
+        raise ValueError('定向回归必须复用前置，不追加准备请求')
+    control_lesson = Lesson(**SETTINGS, student_profile=BASE + '未指定。')
+    shared = None
+    if args.cached_preparation:
+        cached = json.loads((ROOT / args.cached_preparation).read_text())
+        shared = profile_preparation(control_lesson.student_profile).model_validate(cached['shared_preparation']).model_dump()
+        if Counter(shared['initial_prerequisites']) != Counter(KNOWN):
+            raise ValueError('缓存与六条原始已知不一致')
     if not config.API_KEY:
         raise RuntimeError('未配置模型密钥')
     if 'deepseek' not in config.BASE_URL or not config.MODEL.startswith('deepseek'):
@@ -60,9 +74,11 @@ async def run(args):
     output = ROOT / args.output
     output.mkdir(parents=True, exist_ok=False)
     summary = dict(status='running', started_at=now(), model=config.MODEL, temperature=.25,
-                   request_limit=12, requests=0, responses=0, usage={}, phases={}, cases=[],
+                   request_limit=limit, requests=0, responses=0, usage={}, phases={}, cases=[],
                    commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
-                   design='仅改变困难段；共享前置；完整对照各3轮；独立首次探测各1轮；不把一次对照视作稳定因果证明')
+                   design=('困难组三轮字段兼容定向回归；复用六条前置；不重跑A/B' if args.focused else
+                           '仅改变困难段；共享前置；完整对照各3轮；独立首次探测各1轮；不把一次对照视作稳定因果证明'),
+                   cached_preparation=args.cached_preparation)
     for name in ('backend/prompts.py', 'backend/session.py', 'backend/schemas.py', 'backend/policy.py',
                  'backend/cognition.py', 'backend/llm.py', 'tests/live_profile_difficulties.py'):
         data = (ROOT / name).read_bytes()
@@ -80,7 +96,7 @@ async def run(args):
                     if summary.get('blocking_error'):
                         raise ModelError(summary['blocking_error'])
                     if summary['requests'] >= summary['request_limit']:
-                        raise ModelError('达到本轮12次请求上限，停止调用')
+                        raise ModelError(f'达到本轮{limit}次请求上限，停止调用')
                     summary['requests'] += 1
                     phase = data['phase']
                     summary['phases'][phase] = summary['phases'].get(phase, 0) + 1
@@ -98,18 +114,19 @@ async def run(args):
     async def noop(*_):
         pass
 
-    model = TrackedModel(noop)
-    try:
-        control_lesson = Lesson(**SETTINGS, student_profile=BASE + '未指定。')
-        prep = await model.generate('preparation', prompts.PREPARE, control_lesson.model_dump(),
-                                    profile_preparation(control_lesson.student_profile))
-        summary['api_preparation'] = prep.model_dump()
-        if Counter(prep.initial_prerequisites) != Counter(KNOWN):
-            raise RuntimeError('前置提取与六条原始已知不一致，停止以免产生条件混淆')
-        shared = prep.model_dump()
-        summary['shared_preparation'] = shared
-    finally:
-        await model.close()
+    if shared is None:
+        model = TrackedModel(noop)
+        try:
+            prep = await model.generate('preparation', prompts.PREPARE, control_lesson.model_dump(),
+                                        profile_preparation(control_lesson.student_profile))
+            summary['api_preparation'] = prep.model_dump()
+            if Counter(prep.initial_prerequisites) != Counter(KNOWN):
+                raise RuntimeError('前置提取与六条原始已知不一致，停止以免产生条件混淆')
+            shared = prep.model_dump()
+        finally:
+            await model.close()
+    summary['shared_preparation'] = shared
+    save()
 
     class SharedPreparationModel(TrackedModel):
         async def generate(self, phase, system, payload, output_type, **kwargs):
@@ -141,6 +158,7 @@ async def run(args):
             assert [p['text'] for p in session.prerequisites] == shared['initial_prerequisites']
             for label, teacher in (TURNS if full else TURNS[:1]):
                 before = len(session.history)
+                event_start, request_start = len(events), summary['requests']
                 version = session.state.version
                 await session.add_transcript(teacher)
                 await session.flush()
@@ -157,7 +175,11 @@ async def run(args):
                 event = next(e['data'] for e in reversed(events) if e['type'] == 'state')
                 replies = list(session.history[before:])
                 turn = dict(label=label, teacher=teacher, result=event, delivered_replies=replies,
-                            state_after_delivery=session.state.model_dump())
+                            state_after_delivery=session.state.model_dump(),
+                            requests=summary['requests'] - request_start,
+                            validation_errors=[e['data'] for e in events[event_start:] if e['type'] == 'student_validation_error'],
+                            recovery=[e['data'] for e in events[event_start:] if e['type'] == 'student_recovery'],
+                            delivery_events=[e['data'] for e in events[event_start:] if e['type'] == 'reply'])
                 item['turns'].append(turn)
                 save()
                 print(active_case, label, 'DELIVERED', json.dumps(replies, ensure_ascii=False), flush=True)
@@ -178,8 +200,9 @@ async def run(args):
 
     try:
         # 顺序反转的独立首次探测，避免全部难度组总处于同一执行顺序。
-        for condition, repetition, full in [('control', 1, True), ('difficulty', 1, True),
-                                            ('difficulty', 2, False), ('control', 2, False)]:
+        cases = ([('difficulty', 1, True)] if args.focused else
+                 [('control', 1, True), ('difficulty', 1, True), ('difficulty', 2, False), ('control', 2, False)])
+        for condition, repetition, full in cases:
             await classroom(condition, repetition, full)
         summary['status'] = 'completed_semantic_review_required'
     except BaseException as exc:
@@ -205,4 +228,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--live', action='store_true', required=True)
     parser.add_argument('--output', required=True)
+    parser.add_argument('--focused', action='store_true')
+    parser.add_argument('--cached-preparation')
+    parser.add_argument('--request-limit', type=int)
     asyncio.run(run(parser.parse_args()))
