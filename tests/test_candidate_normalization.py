@@ -15,7 +15,7 @@ from backend.schemas import (Candidate, Knowledge, KnowledgeReview, Question, Re
 from test_mute_resume import start, teach, replies, request, answer
 from test_session import until
 
-CASES = json.loads((Path(__file__).parent / 'fixtures/candidate_reference_failures.json').read_text())['cases']
+CASES = json.loads((Path(__file__).parent / 'fixtures/candidate_reference_failures.json').read_text(encoding='utf-8'))['cases']
 SOURCES = {'p1': {}, 't1': {'revision': 1}, 't2': {'revision': 2}}
 
 
