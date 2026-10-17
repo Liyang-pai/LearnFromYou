@@ -2,6 +2,7 @@ import asyncio
 from dataclasses import replace
 import hashlib
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -135,6 +136,215 @@ def test_incomplete_missing_changed_and_corrupt_files(manager):
         (directory / '.installed.json').write_text('not json', encoding='utf-8')
         assert not manager.snapshot()['models'][0]['installed']
     asyncio.run(scenario())
+
+
+def change_mtime(path):
+    stat = path.stat()
+    os.utime(path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+
+
+def restore_manager(manager, root=None):
+    return ModelManager(root or manager.root, catalog=tuple(manager.catalog.values()),
+                        vad=manager.vad, transport=manager.transport)
+
+
+def test_copied_models_revalidate_offline_and_persist(manager, tmp_path, monkeypatch):
+    asyncio.run(install(manager))
+    manager.select('first')
+    copied = tmp_path / '另一个 worktree' / 'asr' / 'models'
+    shutil.copytree(manager.root, copied)
+    directory = copied / manager.model('first').directory
+    for asset in manager.model('first').files:
+        change_mtime(directory / asset.name)
+    restored = restore_manager(manager, copied)
+    monkeypatch.setattr(httpx.Client, 'stream', lambda *a, **kw: pytest.fail('unexpected network'))
+    original_hash = hashlib.sha256
+    hashed = []
+    def count_hash():
+        hashed.append(True)
+        return original_hash()
+    monkeypatch.setattr('asr.manager.hashlib.sha256', count_hash)
+    assert restored.snapshot()['asr_ready']
+    assert restored.selected_id == 'first'
+    assert len(hashed) == 2
+    record = json.loads((directory / '.installed.json').read_text())
+    assert record['files'] == {a.name: restored._signature(directory / a.name)
+                               for a in restored.model('first').files}
+    assert not list(directory.glob('*.part'))
+    assert restored.snapshot()['asr_ready']
+    assert restore_manager(restored).snapshot()['asr_ready']
+    assert len(hashed) == 2
+
+
+def test_corrupt_content_cached_until_file_changes(manager, monkeypatch):
+    asyncio.run(install(manager))
+    model = manager.model('first')
+    weight = manager.directory(model) / model.files[0].name
+    original = weight.read_bytes()
+    weight.write_bytes(b'x' * len(original))
+    change_mtime(weight)
+    restored = restore_manager(manager)
+    original_hash = hashlib.sha256
+    hashed = []
+    def count_hash():
+        hashed.append(True)
+        return original_hash()
+    monkeypatch.setattr('asr.manager.hashlib.sha256', count_hash)
+    for _ in range(3):
+        assert not restored.snapshot()['models'][0]['installed']
+    assert len(hashed) == 1
+    weight.write_bytes(original)
+    change_mtime(weight)
+    assert restored.snapshot()['models'][0]['installed']
+    restored.select('first')
+    assert restored.snapshot()['asr_ready']
+    assert len(hashed) == 2
+
+
+@pytest.mark.parametrize('damage', ['missing_file', 'wrong_size', 'missing_record',
+                                   'invalid_record', 'wrong_revision', 'invalid_signature'])
+def test_invalid_copied_installation_is_not_adopted(manager, damage, monkeypatch):
+    asyncio.run(install(manager))
+    manager.select('first')
+    directory = manager.directory(manager.model('first'))
+    weight = directory / 'model.int8.onnx'
+    marker = directory / '.installed.json'
+    change_mtime(weight)
+    if damage == 'missing_file':
+        weight.unlink()
+    elif damage == 'wrong_size':
+        weight.write_bytes(b'short')
+    elif damage == 'missing_record':
+        marker.unlink()
+    elif damage == 'invalid_record':
+        marker.write_text('not json')
+    else:
+        record = json.loads(marker.read_text())
+        if damage == 'wrong_revision':
+            record['revision'] = 'different'
+        else:
+            record['files']['model.int8.onnx'] = None
+        marker.write_text(json.dumps(record))
+    restored = restore_manager(manager)
+    monkeypatch.setattr('asr.manager.hashlib.sha256', lambda: pytest.fail('invalid metadata must not hash'))
+    state = restored.snapshot()
+    assert not state['asr_ready'] and state['selected_id'] is None
+    assert not state['models'][0]['installed']
+
+
+def test_file_changed_during_hash_is_not_accepted(manager, monkeypatch):
+    asyncio.run(install(manager))
+    directory = manager.directory(manager.model('first'))
+    weight = directory / 'model.int8.onnx'
+    marker = directory / '.installed.json'
+    previous = marker.read_bytes()
+    change_mtime(weight)
+    restored = restore_manager(manager)
+    original_hash = hashlib.sha256
+    class ChangingHash:
+        def __init__(self):
+            self.digest = original_hash()
+        def update(self, chunk):
+            self.digest.update(chunk)
+            change_mtime(weight)
+        def hexdigest(self):
+            return self.digest.hexdigest()
+    monkeypatch.setattr('asr.manager.hashlib.sha256', ChangingHash)
+    assert not restored.snapshot()['models'][0]['installed']
+    assert marker.read_bytes() == previous
+    assert not restored.verified and not restored.invalid
+
+
+def test_record_write_failure_keeps_verified_model_usable(manager, monkeypatch, caplog):
+    asyncio.run(install(manager))
+    manager.select('first')
+    directory = manager.directory(manager.model('first'))
+    marker = directory / '.installed.json'
+    previous = marker.read_bytes()
+    change_mtime(directory / 'model.int8.onnx')
+    restored = restore_manager(manager)
+    original_write = Path.write_text
+    def fail_record_write(path, *args, **kwargs):
+        if path.name == '.installed.json.part':
+            raise PermissionError('read-only installation')
+        return original_write(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'write_text', fail_record_write)
+    assert restored.snapshot()['asr_ready']
+    original_hash = hashlib.sha256
+    monkeypatch.setattr('asr.manager.hashlib.sha256', lambda: pytest.fail('must reuse successful hash'))
+    assert restored.snapshot()['asr_ready']
+    assert restored.selected_id == 'first'
+    assert marker.read_bytes() == previous
+    assert sum('模型安装记录无法更新' in r.message for r in caplog.records) == 1
+    monkeypatch.setattr(Path, 'write_text', original_write)
+    monkeypatch.setattr('asr.manager.hashlib.sha256', original_hash)
+    restarted = restore_manager(restored)
+    assert restarted.snapshot()['asr_ready']
+    assert restarted.verified
+    assert marker.read_bytes() != previous
+
+
+def test_ds_store_does_not_affect_model_availability(manager, monkeypatch):
+    asyncio.run(install(manager))
+    manager.select('first')
+    monkeypatch.setattr('asr.manager.hashlib.sha256', lambda: pytest.fail('irrelevant file must not hash'))
+    paths = [manager.root / '.DS_Store', manager.directory(manager.model('first')) / '.DS_Store']
+    for path in paths:
+        path.write_bytes(b'Finder metadata')
+    assert manager.snapshot()['asr_ready']
+    for path in paths:
+        path.unlink()
+    assert manager.snapshot()['asr_ready']
+
+
+@pytest.mark.parametrize('cancel', [False, True])
+def test_acquire_revalidation_runs_off_loop_and_cancellation_releases(manager, monkeypatch, cancel):
+    entered, proceed = threading.Event(), threading.Event()
+    loop_thread = threading.get_ident()
+    original_hash = hashlib.sha256
+    class SlowHash:
+        def __init__(self):
+            self.digest = original_hash()
+        def update(self, chunk):
+            assert threading.get_ident() != loop_thread
+            entered.set()
+            assert proceed.wait(3)
+            self.digest.update(chunk)
+        def hexdigest(self):
+            return self.digest.hexdigest()
+    async def scenario():
+        await install(manager)
+        manager.select('first')
+        change_mtime(manager.directory(manager.model('first')) / 'model.int8.onnx')
+        restored = restore_manager(manager)
+        engines = []
+        def create(model):
+            engine = FakeEngine(model.id)
+            engines.append(engine)
+            return engine
+        monkeypatch.setattr(restored, '_create_engine', create)
+        monkeypatch.setattr('asr.manager.hashlib.sha256', SlowHash)
+        task = asyncio.create_task(restored.acquire())
+        assert await asyncio.to_thread(entered.wait, 3)
+        if cancel:
+            task.cancel()
+            await asyncio.sleep(0)
+            assert not task.done()
+        proceed.set()
+        if cancel:
+            with pytest.raises(asyncio.CancelledError):
+                await task
+            assert not engines
+        else:
+            engine, _, model_id = await task
+            assert model_id == 'first'
+            await restored.release()
+            assert engine.closed
+        assert not restored.busy and not restored.loading and restored.activity is None
+    try:
+        asyncio.run(scenario())
+    finally:
+        proceed.set()
 
 
 @pytest.mark.parametrize('response', [httpx.Response(503), httpx.Response(200, content=b'bad-weight!'),
