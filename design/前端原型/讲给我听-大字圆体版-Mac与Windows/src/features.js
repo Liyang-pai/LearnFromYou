@@ -27,12 +27,13 @@
       const label=row.querySelector('label')?.textContent.trim();const map={'模型服务':'service','接口地址':'baseURL','API Key':'demoKey','文字模型':'textModel','图片模型':'imageModel'},key=map[label];const old=row.querySelector('.input');if(!key||!old)continue;
       const input=d.createElement(key==='service'?'select':'input');input.className='input';input.setAttribute('aria-label',label);
       if(key==='service'){for(const value of ['DeepSeek','自定义兼容接口']){const option=d.createElement('option');option.textContent=value;option.value=value;input.append(option);}}
-      if(key==='demoKey'){input.type='password';input.placeholder='演示占位，请勿填写真实密钥';input.autocomplete='off';input.value='';}
+      if(key==='demoKey'){input.type='password';input.placeholder='演示占位，请勿填写真实密钥';input.autocomplete='off';input.value=state.settings.demoKey||'';}
       else input.value=state.settings[key];
       old.replaceWith(input);
-      input.addEventListener('input',()=>{if(key==='demoKey')return;state.settings[key]=input.value;state.dirty=true;const status=d.querySelector('.savebar>span');if(status)status.textContent='有未保存的模拟更改';});
+      input.addEventListener('input',()=>{state.settings[key]=input.value;state.dirty=true;if(key==='demoKey'){state.connection.text='未测试';state.connection.image='未测试';const result=d.querySelector('[data-connection-status]');if(result)result.textContent='尚未测试';}const status=d.querySelector('.savebar>span');if(status)status.textContent='有未保存的模拟更改';});
       if(key==='service')input.addEventListener('change',()=>route(input.value==='DeepSeek'?'22':'23',true));
     }
+    const connection=d.querySelector('[data-connection-status]');if(connection)connection.textContent=state.connection.text==='模拟通过'&&state.connection.image==='模拟通过'?'模拟连接成功':'尚未测试';
     const label=d.querySelector('.savebar>span');if(label)label.textContent=state.dirty?'有未保存的模拟更改':'模拟设置已保存';
     const lines=d.querySelectorAll('.status-line');if(lines.length>=3&&['22','23'].includes(app.screen)){lines[0].querySelector('.badge').textContent=state.dirty?'未保存':'已保存';lines[1].querySelector('.badge').textContent=state.connection.text;lines[2].querySelector('.badge').textContent=state.connection.image;}
   }
@@ -153,7 +154,6 @@
   function click(el,text){
     if(app.screen==='29'&&el.matches('.debug-grid .detail-tabs span')){state.debugTab=text;rerender();return true;}
     if(text==='全部事件'){state.eventFilter='全部';showEvents();return true;}
-    if(app.screen==='28'&&text==='导出'){click(el,'导出本次记录');return true;}
     if(text==='学生静音'||text==='恢复学生发言'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','静态模拟');rerender();return true;}
     if(text==='语音播报'||text==='关闭语音播报'){state.settings.tts=!state.settings.tts;rerender();return true;}
     if(text==='确认教学截图'){state.imageDraft?confirmImage():pickImage();return true;}
@@ -168,6 +168,7 @@
     if(text==='取消更改'){Object.assign(state.settings,state.savedSettings);state.dirty=false;rerender();toast('已恢复上次保存的模拟设置。');return true;}
     if(text==='继续编辑'){state.pendingRoute=null;route('23',true);return true;}
     if(text==='更换密钥'){popup('密钥占位说明','<p class="hint">本原型不连接模型，也不需要真实密钥。正式实现时，密钥仅交给后端保存。</p>',btn('知道了','close'));return true;}
+    if(text==='测试连接'){if(!state.settings.demoKey?.trim()){toast('请先填写演示 API Key。');d.querySelector('[aria-label="API Key"]')?.focus();return true;}state.connection.text='模拟通过';state.connection.image='模拟通过';rerender();toast('模拟连接成功，未发送真实请求。');return true;}
     if(text==='测试文字连接'||text==='测试看图连接'){const key=text.includes('看图')?'image':'text';state.connection[key]='模拟通过';rerender();toast('模拟连接通过。未发送请求、未产生模型用量。');return true;}
     if(['下载模型','选择使用','已选择','取消下载'].includes(text)&&el.closest('.model-card')){const name=el.dataset.model||el.closest('.model-card').querySelector('h3').textContent.trim();if(text==='取消下载'){downloadToken++;state.modelDownload=null;route('24',true);toast('已取消模拟下载。');}else if(text==='下载模型')startDownload(name);else if(state.session.active)toast('请先结束模拟课堂。');else{state.model=name;rerender();toast('已选择模拟模型：'+name);}return true;}
     if(text==='校验 / 修复'||text==='准备 VAD'){maintainModel(text);return true;}
@@ -179,7 +180,7 @@
     if(text==='清空结果'){state.asr.records=[];rerender();return true;}
     if(text==='导出结果'){download('模拟ASR结果.json',JSON.stringify({说明:'固定模拟结果，未采集音频',model:state.model,records:state.asr.records},null,2));return true;}
     if(text==='导出 Markdown'||text==='导出报告'){const content=d.querySelector('.report-main')?.innerText||'本次概念讲解与改进练习。';download('模拟教学报告.md','# '+(state.lesson.topic||'惯性的概念')+'\n\n> 静态模拟报告，不是真实教学评价。\n\n'+content,'text/markdown;charset=utf-8');return true;}
-    if(text==='导出记录'||text==='导出本次记录'){download('模拟课堂记录.json',JSON.stringify({说明:'静态模拟记录，无内部关联编号',lesson:state.lesson,messages:state.session.messages,records:state.records,events:state.events},null,2));return true;}
+    if(text==='导出日志'||text==='导出记录'||text==='导出本次记录'){download(text==='导出日志'?'模拟课堂日志.json':'模拟课堂记录.json',JSON.stringify({说明:'静态模拟记录，无内部关联编号',lesson:state.lesson,messages:state.session.messages,records:state.records,events:state.events},null,2));return true;}
     if(text==='导出脱敏诊断'){download('模拟诊断.json',JSON.stringify({说明:'静态原型诊断，无真实进程或凭据',version:'static-prototype-20261017',externalRequests:0,phase:state.session.phase},null,2));return true;}
     if(text==='重试复核'){state.reviewDone=true;addEvent('模拟知识复核完成');rerender();toast('模拟复核完成，没有请求模型。');return true;}
     if(text==='刷新状态'){rerender();toast('已刷新当前内存中的模拟状态。');return true;}
@@ -201,7 +202,7 @@
   function hydrate(document){
     d=document;setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
     for(const avatar of d.querySelectorAll('.chat-row:not(.teacher) .chat-avatar')){avatar.replaceChildren();avatar.style.background='transparent';const image=d.createElement('img');image.src='assets/小纸-用户原图.png';image.alt='小纸';image.style.cssText='width:32px;height:32px;object-fit:contain';avatar.append(image);}
-    if(['35','28'].includes(app.screen)&&state.session.phase==='disconnected'){const target=app.screen==='35'?d.querySelector('.stage-center'):d.querySelector('.main');if(target){const b=d.createElement('button');b.className='btn soft';b.textContent='恢复模拟连接';b.dataset.action='restore-connection';target.append(b);}}
+    if(app.screen==='35'&&state.session.phase==='disconnected'){const target=d.querySelector('.stage-center');if(target){const b=d.createElement('button');b.className='btn soft';b.textContent='恢复模拟连接';b.dataset.action='restore-connection';target.append(b);}}
     d.addEventListener('paste',e=>{const file=[...(e.clipboardData?.files||[])].find(f=>f.type.startsWith('image/'));if(file){e.preventDefault();imageDialog(file);}});
     if(app.screen==='38'&&state.detailsModel){const h=d.querySelector('.main .card h2');if(h)h.textContent=state.detailsModel;}
     for(const value of d.querySelectorAll('.version-table strong')){if(value.textContent.includes('示例进程'))value.textContent='静态原型 · 无后台进程';if(value.textContent.includes('完整指纹')){const b=d.createElement('button');b.className='btn ghost';b.dataset.action='fingerprint';b.textContent='查看完整指纹';value.replaceChildren(b);}}

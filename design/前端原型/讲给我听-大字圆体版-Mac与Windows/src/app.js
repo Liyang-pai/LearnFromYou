@@ -18,6 +18,31 @@
     fit();
   }
   function hydrate(){
+    // 共用外壳：品牌归入侧栏，课堂操作保留在内容区。
+    const topbar=doc.querySelector('.topbar'), sidebar=doc.querySelector('.sidebar');
+    if(topbar && sidebar){
+      const brand=topbar.querySelector('.brand');
+      brand.querySelector('.top-divider')?.remove();
+      brand.querySelector('.top-label')?.remove();
+      brand.querySelector('.brand-en').textContent='LearnFromYou';
+      sidebar.prepend(brand);
+      const actions=doc.querySelector('.page-head .row-actions');
+      if(actions)for(const el of topbar.querySelectorAll('.top-status > *')){
+        if(el.matches('button') || el.querySelector('b')){el.classList.add('session-action');actions.append(el);}
+      }
+      topbar.remove();
+    }
+    const navIcons={
+      '首页':'<path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9M9 21v-8h6v8"/>',
+      '创建试讲':'<path d="M12 5v14M5 12h14"/>',
+      '我的教室':'<rect x="3" y="3" width="18" height="14" rx="1"/><path d="m8 21 4-4 4 4"/>',
+      '设置':'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68h.08A1.65 1.65 0 0 0 10 3.17V3a2 2 0 0 1 4 0v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9v.08A1.65 1.65 0 0 0 20.83 10H21a2 2 0 0 1 0 4h-.09A1.65 1.65 0 0 0 19.4 15z"/>',
+      '调试前端':'<path d="m7 7-5 5 5 5m10-10 5 5-5 5M14 4l-4 16"/>'
+    };
+    for(const nav of doc.querySelectorAll('.sidebar .nav-item')){
+      const icon=nav.querySelector('svg'), paths=navIcons[nav.textContent.trim()];
+      if(icon && paths){icon.innerHTML=paths;icon.setAttribute('stroke-width','1.8');icon.setAttribute('aria-hidden','true');}
+    }
     for(const nav of doc.querySelectorAll('.nav-item')){
       nav.tabIndex=0;nav.setAttribute('role','button');
       const label=nav.textContent.trim();const act=()=>show(label==='首页'?'01':label==='创建试讲'?(state.lesson.profile?'03':'02'):label==='我的教室'?(state.session.active?'08':'04'):label==='设置'?'22':'29');
@@ -25,7 +50,7 @@
     }
     for(const button of doc.querySelectorAll('button'))button.type='button';
     on('创建一次试讲',()=>show('02'));on('创建试讲',()=>show('05'));on('查看课堂详情',()=>show('10'));on('返回教室',()=>show(state.session.active?'08':'04'));on('返回课堂',()=>show('08'));
-    [...doc.querySelectorAll('.settings-tabs span')].forEach((el,i)=>el.onclick=()=>show(['22','24','27','28'][i]));
+    [...doc.querySelectorAll('.settings-tabs span')].forEach((el,i)=>el.onclick=()=>show(['22','24'][i]));
     [...doc.querySelectorAll('.main>.detail-tabs span')].forEach((el,i)=>el.onclick=()=>show((['29','30'].includes(screen)?['29','30']:['10','11','12','13'])[i]));
     for(const el of doc.querySelectorAll('.top-status>span'))if(el.textContent.includes('本机服务'))el.textContent='静态模拟 · 无服务连接';
     doc.addEventListener('keydown',e=>{if(e.key==='Escape')modalClose();});

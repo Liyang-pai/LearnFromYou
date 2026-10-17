@@ -1,6 +1,6 @@
 {
-  "date": "2026-10-17T14:33:56.083Z",
-  "sceneCount": 42,
+  "date": "2026-10-17T16:46:00.770Z",
+  "sceneCount": 40,
   "errors": [],
   "consoleErrors": [],
   "externalRequests": [],
@@ -21,8 +21,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 946,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -42,7 +42,7 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
+      "mainHeight": 1000,
       "mainScrollHeight": 1018,
       "hostOverflow": false,
       "horizontalOverflow": false,
@@ -63,7 +63,7 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
+      "mainHeight": 1000,
       "mainScrollHeight": 1050,
       "hostOverflow": false,
       "horizontalOverflow": false,
@@ -84,8 +84,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 977,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -105,8 +105,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -137,8 +137,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -164,8 +164,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -196,8 +196,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -223,8 +223,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -255,8 +255,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -276,7 +276,7 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
+      "mainHeight": 1000,
       "mainScrollHeight": 1125,
       "hostOverflow": false,
       "horizontalOverflow": false,
@@ -297,8 +297,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -318,8 +318,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -337,7 +337,7 @@
     },
     {
       "id": "23",
-      "name": "23-设置-自定义模型与API",
+      "name": "23-设置-编辑API密钥",
       "font": [
         {
           "family": "ChillRound",
@@ -350,8 +350,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -382,8 +382,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -414,8 +414,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -446,61 +446,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 981,
-      "hostOverflow": false,
-      "horizontalOverflow": false,
-      "primaryActions": []
-    },
-    {
-      "id": "27",
-      "name": "27-设置-课堂偏好",
-      "font": [
-        {
-          "family": "ChillRound",
-          "status": "loaded"
-        }
-      ],
-      "bodyFont": 18,
-      "images": true,
-      "mainWidth": 1390,
-      "mainScrollWidth": 1390,
-      "bodyWidth": 1600,
-      "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
-      "hostOverflow": false,
-      "horizontalOverflow": false,
-      "primaryActions": [
-        {
-          "label": "取消更改",
-          "visible": true,
-          "unobstructed": true
-        },
-        {
-          "label": "保存设置",
-          "visible": true,
-          "unobstructed": true
-        }
-      ]
-    },
-    {
-      "id": "28",
-      "name": "28-设置-数据与诊断",
-      "font": [
-        {
-          "family": "ChillRound",
-          "status": "loaded"
-        }
-      ],
-      "bodyFont": 18,
-      "images": true,
-      "mainWidth": 1390,
-      "mainScrollWidth": 1390,
-      "bodyWidth": 1600,
-      "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -520,8 +467,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 989,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -541,8 +488,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -562,8 +509,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 962,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -594,8 +541,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 962,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -626,8 +573,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 962,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -658,8 +605,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -679,8 +626,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -700,8 +647,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -732,8 +679,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -764,8 +711,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 940,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -785,7 +732,7 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
+      "mainHeight": 1000,
       "mainScrollHeight": 1084,
       "hostOverflow": false,
       "horizontalOverflow": false,
@@ -806,8 +753,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -827,8 +774,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 993,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -859,8 +806,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -891,8 +838,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 958,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -912,8 +859,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 962,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -944,8 +891,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 962,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
@@ -976,8 +923,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 924,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -997,8 +944,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -1018,8 +965,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -1039,8 +986,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -1060,8 +1007,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []
@@ -1081,8 +1028,8 @@
       "mainScrollWidth": 1390,
       "bodyWidth": 1600,
       "bodyScrollWidth": 1600,
-      "mainHeight": 924,
-      "mainScrollHeight": 930,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": []

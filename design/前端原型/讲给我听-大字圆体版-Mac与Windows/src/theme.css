@@ -23,16 +23,18 @@ h2 { font-size: 26px; line-height: 1.45; }
 h3 { font-size: 21px; }
 strong { font-weight: 650; }
 .app { background: #f7faff; }
-.topbar { background: #fff; border-bottom: 0; padding: 0 30px; }
-.brand-character { width: 56px; height: 56px; }
-.brand-name { font-size: 28px; letter-spacing: .4px; }
-.brand-en, .hero .hero-tag, .nav-caption, .side-foot { display: none; }
+.sidebar > .brand { gap: 8px; margin: 0 0 26px; padding: 0 2px; min-height: 66px; flex-shrink: 0; }
+.sidebar .brand-character { width: 44px; height: 52px; }
+.sidebar .brand-name { font-size: 24px; letter-spacing: .4px; white-space: nowrap; line-height: 1.4; }
+.sidebar .brand-en { display: block; font-family: "PingFang SC", "Microsoft YaHei UI", sans-serif; font-size: 12px; letter-spacing: 1px; color: #8497b5; line-height: 1.8; }
+.hero .hero-tag, .nav-caption, .side-foot { display: none; }
 .top-label { font-size: 17px; color: #8492a7; }
 .top-divider { background: #e8eff7; height: 24px; }
 .top-status { font-size: 16px; gap: 18px; }
 .status-dot { box-shadow: none; width: 8px; height: 8px; }
-.sidebar { background: #fff; border-right: 0; padding: 28px 16px 20px; }
+.sidebar { top: 0; background: #fff; border-right: 0; padding: 28px 16px 20px; }
 .nav-item, .sidebar-bottom .nav-item { font-size: 18px; padding: 15px 14px; border-radius: 18px; gap: 12px; color: #77879d; }
+.sidebar .nav-item > .icon { display: block; width: 22px; height: 22px; flex: 0 0 22px; overflow: visible; }
 .nav-item.active { background: #eaf3ff; color: #4c86e8; }
 .nav-item.active:before { display: none; }
 .nav-item:hover { background: #f3f7fd; }
@@ -41,7 +43,7 @@ strong { font-weight: 650; }
 .side-current h4, .thumb-actions { font-size: 14px; }
 .sidebar-bottom .nav-item[style] { font-size: 15px !important; }
 .side-current [data-action="pick-image"] p { display: block; font-size: 14px !important; padding: 16px 5px !important; color: #8ca0bb; }
-.main { padding: 30px 34px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #d9e5f4 transparent; }
+.main { top: 0; padding: 30px 34px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #d9e5f4 transparent; }
 .page-head { min-height: 86px; margin-bottom: 23px; gap: 18px; }
 .page-head p { font-size: 18px; color: #7b8ca4; line-height: 1.65; margin-top: 7px; }
 .eyebrow { font-size: 14px; letter-spacing: .5px; }
@@ -234,3 +236,23 @@ strong { font-weight: 650; }
 .prototype-review #canvas { border-radius: 23px; background: #f7faff; box-shadow: 0 9px 32px #466c9510; }
 .prototype-review .preview-footer { height: 32px; padding: 5px 18px; font-size: 12px; border: 0; background: #edf3fb; }
 .prototype-review #hostToast { font-size: 16px; border-radius: 18px; padding: 13px 21px; background: #426187f2; }
+
+/* DeepSeek 连接只展示服务和密钥。 */
+.main .api-simple-layout { display: block; max-width: 900px; }
+.main:has(>.settings-tabs) .api-simple-card { padding: 32px; min-height: 0; }
+.api-simple-card .card-head { margin-bottom: 30px; }
+.api-service { font-size: 20px; padding: 9px 0; color: var(--ink); }
+.api-connection { display: flex; align-items: center; gap: 18px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+.main:has(.api-simple-layout) > .savebar { max-width: 900px; }
+
+.profile-form .btn.profile-generate:disabled {
+  background: #edf0f4; border-color: #edf0f4; color: #9aa6b6;
+  box-shadow: none; opacity: 1; cursor: default;
+}
+
+.api-simple-layout > .api-preferences { margin-top: 22px; }
+.api-preferences .card-head { margin-bottom: 12px; }
+.api-preferences .setting-row:last-child { border-bottom: 0; }
+
+.profile-card .footer > .setting-row { padding: 0 0 16px; margin-bottom: 16px; }
+.profile-card .footer > .setting-row p { font-size: 14px; line-height: 1.5; }
