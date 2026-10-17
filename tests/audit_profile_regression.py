@@ -12,7 +12,7 @@ GRADES = {'一年级', '二年级', '三年级', '四年级', '五年级', '六�
 
 
 def sections(text):
-    matches = list(re.finditer(r'(?m)^(已有知识|理解基础|知识边界|可能的理解困难)[：:]?', text))
+    matches = list(re.finditer(r'(?m)^(已有知识|理解基础|知识边界|可能的理解困难)(?:[：:]|[ \t]*(?=\n|$))', text))
     return {m[1]: text[m.end():matches[i+1].start() if i+1 < len(matches) else len(text)].strip()
             for i, m in enumerate(matches)}
 
@@ -52,12 +52,12 @@ def audit(paths):
                 failures.append([key, 'normal prerequisite independence/support mismatch'])
             if settings['lesson_type'] != 'new':
                 if '确认' not in parts['理解基础'] or '确认' not in parts['知识边界']:
-                    failures.append([key, 'review/application invents target mastery'])
+                    failures.append([key, 'review/application lacks target confirmation boundary'])
                 if re.search(r'尚未学习|已经掌握|熟练掌握', parts['理解基础'] + parts['知识边界']):
                     flags.append([key, 'check unsupported learning history'])
             if settings['grade'] in ('一年级', '小学一年级', '二年级'):
                 if re.search(r'有理数|代数|坐标|比例|电流|电压|电阻|电路|正负极', parts['已有知识']):
-                    failures.append([key, 'low grade has advanced prerequisites'])
+                    flags.append([key, 'review age appropriateness of domain prerequisites; keyword alone is not proof'])
             prefix = case['id'][:2]
             rules = {
                 '01': r'等式两边同时|判断.{0,12}方程.{0,5}解|检验|移项|能.{0,8}解方程',

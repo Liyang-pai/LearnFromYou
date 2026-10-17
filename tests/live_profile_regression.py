@@ -44,6 +44,28 @@ def sources():
 
 def cases(suite, repeats):
     result = []
+    if suite == 'generalization':
+        search = dict(topic='二分查找', grade='大一', subject='计算机基础',
+                      points='适用条件；查找过程与区间更新；边界与终止；效率分析')
+        variants = [('weak', 'new'), ('normal', 'new'), ('strong', 'new'),
+                    ('normal', 'review'), ('normal', 'application')]
+        for repeat in range(1, repeats + 1):
+            for level, lesson in variants:
+                result.append((f'transfer-search-{level}-{lesson}-r{repeat}', TeachingSettings(
+                    **search, student_level=level, lesson_type=lesson)))
+            result.extend([
+                (f'transfer-language-r{repeat}', TeachingSettings(topic='记叙文中的人物描写')),
+                (f'transfer-biology-r{repeat}', TeachingSettings(topic='光合作用')),
+                (f'01-regression-r{repeat}', TeachingSettings(
+                    topic='用等式性质理解移项与解一元一次方程', grade='七年级', subject='数学',
+                    points='等式性质、移项的依据、解方程与代入检验', student_level='weak')),
+                (f'transfer-low-grade-r{repeat}', TeachingSettings(topic='欧姆定律', grade='一年级', subject='物理')),
+            ])
+    if suite == 'points':
+        # 只填主题，专测可实施的知识点拆分；使用 --no-preparation 避免无关提取调用。
+        for repeat in range(1, repeats + 1):
+            for number, topic in enumerate(('矩阵的压缩存储', '欧姆定律', '20以内的加减法'), 1):
+                result.append((f'points-{number:02d}-r{repeat}', TeachingSettings(topic=topic)))
     if suite in ('matrix', 'pilot'):
         pilot = {('01', 'weak', 'new'), ('02', 'strong', 'new'),
                  ('03', 'normal', 'new'), ('03', 'normal', 'application'),
@@ -287,7 +309,8 @@ async def run(args):
                        if args.select == 'all' or key in args.select.split(',')]
             summary['planned_cases'] = len(planned)
             summary['skipped_completed'] = [key for key, _ in planned
-                                             if previous.get(key, {}).get('status') == 'completed']
+                                             if previous.get(key, {}).get('status') == 'completed'
+                                             and (args.no_preparation or previous[key].get('preparation'))]
             summary['cases'].extend({**previous[key], 'reused_from': args.source}
                                     for key in summary['skipped_completed'])
             await asyncio.gather(*(profile(key, setting) for key, setting in planned
@@ -336,7 +359,7 @@ if __name__ == '__main__':
     parser.add_argument('--live', action='store_true', required=True)
     parser.add_argument('--output', required=True)
     parser.add_argument('--stage', choices=('profiles', 'classroom'), default='profiles')
-    parser.add_argument('--suite', choices=('pilot', 'matrix', 'grades'), default='pilot')
+    parser.add_argument('--suite', choices=('pilot', 'matrix', 'grades', 'points', 'generalization'), default='pilot')
     parser.add_argument('--repeats', type=int, default=1)
     parser.add_argument('--concurrency', type=int, choices=(1, 2), default=2)
     parser.add_argument('--request-limit', type=int, default=100)
