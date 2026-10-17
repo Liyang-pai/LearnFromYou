@@ -1,0 +1,16 @@
+{
+  "name": "learnfromyou-frontend-design-review",
+  "private": true,
+  "version": "1.0.0",
+  "description": "静态设计稿的出图与复核工具，独立于产品运行依赖",
+  "scripts": {
+    "verify": "node v1-placeholder/source/verify.cjs && node v2-xiaozhi/source/verify.cjs && node review-check.cjs",
+    "build:v1": "node v1-placeholder/source/build.cjs",
+    "build:v2": "node v2-xiaozhi/source/build.cjs",
+    "check": "node review-check.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1",
+    "sharp": "0.35.5"
+  }
+}
