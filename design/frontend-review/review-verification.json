@@ -1,0 +1,24 @@
+{
+  "verified": "2026-10-17 Asia/Shanghai",
+  "scope": "仅共享设计材料；不验证产品功能",
+  "versions": [
+    {
+      "name": "v1-placeholder",
+      "pages": 42,
+      "overviews": 5,
+      "pngHashesMatch": true,
+      "priorPageVerificationPassed": true
+    },
+    {
+      "name": "v2-xiaozhi",
+      "pages": 42,
+      "overviews": 5,
+      "pngHashesMatch": true,
+      "priorPageVerificationPassed": true
+    }
+  ],
+  "pngCount": 95,
+  "checkedLinks": 524,
+  "privatePathAndCredentialScanPassed": true,
+  "failures": []
+}
