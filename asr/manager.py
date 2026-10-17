@@ -2,6 +2,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import shutil
@@ -14,6 +15,8 @@ import httpx
 
 from .catalog import CATALOG, LEGACY_ID, VAD
 from .recognizer import Recognizer
+
+logger = logging.getLogger(__name__)
 
 
 class DownloadCancelled(Exception):
@@ -37,6 +40,8 @@ class ModelManager:
         self.engine = None
         self.error = None
         self.verified = {}
+        self.invalid = {}
+        self.record_write_errors = set()
         self.settings_error = None
         self.selected_id = None
         settings = self.root / ".settings.json"
@@ -86,11 +91,43 @@ class ModelManager:
             record = json.loads(marker.read_text(encoding="utf-8"))
             if record["revision"] != model.revision:
                 return False
-            return all(self._signature(directory / f.name)[0] == f.size
-                       and self._signature(directory / f.name) == record["files"][f.name]
-                       for f in model.files)
+            signatures = {f.name: self._signature(directory / f.name) for f in model.files}
+            changed = []
+            for asset in model.files:
+                previous = record["files"][asset.name]
+                if (not isinstance(previous, list) or len(previous) != 2
+                        or any(type(value) is not int for value in previous)
+                        or signatures[asset.name][0] != asset.size):
+                    return False
+                if signatures[asset.name] != previous:
+                    changed.append(asset)
+            for asset in changed:
+                self._verify(directory / asset.name, asset)
+            # Check the whole set again: an earlier file may change while another hashes.
+            if any(self._signature(directory / f.name) != signatures[f.name] for f in model.files):
+                return False
+            if changed:
+                record["files"] = signatures
+                try:
+                    self._write_record(directory, record)
+                    self.record_write_errors.discard(str(marker))
+                except (OSError, ValueError):
+                    # Verified files remain usable even on a read-only copied installation.
+                    if str(marker) not in self.record_write_errors:
+                        logger.warning("模型安装记录无法更新：%s", marker, exc_info=True)
+                        self.record_write_errors.add(str(marker))
+            return True
         except (OSError, ValueError, KeyError, TypeError):
             return False
+
+    def _write_record(self, directory, record):
+        marker = self._safe_file(directory / ".installed.json")
+        temporary = self._safe_file(directory / ".installed.json.part")
+        try:
+            temporary.write_text(json.dumps(record), encoding="utf-8")
+            temporary.replace(marker)
+        finally:
+            temporary.unlink(missing_ok=True)
 
     @property
     def vad_path(self):
@@ -178,15 +215,22 @@ class ModelManager:
             raise ValueError(f"{asset.name} 文件大小不正确，请重新下载")
         if self.verified.get(cache_key) == signature:
             return
+        if self.invalid.get(cache_key) == signature:
+            raise ValueError(f"{asset.name} 校验失败，请重新下载")
         digest = hashlib.sha256()
         with path.open("rb") as file:
             while chunk := file.read(1024 * 1024):
                 if cancel and cancel.is_set():
                     raise DownloadCancelled()
                 digest.update(chunk)
-        if digest.hexdigest() != asset.sha256 or self._signature(path) != signature:
+        if self._signature(path) != signature:
+            raise ValueError(f"{asset.name} 校验失败，请重新下载")
+        if digest.hexdigest() != asset.sha256:
+            self.invalid[cache_key] = signature
+            self.verified.pop(cache_key, None)
             raise ValueError(f"{asset.name} 校验失败，请重新下载")
         self.verified[cache_key] = signature
+        self.invalid.pop(cache_key, None)
 
     def _create_engine(self, model):
         directory = self.directory(model)
@@ -196,7 +240,7 @@ class ModelManager:
         self._verify(self.vad_path, self.vad)
         return Recognizer(directory, self.threads, model=model)
 
-    async def acquire(self, model_id=None, purpose="lesson"):
+    def _prepare_acquire(self, model_id, purpose):
         with self.lock:
             if self.busy:
                 raise ValueError("已有试讲或 ASR 调试正在创建或运行，请先结束当前任务")
@@ -210,6 +254,23 @@ class ModelManager:
             self.activity = purpose
             self.error = None
             model = self.model(chosen)
+            return model
+
+    async def acquire(self, model_id=None, purpose="lesson"):
+        preparation = asyncio.create_task(asyncio.to_thread(self._prepare_acquire, model_id, purpose))
+        try:
+            model = await asyncio.shield(preparation)
+        except asyncio.CancelledError:
+            with anyio.CancelScope(shield=True):
+                try:
+                    await preparation
+                except Exception:
+                    pass
+                else:
+                    with self.lock:
+                        self.busy = self.loading = False
+                        self.activity = None
+            raise
         task = asyncio.create_task(asyncio.to_thread(self._create_engine, model))
         try:
             self.engine = await asyncio.shield(task)
@@ -328,9 +389,7 @@ class ModelManager:
                 raise DownloadCancelled()
             record = {"revision": model.revision,
                       "files": {f.name: self._signature(directory / f.name) for f in model.files}}
-            temporary = self._safe_file(directory / ".installed.json.part")
-            temporary.write_text(json.dumps(record), encoding="utf-8")
-            temporary.replace(marker)
+            self._write_record(directory, record)
             self._update_job(model.id, state="installed", file="")
         except DownloadCancelled:
             self._update_job(model.id, state="cancelled", file="")

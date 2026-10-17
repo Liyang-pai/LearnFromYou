@@ -198,8 +198,9 @@ class Candidate(StrictModel):
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
     text: str = Field(default="", max_length=600)
     question_id: str | None = Field(default=None,
-        description='question 必须引用当前未解决疑问，或在本轮 question_updates 中同时登记的疑问 ID')
-    sources: list[str] = Field(default_factory=list, max_length=12)
+        description='仅question填写未解决疑问ID，或在本轮question_updates中同时登记；answer/ack/silence填null')
+    sources: list[str] = Field(default_factory=list, max_length=12,
+        description='仅原始课堂来源ID：教师t或画像p；知识条目k放knowledge_ids，不放这里')
 
 
 class StudentResult(StrictModel):

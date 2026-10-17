@@ -1,0 +1,1136 @@
+{
+  "description": "2026-10-17合成三角矩阵课堂的四份原始失败输出及其前置状态；不依赖本地logs。",
+  "cases": [
+    {
+      "id": "control-r1-transfer",
+      "state": {
+        "schema_version": 2,
+        "response_requests": [
+          {
+            "id": "rr1",
+            "text": "请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+            "sources": [
+              "t1"
+            ],
+            "status": "answered",
+            "reason": "学生已实际发出回应；不表示知识已经理解",
+            "resolution_sources": [],
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": "",
+            "input_revision": 1
+          },
+          {
+            "id": "rr2",
+            "text": "请独立算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+            "sources": [
+              "t2"
+            ],
+            "status": "answered",
+            "reason": "学生已实际发出回应；不表示知识已经理解",
+            "resolution_sources": [],
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": "",
+            "input_revision": 2
+          }
+        ],
+        "conflicts": [],
+        "pending_reviews": [],
+        "version": 4,
+        "knowledge": [
+          {
+            "id": "p1",
+            "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+            "status": "understood",
+            "sources": [
+              "p1"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p2",
+            "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+            "status": "understood",
+            "sources": [
+              "p2"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p3",
+            "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+            "status": "understood",
+            "sources": [
+              "p3"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p4",
+            "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+            "status": "understood",
+            "sources": [
+              "p4"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p5",
+            "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+            "status": "understood",
+            "sources": [
+              "p5"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p6",
+            "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+            "status": "understood",
+            "sources": [
+              "p6"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "k1",
+            "text": "下三角矩阵按行压缩存储，保留主对角线；行号、列号和一维数组下标均从1开始；合法位置(i,j)的映射公式为k=i(i-1)/2+j。",
+            "status": "understood",
+            "sources": [
+              "t1",
+              "t2"
+            ],
+            "conditions": "下三角矩阵，保留主对角线，下标从1开始",
+            "reason": "教师补充了推导：第i行前有1+2+…+(i-1)=i(i-1)/2个元素，第i行保留列1到i共i个元素，故k为两者相加；我已有等差数列求和与行优先存储基础，链条完整",
+            "revision": 2,
+            "dependencies": [
+              {
+                "id": "p2",
+                "revision": 1
+              },
+              {
+                "id": "p3",
+                "revision": 1
+              },
+              {
+                "id": "p4",
+                "revision": 1
+              }
+            ],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "k2",
+            "text": "下三角矩阵第r行保留列号1到r，共r个元素，包含该行主对角线元素；因此对角线元素被计入压缩存储。",
+            "status": "understood",
+            "sources": [
+              "t2"
+            ],
+            "conditions": "下三角矩阵，保留主对角线，下标从1开始",
+            "reason": "教师明确说明每行保留列1到r且包含主对角线元素，并举例第4行对角线对应第10个",
+            "revision": 1,
+            "dependencies": [
+              {
+                "id": "p3",
+                "revision": 1
+              }
+            ],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "open_questions": [],
+        "recent_events": [
+          {
+            "id": "e1",
+            "kind": "task",
+            "text": "教师要求计算(4,2)的一维下标，并说明公式两部分各在数什么，卡住要说具体卡点。",
+            "sources": [
+              "t1"
+            ]
+          },
+          {
+            "id": "e2",
+            "kind": "task",
+            "text": "教师要求独立计算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+            "sources": [
+              "t2"
+            ]
+          }
+        ],
+        "knowledge_history": [
+          {
+            "version": 3,
+            "previous": {
+              "id": "k1",
+              "text": "下三角矩阵按行压缩存储，保留主对角线；行号、列号和一维数组下标均从1开始；合法位置(i,j)的映射公式为k=i(i-1)/2+j。",
+              "status": "tentative",
+              "sources": [
+                "t1"
+              ],
+              "conditions": "下三角矩阵，保留主对角线，下标从1开始",
+              "reason": "教师直接给出公式但明确暂不展开推导，公式本身可先记住，但两部分各数什么尚未讲，需靠后续解释确认",
+              "revision": 1,
+              "dependencies": [],
+              "independent_sources": [],
+              "correction_sources": [],
+              "supersedes": []
+            },
+            "replacement_id": "k1",
+            "invalidated": false,
+            "change_reason": "教师补充了推导：第i行前有1+2+…+(i-1)=i(i-1)/2个元素，第i行保留列1到i共i个元素，故k为两者相加；我已有等差数列求和与行优先存储基础，链条完整",
+            "change_sources": [
+              "t1",
+              "t2"
+            ]
+          }
+        ]
+      },
+      "sources": {
+        "p1": {
+          "id": "p1",
+          "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+          "kind": "prerequisite"
+        },
+        "p2": {
+          "id": "p2",
+          "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+          "kind": "prerequisite"
+        },
+        "p3": {
+          "id": "p3",
+          "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+          "kind": "prerequisite"
+        },
+        "p4": {
+          "id": "p4",
+          "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+          "kind": "prerequisite"
+        },
+        "p5": {
+          "id": "p5",
+          "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+          "kind": "prerequisite"
+        },
+        "p6": {
+          "id": "p6",
+          "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+          "kind": "prerequisite"
+        },
+        "t1": {
+          "id": "t1",
+          "text": "本节先讨论下三角矩阵按行压缩存储，保留主对角线。矩阵行号、列号和一维数组下标全部从1开始。对合法位置(i,j)，先给出映射公式k=i(i-1)/2+j，暂不展开推导。请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+          "mode": "text",
+          "revision": 1,
+          "at": 0.046
+        },
+        "t2": {
+          "id": "t2",
+          "text": "现在补充解释：下三角矩阵第r行保留列号1到r，共r个元素，包含该行主对角线元素。第i行前面有1到i-1行，元素总数为1+2+…+(i-1)=i(i-1)/2；到当前第j列再数j个，所以k是两者相加。第4行之前共6个元素，第2列对应第8个；第4行对角线对应第10个。请独立算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+          "mode": "text",
+          "revision": 2,
+          "at": 3.111
+        },
+        "t3": {
+          "id": "t3",
+          "text": "现在不再给公式。仍按刚才的规则存储，请计算(6,1)和(6,6)的一维下标；说明两个位置相差几个下标单位、第6行实际保存几个元素，并判断(3,4)是否属于本节定义的保留区域。",
+          "mode": "text",
+          "revision": 3,
+          "at": 6.499
+        }
+      },
+      "current_ids": [
+        "t3"
+      ],
+      "input_revision": 3,
+      "result": {
+        "addressed": true,
+        "candidate": {
+          "kind": "answer",
+          "text": "(6,1)：6×5/2+1=16；(6,6)：6×5/2+6=21，两者相差5个下标单位。第6行保留列1到6，共6个元素。(3,4)列号大于行号，不在下三角保留区域内。",
+          "question_id": null,
+          "question_release_request": null,
+          "response_request_ids": [
+            "rr3"
+          ],
+          "knowledge_ids": [
+            "k1",
+            "k2"
+          ],
+          "sources": [
+            "t3",
+            "k1",
+            "k2"
+          ]
+        },
+        "conflict_updates": [],
+        "event_updates": [
+          {
+            "id": "e3",
+            "kind": "task",
+            "text": "教师要求不用公式计算(6,1)和(6,6)的一维下标，说明两者相差几个下标单位、第6行保存几个元素，并判断(3,4)是否在保留区域。",
+            "sources": [
+              "t3"
+            ]
+          }
+        ],
+        "knowledge_updates": [],
+        "note": "教师要求独立计算并判断保留区域，用已理解的下三角映射规则与每行保留列1到r的规则作答。",
+        "question_updates": [],
+        "response_request_updates": [
+          {
+            "id": "rr3",
+            "kind": "answer",
+            "text": "请计算(6,1)和(6,6)的一维下标；说明两个位置相差几个下标单位、第6行实际保存几个元素，并判断(3,4)是否属于本节定义的保留区域。",
+            "sources": [
+              "t3"
+            ],
+            "status": "pending",
+            "reason": "",
+            "resolution_sources": [],
+            "invitation_source_id": null,
+            "invitation_quote": ""
+          }
+        ]
+      },
+      "original_error": "输出引用了不存在的课堂来源"
+    },
+    {
+      "id": "difficulty-r1-jump",
+      "state": {
+        "schema_version": 2,
+        "response_requests": [],
+        "conflicts": [],
+        "pending_reviews": [],
+        "version": 0,
+        "knowledge": [
+          {
+            "id": "p1",
+            "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+            "status": "understood",
+            "sources": [
+              "p1"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p2",
+            "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+            "status": "understood",
+            "sources": [
+              "p2"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p3",
+            "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+            "status": "understood",
+            "sources": [
+              "p3"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p4",
+            "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+            "status": "understood",
+            "sources": [
+              "p4"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p5",
+            "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+            "status": "understood",
+            "sources": [
+              "p5"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p6",
+            "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+            "status": "understood",
+            "sources": [
+              "p6"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "open_questions": [],
+        "recent_events": [],
+        "knowledge_history": []
+      },
+      "sources": {
+        "p1": {
+          "id": "p1",
+          "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+          "kind": "prerequisite"
+        },
+        "p2": {
+          "id": "p2",
+          "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+          "kind": "prerequisite"
+        },
+        "p3": {
+          "id": "p3",
+          "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+          "kind": "prerequisite"
+        },
+        "p4": {
+          "id": "p4",
+          "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+          "kind": "prerequisite"
+        },
+        "p5": {
+          "id": "p5",
+          "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+          "kind": "prerequisite"
+        },
+        "p6": {
+          "id": "p6",
+          "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+          "kind": "prerequisite"
+        },
+        "t1": {
+          "id": "t1",
+          "text": "本节先讨论下三角矩阵按行压缩存储，保留主对角线。矩阵行号、列号和一维数组下标全部从1开始。对合法位置(i,j)，先给出映射公式k=i(i-1)/2+j，暂不展开推导。请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+          "mode": "text",
+          "revision": 1,
+          "at": 0.046
+        }
+      },
+      "current_ids": [
+        "t1"
+      ],
+      "input_revision": 1,
+      "result": {
+        "response_request_updates": [
+          {
+            "id": "rr1",
+            "text": "请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+            "sources": [
+              "t1"
+            ],
+            "status": "pending",
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": ""
+          }
+        ],
+        "knowledge_updates": [
+          {
+            "id": "k1",
+            "text": "下三角矩阵按行压缩存储时保留主对角线；矩阵行号、列号和一维数组下标均从1开始；对合法位置(i,j)，一维下标映射公式为 k=i(i-1)/2+j。",
+            "status": "tentative",
+            "sources": [
+              "t1"
+            ],
+            "conditions": "下三角矩阵，行优先压缩存储，保留主对角线，下标从1开始",
+            "reason": "教师直接给出公式但明确暂不展开推导，公式两部分含义未讲，学生需自行补出或等待解释",
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "conflict_updates": [],
+        "question_updates": [
+          {
+            "id": "q1",
+            "topic": "下三角矩阵映射公式k=i(i-1)/2+j中两部分各自在数什么",
+            "text": "公式k=i(i-1)/2+j里，i(i-1)/2和+j分别是在数什么？",
+            "status": "pending",
+            "sources": [
+              "t1"
+            ],
+            "resolution_sources": []
+          }
+        ],
+        "event_updates": [
+          {
+            "id": "e1",
+            "kind": "task",
+            "text": "教师要求计算(4,2)的一维下标，并说明公式两部分分别在数什么，若解释不清则说明具体卡点。",
+            "sources": [
+              "t1"
+            ]
+          }
+        ],
+        "addressed": true,
+        "candidate": {
+          "kind": "answer",
+          "text": "代入公式k=4×3/2+2=8，所以(4,2)的一维下标是8。但公式里i(i-1)/2和+j分别是在数什么，我还没想清楚，能具体讲讲吗？",
+          "question_id": "q1",
+          "question_release_request": null,
+          "response_request_ids": [
+            "rr1"
+          ],
+          "knowledge_ids": [
+            "k1"
+          ],
+          "sources": [
+            "t1"
+          ]
+        },
+        "note": "教师要求计算(4,2)并说明公式两部分含义；学生能代入公式算出8，但公式含义未讲，登记为疑问q1并请求解释。"
+      },
+      "original_error": "疑问 'q1' 例外申请未通过：不能把提问关联放进 answer/ack 绕过限制。同题通常最多问两次；仅教师明确邀请说明疑问时，使用 question 并附 question_release_request，关联原问题和有效邀请。不得改成 answer/ack 绕过；无有效邀请时 silence。"
+    },
+    {
+      "id": "difficulty-r1-transfer",
+      "state": {
+        "schema_version": 2,
+        "response_requests": [
+          {
+            "id": "rr1",
+            "text": "请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+            "sources": [
+              "t1"
+            ],
+            "status": "answered",
+            "reason": "学生已实际发出回应；不表示知识已经理解",
+            "resolution_sources": [],
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": "",
+            "input_revision": 1
+          },
+          {
+            "id": "rr2",
+            "text": "请独立算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+            "sources": [
+              "t2"
+            ],
+            "status": "answered",
+            "reason": "学生已实际发出回应；不表示知识已经理解",
+            "resolution_sources": [],
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": "",
+            "input_revision": 2
+          }
+        ],
+        "conflicts": [],
+        "pending_reviews": [],
+        "version": 4,
+        "knowledge": [
+          {
+            "id": "p1",
+            "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+            "status": "understood",
+            "sources": [
+              "p1"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p2",
+            "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+            "status": "understood",
+            "sources": [
+              "p2"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p3",
+            "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+            "status": "understood",
+            "sources": [
+              "p3"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p4",
+            "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+            "status": "understood",
+            "sources": [
+              "p4"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p5",
+            "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+            "status": "understood",
+            "sources": [
+              "p5"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p6",
+            "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+            "status": "understood",
+            "sources": [
+              "p6"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "k1",
+            "text": "下三角矩阵按行压缩存储时保留主对角线；矩阵行号、列号和一维数组下标均从1开始；对合法位置(i,j)，一维下标映射公式为 k=i(i-1)/2+j。",
+            "status": "understood",
+            "sources": [
+              "t1",
+              "t2"
+            ],
+            "conditions": "下三角矩阵，行优先压缩存储，保留主对角线，下标从1开始",
+            "reason": "教师补充解释：第i行前有1+2+…+(i-1)=i(i-1)/2个元素，第i行第j列前再数j个（含对角线），两部分相加即k；并给出第4行前6个、第4行对角线第10个的具体核对，理解链条完整",
+            "revision": 2,
+            "dependencies": [
+              {
+                "id": "p3",
+                "revision": 1
+              },
+              {
+                "id": "p4",
+                "revision": 1
+              }
+            ],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "k2",
+            "text": "下三角矩阵第r行保留列号1到r共r个元素，包含该行主对角线元素；因此第i行第j列（j≤i）之前的元素数含本行第1到第j列，对角线被计入。",
+            "status": "understood",
+            "sources": [
+              "t2"
+            ],
+            "conditions": "下三角矩阵，行优先压缩存储，保留主对角线，下标从1开始",
+            "reason": "教师明确说明每行保留1到r列共r个元素且包含对角线，并指出第4行对角线对应第10个，可直接核对",
+            "revision": 1,
+            "dependencies": [
+              {
+                "id": "p3",
+                "revision": 1
+              }
+            ],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "open_questions": [
+          {
+            "id": "q1",
+            "topic": "下三角矩阵映射公式k=i(i-1)/2+j中两部分各自在数什么",
+            "text": "公式k=i(i-1)/2+j里，i(i-1)/2和+j分别是在数什么？",
+            "status": "resolved",
+            "sources": [
+              "t1"
+            ],
+            "resolution_sources": [
+              "t2"
+            ],
+            "attempts": 0
+          }
+        ],
+        "recent_events": [
+          {
+            "id": "e1",
+            "kind": "task",
+            "text": "教师要求计算(4,2)的一维下标，并说明公式两部分分别在数什么，若解释不清则说明具体卡点。",
+            "sources": [
+              "t1"
+            ]
+          },
+          {
+            "id": "e2",
+            "kind": "task",
+            "text": "教师要求独立计算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+            "sources": [
+              "t2"
+            ]
+          }
+        ],
+        "knowledge_history": [
+          {
+            "version": 3,
+            "previous": {
+              "id": "k1",
+              "text": "下三角矩阵按行压缩存储时保留主对角线；矩阵行号、列号和一维数组下标均从1开始；对合法位置(i,j)，一维下标映射公式为 k=i(i-1)/2+j。",
+              "status": "tentative",
+              "sources": [
+                "t1"
+              ],
+              "conditions": "下三角矩阵，行优先压缩存储，保留主对角线，下标从1开始",
+              "reason": "教师直接给出公式但明确暂不展开推导，公式两部分含义未讲，学生需自行补出或等待解释",
+              "revision": 1,
+              "dependencies": [],
+              "independent_sources": [],
+              "correction_sources": [],
+              "supersedes": []
+            },
+            "replacement_id": "k1",
+            "invalidated": false,
+            "change_reason": "教师补充解释：第i行前有1+2+…+(i-1)=i(i-1)/2个元素，第i行第j列前再数j个（含对角线），两部分相加即k；并给出第4行前6个、第4行对角线第10个的具体核对，理解链条完整",
+            "change_sources": [
+              "t1",
+              "t2"
+            ]
+          }
+        ]
+      },
+      "sources": {
+        "p1": {
+          "id": "p1",
+          "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+          "kind": "prerequisite"
+        },
+        "p2": {
+          "id": "p2",
+          "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+          "kind": "prerequisite"
+        },
+        "p3": {
+          "id": "p3",
+          "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+          "kind": "prerequisite"
+        },
+        "p4": {
+          "id": "p4",
+          "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+          "kind": "prerequisite"
+        },
+        "p5": {
+          "id": "p5",
+          "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+          "kind": "prerequisite"
+        },
+        "p6": {
+          "id": "p6",
+          "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+          "kind": "prerequisite"
+        },
+        "t1": {
+          "id": "t1",
+          "text": "本节先讨论下三角矩阵按行压缩存储，保留主对角线。矩阵行号、列号和一维数组下标全部从1开始。对合法位置(i,j)，先给出映射公式k=i(i-1)/2+j，暂不展开推导。请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+          "mode": "text",
+          "revision": 1,
+          "at": 0.046
+        },
+        "t2": {
+          "id": "t2",
+          "text": "现在补充解释：下三角矩阵第r行保留列号1到r，共r个元素，包含该行主对角线元素。第i行前面有1到i-1行，元素总数为1+2+…+(i-1)=i(i-1)/2；到当前第j列再数j个，所以k是两者相加。第4行之前共6个元素，第2列对应第8个；第4行对角线对应第10个。请独立算(5,3)和(5,5)的一维下标，并解释对角线有没有被计入。",
+          "mode": "text",
+          "revision": 2,
+          "at": 5.566
+        },
+        "t3": {
+          "id": "t3",
+          "text": "现在不再给公式。仍按刚才的规则存储，请计算(6,1)和(6,6)的一维下标；说明两个位置相差几个下标单位、第6行实际保存几个元素，并判断(3,4)是否属于本节定义的保留区域。",
+          "mode": "text",
+          "revision": 3,
+          "at": 8.843
+        }
+      },
+      "current_ids": [
+        "t3"
+      ],
+      "input_revision": 3,
+      "result": {
+        "addressed": true,
+        "response_request_updates": [
+          {
+            "id": "rr3",
+            "text": "请计算(6,1)和(6,6)的一维下标；说明两个位置相差几个下标单位、第6行实际保存几个元素，并判断(3,4)是否属于本节定义的保留区域。",
+            "sources": [
+              "t3"
+            ],
+            "status": "pending",
+            "reason": "教师要求独立计算并解释",
+            "resolution_sources": [],
+            "kind": "answer",
+            "invitation_source_id": null,
+            "invitation_quote": ""
+          }
+        ],
+        "knowledge_updates": [],
+        "conflict_updates": [],
+        "question_updates": [],
+        "event_updates": [
+          {
+            "id": "e3",
+            "kind": "task",
+            "text": "教师要求不再用公式，独立计算(6,1)和(6,6)的一维下标，说明两者相差几个下标单位、第6行保存几个元素，并判断(3,4)是否在保留区域内。",
+            "sources": [
+              "t3"
+            ]
+          }
+        ],
+        "candidate": {
+          "kind": "answer",
+          "text": "(6,1)：第6行前有1+2+3+4+5=15个元素，再加本行第1列，k=16；(6,6)：15+6=21。两者相差5个下标单位，第6行实际保存6个元素。(3,4)列号4大于行号3，不在下三角保留区域内。",
+          "question_id": null,
+          "question_release_request": null,
+          "response_request_ids": [
+            "rr3"
+          ],
+          "knowledge_ids": [
+            "k1",
+            "k2",
+            "p4"
+          ],
+          "sources": [
+            "t3",
+            "k1",
+            "k2",
+            "p4"
+          ]
+        },
+        "note": "教师要求独立计算，用已理解的行前元素数与行内计数规则作答，未使用公式。"
+      },
+      "original_error": "输出引用了不存在的课堂来源"
+    },
+    {
+      "id": "difficulty-r2-jump",
+      "state": {
+        "schema_version": 2,
+        "response_requests": [],
+        "conflicts": [],
+        "pending_reviews": [],
+        "version": 0,
+        "knowledge": [
+          {
+            "id": "p1",
+            "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+            "status": "understood",
+            "sources": [
+              "p1"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p2",
+            "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+            "status": "understood",
+            "sources": [
+              "p2"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p3",
+            "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+            "status": "understood",
+            "sources": [
+              "p3"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p4",
+            "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+            "status": "understood",
+            "sources": [
+              "p4"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p5",
+            "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+            "status": "understood",
+            "sources": [
+              "p5"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          },
+          {
+            "id": "p6",
+            "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+            "status": "understood",
+            "sources": [
+              "p6"
+            ],
+            "conditions": "",
+            "reason": "画像确认基础",
+            "revision": 1,
+            "dependencies": [],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "open_questions": [],
+        "recent_events": [],
+        "knowledge_history": []
+      },
+      "sources": {
+        "p1": {
+          "id": "p1",
+          "text": "能说明一维数组在内存中按连续单元存放，并会用下标访问元素。",
+          "kind": "prerequisite"
+        },
+        "p2": {
+          "id": "p2",
+          "text": "能说明二维数组按行优先顺序存放时，元素位置与行号、列号之间的对应关系。",
+          "kind": "prerequisite"
+        },
+        "p3": {
+          "id": "p3",
+          "text": "能对n阶方阵数出元素总数，并区分主对角线及其上下两侧的元素。",
+          "kind": "prerequisite"
+        },
+        "p4": {
+          "id": "p4",
+          "text": "能用求和公式计算1+2+…+n这类等差数列的结果。",
+          "kind": "prerequisite"
+        },
+        "p5": {
+          "id": "p5",
+          "text": "能根据给定下标判断两个元素在矩阵中的相对位置关系。",
+          "kind": "prerequisite"
+        },
+        "p6": {
+          "id": "p6",
+          "text": "能读懂用循环遍历二维数组下标的简单程序段。",
+          "kind": "prerequisite"
+        },
+        "t1": {
+          "id": "t1",
+          "text": "本节先讨论下三角矩阵按行压缩存储，保留主对角线。矩阵行号、列号和一维数组下标全部从1开始。对合法位置(i,j)，先给出映射公式k=i(i-1)/2+j，暂不展开推导。请计算(4,2)的一维下标，并说明公式的两部分分别在数什么；如果解释不清，请说具体卡在哪里。",
+          "mode": "text",
+          "revision": 1,
+          "at": 0.039
+        }
+      },
+      "current_ids": [
+        "t1"
+      ],
+      "input_revision": 1,
+      "result": {
+        "addressed": true,
+        "knowledge_updates": [
+          {
+            "id": "k_lower_tri_map",
+            "text": "下三角矩阵按行压缩存储（保留主对角线），行号、列号、一维下标均从1开始；合法位置(i,j)的映射公式为 k=i(i-1)/2+j。",
+            "status": "tentative",
+            "sources": [
+              "t1"
+            ],
+            "conditions": "下三角矩阵，保留主对角线，下标从1开始，i≥j",
+            "reason": "教师直接给出公式但明确暂不展开推导；我能代入计算，但公式两部分各数什么还需教师解释才能确认理解。",
+            "revision": 1,
+            "dependencies": [
+              {
+                "id": "p2",
+                "revision": 1
+              },
+              {
+                "id": "p4",
+                "revision": 1
+              }
+            ],
+            "independent_sources": [],
+            "correction_sources": [],
+            "supersedes": []
+          }
+        ],
+        "conflict_updates": [],
+        "question_updates": [
+          {
+            "id": "q_formula_parts",
+            "topic": "下三角矩阵映射公式k=i(i-1)/2+j中两部分各数什么",
+            "text": "代入算出k=8，但i(i-1)/2这部分为什么正好是第i行之前所有元素的个数，我还没想通，能讲一下它的含义吗？",
+            "status": "pending",
+            "sources": [
+              "t1"
+            ]
+          }
+        ],
+        "event_updates": [
+          {
+            "id": "e1",
+            "kind": "task",
+            "text": "教师要求计算(4,2)的一维下标，并说明公式两部分分别在数什么，解释不清要说具体卡点。",
+            "sources": [
+              "t1"
+            ]
+          }
+        ],
+        "response_request_updates": [
+          {
+            "id": "rr1",
+            "kind": "answer",
+            "text": "计算(4,2)的一维下标，并说明公式两部分分别在数什么；解释不清要说具体卡在哪里。",
+            "sources": [
+              "t1"
+            ],
+            "status": "pending",
+            "reason": "",
+            "resolution_sources": [],
+            "invitation_source_id": null,
+            "invitation_quote": ""
+          }
+        ],
+        "candidate": {
+          "kind": "answer",
+          "text": "代入公式k=4×3/2+2=8。不过i(i-1)/2这部分为什么正好是第4行之前所有元素的个数，我还没想通，能讲一下它的含义吗？",
+          "question_id": "q_formula_parts",
+          "question_release_request": null,
+          "response_request_ids": [
+            "rr1"
+          ],
+          "knowledge_ids": [
+            "k_lower_tri_map"
+          ],
+          "sources": [
+            "t1"
+          ]
+        },
+        "note": "教师要求计算并解释公式两部分；代入得k=8，但公式前半部分的计数含义未展开，登记为疑问并随回答提出。"
+      },
+      "original_error": "疑问 'q_formula_parts' 例外申请未通过：不能把提问关联放进 answer/ack 绕过限制。同题通常最多问两次；仅教师明确邀请说明疑问时，使用 question 并附 question_release_request，关联原问题和有效邀请。不得改成 answer/ack 绕过；无有效邀请时 silence。"
+    }
+  ]
+}

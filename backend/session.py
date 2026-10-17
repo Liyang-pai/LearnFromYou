@@ -547,7 +547,9 @@ class Session:
                 await self.emit('resume_response', {'status': 'stale', 'message': '课堂或静音状态已变化，恢复结果已丢弃'})
                 return
             proposed = StudentResult(**result.model_dump(), addressed=bool(result.candidate.response_request_ids))
-            self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True, input_revision=self.revision, allow_silence=bool(recovery))
+            self.state, candidate = apply_result(self.state, proposed, allowed, set(), resume=True,
+                input_revision=self.revision,
+                allow_silence=any(d['code'] != 'candidate_normalized' for d in recovery))
             self.candidate = {'reply': candidate, 'revision': self.revision,
                               'control_revision': self.control_revision, 'addressed': bool(candidate.response_request_ids),
                               'resume': True, 'image_id': visible_image}
