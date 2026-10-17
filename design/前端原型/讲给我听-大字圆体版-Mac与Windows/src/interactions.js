@@ -7,7 +7,7 @@
   Object.assign(state.settings,{service:'DeepSeek',baseURL:'https://api.deepseek.com',textModel:'deepseek-chat',imageModel:'deepseek-flash'});
   let d,profileJob=0,replyJob=0,reportJob=0;
   const classScreens=new Set(['05','06','07','08','09','14','15','16','17','18','34','35','36']);
-  const settingsScreens=new Set(['22','23','24','25','27','28','37','42']);
+  const settingsScreens=new Set(['22','23','24','25','37','42']);
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const toast=text=>{const el=document.getElementById('hostToast');el.textContent=text;el.classList.add('visible');clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>el.classList.remove('visible'),3200);};
   const addEvent=(title,detail='')=>state.events.unshift({time:formatTime(state.session.elapsed),title,detail});
@@ -76,6 +76,16 @@
     if(options){for(const value of [...new Set([...options,state.lesson[key]])]){const option=d.createElement('option');option.value=value;option.textContent=value;field.append(option);}}
     field.value=state.lesson[key]||'';field.setAttribute('aria-label',key==='topic'?'教学主题':key==='points'?'准备讲的知识点':key==='grade'?'年级':'学科');if(key==='topic')field.placeholder='例如：惯性的概念';if(key==='points')field.placeholder='选填：本次准备讲的知识点';field.disabled=state.profileBusy;field.maxLength=key==='topic'?500:3000;old.replaceWith(field);
   }
+  function syncProfileGenerateButton(){
+    const generateButton=[...d.querySelectorAll('.profile-form button')].find(b=>/生成学生画像|正在生成画像/.test(b.textContent));
+    if(!generateButton)return;
+    const ready=Boolean(state.lesson.topic.trim())&&!state.profileBusy;
+    generateButton.disabled=!ready;
+    generateButton.classList.toggle('disabled',!ready);
+    generateButton.classList.toggle('primary',ready);
+    generateButton.classList.remove('soft');
+    generateButton.classList.add('profile-generate');
+  }
   function bindSetup(){
     const form=d.querySelector('.profile-form');if(!form)return;
     const fields=[['教学主题','topic'],['年级','grade'],['学科','subject'],['准备讲的知识点','points']];
@@ -85,12 +95,13 @@
     for(const row of form.querySelectorAll('.segment-row')){const key=row.querySelector('label').textContent==='学生水平'?'level':'type';for(const item of row.querySelectorAll('.segments span')){item.dataset.segment=key;item.classList.toggle('selected',item.textContent===state.lesson[key]);item.tabIndex=0;item.setAttribute('role','button');}}
     const profile=d.querySelector('.profile-text');if(profile){profile.replaceChildren();for(const text of (state.lesson.profile||'尚未填写画像。').split('\n')){const p=d.createElement('p');p.className='profile-block';p.textContent=text;profile.append(p);}}
     const heading=d.querySelector('.profile-card .card-head');if(heading&&!heading.querySelector('[data-action]'))heading.insertAdjacentHTML('beforeend',button(state.lesson.profile?'手动编辑':'手写画像','edit-profile'));
+    syncProfileGenerateButton();
     const create=[...d.querySelectorAll('button')].find(b=>b.textContent.includes('确认设定，创建试讲'));if(create){create.disabled=!state.lesson.profile||state.profileBusy;create.classList.toggle('disabled',create.disabled);}
   }
   function bindClass(){
     if(!classScreens.has(app.screen))return;
     const head=d.querySelector('.page-head p');if(head)head.textContent=(state.lesson.topic||'惯性的概念')+' / '+state.lesson.grade+' · '+state.lesson.subject;
-    const timer=d.querySelector('.top-status b');if(timer)timer.textContent=formatTime(state.session.elapsed);
+    const timer=d.querySelector('.session-action b');if(timer)timer.textContent=formatTime(state.session.elapsed);
     const bubble=d.querySelector('.speech-bubble');if(bubble){bubble.style.display=state.settings.captions?'':'none';if(state.session.messages.length){const latest=[...state.session.messages].reverse().find(m=>m.role==='student');if(latest&&state.session.phase==='question')bubble.textContent=latest.text;}}
     const mic=d.querySelector('.dock-main');if(mic){mic.dataset.action='mic';mic.tabIndex=0;mic.setAttribute('role','button');mic.setAttribute('aria-label','麦克风（模拟）');mic.classList.toggle('off',!state.session.mic);}
     const label=d.querySelector('.dock-label small');if(label)label.textContent=state.session.mic?'已开启 · 模拟':'尚未开启';
@@ -117,7 +128,7 @@
     else if(el.dataset.toggle){const key=el.dataset.toggle;if(key==='muted'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','静态模拟，不调用模型。');}else state.settings[key]=!state.settings[key];if(settingsScreens.has(app.screen))state.dirty=true;route(app.screen,true);}
     else if(el.dataset.segment){state.lesson[el.dataset.segment]=text;route(app.screen,true);}
     else if(el.matches('.nav-item'))route(text==='首页'?'01':text==='创建试讲'?(state.lesson.profile?'03':'02'):text==='我的教室'?classScreen():text==='设置'?'22':'29');
-    else if(el.matches('.settings-tabs span'))route(['22','24','27','28'][[...el.parentElement.children].indexOf(el)]);
+    else if(el.matches('.settings-tabs span'))route(['22','24'][[...el.parentElement.children].indexOf(el)]);
     else if(el.matches('.main>.detail-tabs span'))route((['29','30'].includes(app.screen)?['29','30']:['10','11','12','13'])[[...el.parentElement.children].indexOf(el)]);
     else if(el.matches('.chat-tabs span'))route(['08','10','11','13'][[...el.parentElement.children].indexOf(el)]);
     else if(['创建一次试讲','再创建一次试讲'].includes(text))newLesson();
@@ -139,7 +150,6 @@
     else if(text==='更换模型'||text==='检查设置')route('24');
     else if(text.includes('更多设置')||text.startsWith('教材版本：'))popup('更多教学设置',`<label for="textbookEditor">教材版本（选填）</label><input id="textbookEditor" class="input" value="${escape(state.lesson.textbook)}" maxlength="200" placeholder="例如：人教版 · 八年级物理">`,button('取消','close')+button('保存','save-textbook',true));
     else if(text==='重试这一段'){state.session.phase='thinking';sendText(state.session.messages.filter(m=>m.role==='teacher').at(-1)?.text||'重新解释本次概念。');}
-    else if(text==='检查服务状态')route('28');
     else if(text==='使用文字讲授'){state.session.phase='ready';route('05');}
     else if(text==='重新尝试')toggleMic();
     else handled=extraClick(el,text);
@@ -150,7 +160,7 @@
     d=frame.contentDocument;if(!d?.body)return;
     bindSetup();bindClass();syncToggles();
     window.prototypeExtensions?.hydrate(d);
-    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(field.value!=='自定义…')return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
+    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(field.value!=='自定义…')return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
     d.addEventListener('click',click,true);
     d.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Enter'&&!e.shiftKey&&e.target.dataset.field==='draftText'){e.preventDefault();sendText(state.draftText);}if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.stopImmediatePropagation();e.target.dispatchEvent(new d.defaultView.MouseEvent('click',{bubbles:true,cancelable:true}));}},true);
     for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'){el.tabIndex=0;el.setAttribute('role','button');}}
