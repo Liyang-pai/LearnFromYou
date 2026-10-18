@@ -69,14 +69,14 @@ def test_history_report_eligibility(tmp_path, monkeypatch, finished, count, reas
 def test_old_missing_profile_corruption_and_invalid_cache(tmp_path, monkeypatch):
     monkeypatch.setattr(config, 'ROOT', tmp_path)
     path = save_classroom(tmp_path)
-    with path.open('a') as stream: stream.write('\n{"truncated":')
+    with path.open('a', encoding='utf-8') as stream: stream.write('\n{"truncated":')
     async def run():
         service = HistoryService(); meta = await indexed(service)
         assert meta['student_profile'] == '' and meta['grade'] == '未记录'
         assert meta['warnings'] and '记录不完整' in meta['report_unavailable']
         assert (await service.dialogue(SID))['total'] == 6
         directory = service.location(SID)[2]
-        (directory / 'meta.json').write_text('broken')
+        (directory / 'meta.json').write_text('broken', encoding='utf-8')
         restored = HistoryService(); assert (await indexed(restored))['status'] == 'ready'
     asyncio.run(run())
 
@@ -90,7 +90,7 @@ def test_history_cache_survives_restart_and_source_updates(tmp_path, monkeypatch
         monkeypatch.setattr(restored, 'build', forbidden)
         assert (await restored.detail(SID))['status'] == 'ready'
         monkeypatch.undo(); monkeypatch.setattr(config, 'ROOT', tmp_path)
-        with path.open('a') as stream: stream.write('\n' + json.dumps({'type': 'reply', 'data': {'kind': 'ack', 'text': '新增回复'}}))
+        with path.open('a', encoding='utf-8') as stream: stream.write('\n' + json.dumps({'type': 'reply', 'data': {'kind': 'ack', 'text': '新增回复'}}))
         meta = await indexed(service); assert meta['turn_count'] == 163
     asyncio.run(run())
 
@@ -118,7 +118,7 @@ def test_history_routes_download_and_same_origin(tmp_path, monkeypatch):
         assert client.get('/api/history?offset=-1').status_code == 422
         assert client.get('/api/history', headers={'sec-fetch-site': 'cross-site'}).status_code == 403
         assert client.get(f'/api/history/{SID}/log', headers={'origin': 'https://evil.test'}).status_code == 403
-    outside = tmp_path / 'outside.jsonl'; outside.write_text('{}')
+    outside = tmp_path / 'outside.jsonl'; outside.write_text('{}', encoding='utf-8')
     (tmp_path / 'logs' / 'ffffffffffff.jsonl').symlink_to(outside)
     with pytest.raises(ValueError): classroom_path('ffffffffffff')
 
@@ -131,7 +131,7 @@ def test_report_material_memo_and_source_prompt_invalidation(tmp_path, monkeypat
     monkeypatch.setattr(module, 'read_classroom', read)
     service = ReportService()
     service.get(SID); service.get(SID); assert len(scans) == 1
-    with path.open('a') as stream: stream.write('\n')
+    with path.open('a', encoding='utf-8') as stream: stream.write('\n')
     service.get(SID); assert len(scans) == 2
     monkeypatch.setattr(module, 'TEACHING_REPORT', module.TEACHING_REPORT + '更新')
     service.get(SID); assert len(scans) == 3
@@ -308,12 +308,12 @@ def test_cache_version_upgrade_rebuilds_without_touching_log_or_report(tmp_path,
                                   student_request([{'id': 't1', 'text': '实际提交'}])])
     raw = path.read_bytes(); stat = path.stat()
     old = tmp_path / 'logs/.history' / SID / f'1-{stat.st_size}-{stat.st_mtime_ns}'
-    old.mkdir(parents=True); (old / 'meta.json').write_text('{"version":1}')
-    report = tmp_path / 'logs' / f'{SID}.teaching-report-v2.json'; report.write_text('报告原样保留')
+    old.mkdir(parents=True); (old / 'meta.json').write_text('{"version":1}', encoding='utf-8')
+    report = tmp_path / 'logs' / f'{SID}.teaching-report-v2.json'; report.write_text('报告原样保留', encoding='utf-8')
     async def run():
         service = HistoryService(); assert (await service.detail(SID))['status'] == 'indexing'
         await service.jobs[SID]
         assert module.VERSION == 2 and not old.exists()
         assert (await service.dialogue(SID))['items'][0]['text'] == '实际提交'
-        assert path.read_bytes() == raw and report.read_text() == '报告原样保留'
+        assert path.read_bytes() == raw and report.read_text(encoding='utf-8') == '报告原样保留'
     asyncio.run(run())

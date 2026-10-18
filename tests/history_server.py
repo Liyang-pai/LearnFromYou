@@ -39,8 +39,8 @@ def main():
     from backend import session as session_module
     from backend.teaching_report import ReportService
     usage_path = args.data / 'usage.json'
-    usage = json.loads(usage_path.read_text()) if usage_path.exists() else {'requests': [], 'outputs': [], 'injected_failures': 0}
-    def persist(): usage_path.write_text(json.dumps(usage, ensure_ascii=False, indent=2))
+    usage = json.loads(usage_path.read_text(encoding='utf-8')) if usage_path.exists() else {'requests': [], 'outputs': [], 'injected_failures': 0}
+    def persist(): usage_path.write_text(json.dumps(usage, ensure_ascii=False, indent=2), encoding='utf-8')
     class BoundedModel(ModelClient):
         def __init__(self, emit):
             async def audit(kind, data):
@@ -62,7 +62,7 @@ def main():
         from tests.test_teaching_report import save_classroom, FakeModel
         from tests.test_history import student_request, event
         path = save_classroom(args.data)
-        events = [json.loads(line) for line in path.read_text().splitlines()]
+        events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
         events[0]['data']['lesson'] = {'topic': '链表历史验收', 'grade': '大学一年级', 'subject': '数据结构', 'student_profile': '当时确认的画像：已知变量，不知道链表。'}
         events[-1]['data']['lesson'] = events[0]['data']['lesson']
         first_reply = next(i for i, item in enumerate(events) if item['type'] == 'reply')
@@ -77,9 +77,9 @@ def main():
                 events.insert(-1, student_request([{'id': f't{index}', 'text': content}]))
                 events.insert(-1, event('error', {'code': 'model_failure', 'sources': [f't{index}']}) if index == 5
                               else event('state', {'processed_sources': [f't{index}']}))
-        path.write_text('\n'.join(json.dumps(e, ensure_ascii=False) for e in events))
+        path.write_text('\n'.join(json.dumps(e, ensure_ascii=False) for e in events), encoding='utf-8')
         second = args.data / 'logs/fedcba543210.jsonl'
-        second.write_text(json.dumps({'type': 'transcript', 'data': {'id': 't1', 'text': '中断课堂的讲授'}}))
+        second.write_text(json.dumps({'type': 'transcript', 'data': {'id': 't1', 'text': '中断课堂的讲授'}}), encoding='utf-8')
         calls = []
         class OfflineModel(FakeModel):
             async def generate(self, *a, **kw):

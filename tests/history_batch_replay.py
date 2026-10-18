@@ -90,7 +90,7 @@ async def main(args):
                     logs = args.browser_data / 'logs'; logs.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(source, logs / source.name)
                     (args.browser_data / 'replay-expected.json').write_text(json.dumps({
-                        'text': target['text'], 'raw': [part['raw_text'] for part in target['segments']]}, ensure_ascii=False))
+                        'text': target['text'], 'raw': [part['raw_text'] for part in target['segments']]}, ensure_ascii=False), encoding='utf-8')
             results.append({'session_id': sid, 'raw_bytes': source.stat().st_size, 'original_fragments': len(originals),
                 'submitted_batches': len(batches), 'student_replies': len(replies), 'display_rows': len(rows),
                 'unconfirmed_fragments': sum(row.get('processing_status') == 'unconfirmed' for row in rows),
@@ -99,8 +99,8 @@ async def main(args):
                 'target_characters': sum(len(part['text']) for part in target['segments']) if target else None})
         assert hashlib.sha256(source.read_bytes()).hexdigest() == digest
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(results, ensure_ascii=False, indent=2))
-    print(args.output.read_text())
+    args.output.write_text(json.dumps(results, ensure_ascii=False, indent=2), encoding='utf-8')
+    print(args.output.read_text(encoding='utf-8'))
 
 
 if __name__ == '__main__':
