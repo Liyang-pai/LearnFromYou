@@ -142,6 +142,7 @@ export function classroom(state){
   const reply=s.dialogue.filter(r=>r.role==='student').at(-1),bubble=root.querySelector('.speech-bubble');if(bubble){bubble.textContent=reply?.text || '我在听，你继续讲。';bubble.hidden=s.muted;}
   if(s.dialogue.length)setText(root,'.stage-top h2','和小纸一起，把问题讲清楚');
   setText(root,'.stage-note',s.status);setText(root,'.stage-top .badge',s.starting?'正在创建':s.mic?'麦克风已开启':s.ended?'已结束':'本次试讲');
+  root.querySelector('.stage-center .character-art').dataset.stageStudent=s.id || 'starting';
   const center=root.querySelector('.stage-center'),wave=root.querySelector('.stage-center .wave') || document.createElement('div');
   wave.className='wave classroom-wave';wave.dataset.micWave='';wave.setAttribute('aria-hidden','true');
   wave.innerHTML='<i style="height:4px"></i>'.repeat(35);center.append(wave);

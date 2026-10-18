@@ -3,6 +3,7 @@ import {state,api,emptySession,applyEvent,retrySession} from './service.js';
 import {Microphone,prepareReplySound,playReplySound} from './audio.js';
 import {MicrophoneWaveform} from './waveform.js';
 import {render} from './views.js';
+import {updateClassroomView} from './classroom-view.js';
 import {confirmation} from './prototype.js';
 
 const waveform=new MicrophoneWaveform();
@@ -16,7 +17,7 @@ function refresh() {
   const selection=active && 'selectionStart' in active ? [active.selectionStart,active.selectionEnd] : null;
   const positions=[...view.querySelectorAll('[data-scroll],.chat-body')].map(el=>[el.id || el.className,el.scrollTop,el.scrollHeight-el.clientHeight-el.scrollTop<40]);
   const openDetails=[...view.querySelectorAll('details[open]')].map(el=>el.dataset.key || el.querySelector('summary')?.textContent);
-  view.innerHTML=render(state,path(),location.search);
+  updateClassroomView(view,render(state,path(),location.search));
   waveform.bind(view.querySelector('[data-mic-wave]'));
   for(const el of view.querySelectorAll('details')) if(openDetails.includes(el.dataset.key || el.querySelector('summary')?.textContent)) el.open=true;
   for(const el of view.querySelectorAll('[data-scroll],.chat-body')) {

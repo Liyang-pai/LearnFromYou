@@ -82,11 +82,47 @@ const realMic=process.env.REAL_MIC==='1';
       await page.evaluate(()=>{window.originalChat=document.querySelector('.chat-body');});
       await page.waitForTimeout(250);
       assert.equal(await page.evaluate(()=>window.originalChat===document.querySelector('.chat-body')),true);
+      // Continuous transcripts must never detach the stage image or reset its source.
+      await page.evaluate(()=>{
+        window.stageImage=document.querySelector('[data-stage-student]');
+        window.stageRemoved=false;window.stageSourceChanged=false;
+        window.stageObserver=new MutationObserver(records=>{
+          for(const record of records){
+            if(record.type==='attributes' && record.target===window.stageImage && record.attributeName==='src')window.stageSourceChanged=true;
+            for(const node of record.removedNodes)if(node===window.stageImage || node.contains(window.stageImage))window.stageRemoved=true;
+          }
+        });
+        window.stageObserver.observe(document.querySelector('#view'),{childList:true,subtree:true,attributes:true});
+      });
+      await page.locator('#teacher-draft').fill('保留草稿与光标');
+      await page.locator('#teacher-draft').evaluate(el=>el.setSelectionRange(2,4));
+      for(let i=0;i<30;i++)socket.send(JSON.stringify({type:'transcript',data:{text:'连续转写 '+i}}));
+      socket.send(JSON.stringify({type:'status',data:{message:'连续转写完成'}}));
+      await page.waitForFunction(async()=>(await import('/static/formal/service.js')).state.session.status==='连续转写完成');
+      assert.equal(await page.evaluate(async()=>(await import('/static/formal/service.js')).state.session.raw.length),30);
+      assert.equal(await page.locator('#teacher-draft').inputValue(),'保留草稿与光标');
+      assert.deepEqual(await page.locator('#teacher-draft').evaluate(el=>[document.activeElement===el,el.selectionStart,el.selectionEnd]),[true,2,4]);
       socket.send(JSON.stringify({type:'reply',data:{text:'我听到了，请继续讲。'}}));
       await page.getByText('我听到了，请继续讲。',{exact:true}).first().waitFor();
       await waitLoud();assert.equal(await page.locator('[data-mic-wave]').count(),1);
       await page.locator('[data-action="toggle-muted"]').click();
       await page.getByText('恢复学生发言',{exact:true}).waitFor();await waitLoud();
+      assert.equal(await page.evaluate(()=>window.stageImage===document.querySelector('[data-stage-student]') && window.stageImage.isConnected && !window.stageRemoved && !window.stageSourceChanged),true,'转写、回复和静音均保留已连接的图片且不重设来源');
+      await page.evaluate(()=>window.stageObserver.disconnect());
+      // Future reaction images can still change source on the retained node.
+      assert.equal(await page.evaluate(async()=>{
+        const {updateClassroomView}=await import('/static/formal/classroom-view.js');
+        const host=document.createElement('div');document.body.append(host);
+        updateClassroomView(host,'<section><img data-stage-student="first" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==#one"></section>');
+        const image=host.querySelector('img');
+        updateClassroomView(host,'<section class="reacting"><img data-stage-student="first" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==#two" alt="回应"></section>');
+        const switched=host.querySelector('img')===image && image.getAttribute('src')==='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==#two' && image.alt==='回应' && host.firstChild.className==='reacting';
+        updateClassroomView(host,'<section><img data-stage-student="second" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==#two"></section>');
+        const newSession=host.querySelector('img')!==image;
+        updateClassroomView(host,'<p>离开教室</p>');
+        const left=!host.querySelector('img');host.remove();return switched && newSession && left;
+      }),true);
+
       await volume(0);await page.waitForFunction(()=>[...document.querySelectorAll('[data-mic-wave] i')].every(bar=>parseFloat(bar.style.height)===4));
       await volume(0.2);await waitLoud();
       await page.locator('[data-action="toggle-mic"]').click();
