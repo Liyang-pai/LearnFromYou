@@ -223,8 +223,7 @@ strong { font-weight: 650; }
 .debug .main { background: #f7faff; }
 .debug-grid { grid-template-columns: 330px 1fr; }
 .debug-console { font: 14px/1.8 ui-monospace, "SFMono-Regular", Consolas, "ChillRound", monospace; color: #6e829c; background: #f5f8fc; border-radius: 15px; }
-.empty-class { border: 0; border-radius: 27px; background: #edf5ff; padding-bottom: 72px; }
-.empty-class > .mascot { margin-bottom: 24px; }
+.empty-class { border: 0; border-radius: 27px; background: #edf5ff; }
 .empty-class p { font-size: 18px; }
 .backdrop { background: #3a587448; backdrop-filter: blur(4px); }
 .modal { width: 850px; max-height: 94%; display: flex; flex-direction: column; border: 0; border-radius: 28px; box-shadow: 0 16px 70px #284b7026; }
@@ -260,8 +259,7 @@ strong { font-weight: 650; }
 .api-connection { display: flex; align-items: center; gap: 18px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
 .main:has(.api-simple-layout) > .savebar { max-width: none; width: 100%; margin-top: 24px; }
 
-.profile-form .btn.profile-generate:disabled,
-.profile-card .btn[data-action="create"]:disabled {
+.profile-form .btn.profile-generate:disabled {
   background: #edf0f4; border-color: #edf0f4; color: #9aa6b6;
   box-shadow: none; opacity: 1; cursor: default;
 }
@@ -350,10 +348,6 @@ strong { font-weight: 650; }
 .setup-more-content { padding: 6px 16px 18px; }
 .setup-more-content label { display: block; font-size: 17px; margin-bottom: 10px; }
 
-.profile-form .setup-asr-status { font-size: 18px !important; line-height: 1.6; gap: 8px; }
-.profile-form .setup-asr-status > .icon { width: 22px; height: 22px; flex-shrink: 0; }
-.profile-form .setup-asr-status > .subtle-link { font-size: 18px !important; }
-
 /* 左侧品牌图文比例试版：删除此段即可恢复原比例。 */
 .sidebar .brand-name { font-size: 28px; font-weight: 800; letter-spacing: 0; }
 .sidebar .brand-en { letter-spacing: .5px; }
@@ -435,3 +429,76 @@ strong { font-weight: 650; }
 .welcome-plus { width: 46px; height: 46px; font-size: 36px; }
 .welcome-create strong { font-size: 25px; }
 .welcome-create small { font-size: 18px; }
+
+/* 课堂详情：转写与分段、学生状态及处理记录共用入口。 */
+.classroom-tabs { display:flex; gap:30px; margin:0 0 24px; border-bottom:1px solid #e2ebf6; }
+.classroom-tabs span { padding:12px 4px; font-size:19px; color:#8295ae; cursor:pointer; border-bottom:3px solid transparent; }
+.classroom-tabs span.active { color:#528df2; border-bottom-color:#528df2; }
+.classroom-tabs span:focus-visible, .knowledge-card[role="button"]:focus-visible { outline:2px solid #69a8ff; outline-offset:4px; }
+.classroom-record-grid { grid-template-columns:1.12fr 1fr; align-items:start; }
+.classroom-record-grid .card-head { margin-bottom:22px; }
+.classroom-record-grid .card-head h2 { font-size:24px; }
+.transcript-audit { font-size:14px; color:#609881; margin-top:8px; }
+.segment-card { padding:20px; border:1px solid #e6edf6; border-radius:17px; margin-bottom:18px; }
+.segment-card h3 { font-size:19px; color:#597da8; margin:8px 0; }
+.segment-card p { font-size:17px; line-height:1.85; color:#617e9f; }
+.segment-meta { color:#8b9eb6; font-size:14px; margin-top:14px; }
+.detail-next { padding:18px; background:#f4f8fe; border-radius:17px; margin-bottom:18px; }
+.detail-next p { font-size:17px; color:#758eae; margin-bottom:12px; }
+.detail-next button + button { margin-top:10px; }
+.duration-summary { display:flex; gap:14px; margin-bottom:22px; }
+.duration-summary>div { flex:1; padding:15px; border-radius:14px; background:#f4f8fe; }
+.duration-summary span { display:block; font-size:14px; color:#8b9eb6; }
+.duration-summary strong { display:block; font-size:23px; color:#5d83b0; }
+.knowledge-card[role="button"] { cursor:pointer; }
+
+/* 我的教室右栏直接查看转写和认知，替换原来的概览提示。 */
+.class-layout:has(.classroom-inspector):not(.sidebar-collapsed) { grid-template-columns:minmax(0,1fr) 440px; }
+.chat-panel:has(.classroom-inspector) { min-width:0; display:flex; flex-direction:column; overflow:hidden; }
+.classroom-inspector { flex:1; min-height:0; display:flex; flex-direction:column; }
+.inspector-tabs { display:flex; align-items:center; gap:20px; padding:8px 20px 0; border-bottom:1px solid #edf1f7; flex-shrink:0; }
+.inspector-tabs button { font:18px/1.5 "ChillRound",sans-serif; color:#8597af; background:transparent; border:0; border-bottom:3px solid transparent; padding:14px 0 12px; cursor:pointer; white-space:nowrap; }
+.inspector-tabs button[aria-selected="true"] { color:#528df2; border-bottom-color:#528df2; }
+.inspector-tabs>span { margin-left:auto; font-size:12px; color:#9caec5; white-space:nowrap; }
+.inspector-content { flex:1; min-height:0; overflow-y:auto; padding:0 20px; scrollbar-width:thin; scrollbar-color:#d9e5f4 transparent; }
+.inspector-record { padding:13px 0; border-bottom:1px solid #edf1f7; }
+.inspector-record:last-child { border-bottom:0; }
+.inspector-record-head { display:flex; align-items:center; gap:10px; font-size:12px; color:#92a6bf; margin-bottom:6px; }
+.inspector-record-head em { margin-left:auto; font-style:normal; color:#6b9b87; }
+.inspector-content p { font-size:16px; line-height:1.75; color:#59789e; margin:0; overflow-wrap:anywhere; }
+.inspector-record details { margin-top:6px; font-size:12px; color:#94a6be; }
+.inspector-record summary { cursor:pointer; }
+.inspector-record details p { font-size:14px; padding:8px 10px; background:#f7faff; border-radius:8px; margin-top:5px; }
+.inspector-footer { flex-shrink:0; display:flex; align-items:center; justify-content:space-between; padding:9px 20px; color:#97a9c0; font-size:12px; background:#fcfdff; }
+.inspector-footer button { padding:2px 0; border:0; background:none; color:#6794d8; font:13px/1.5 "ChillRound",sans-serif; cursor:pointer; }
+.inspector-empty { padding:28px 8px; text-align:center; }
+.inspector-empty strong { display:block; font-size:17px; color:#7893b5; margin-bottom:8px; }
+.inspector-empty p { font-size:14px; color:#9aacc2; }
+.inspector-knowledge { padding:12px 0; border-bottom:1px solid #edf1f7; }
+.inspector-knowledge .badge { font-size:12px; padding:3px 9px; margin-bottom:6px; }
+.inspector-question, .inspector-segment { padding:12px; margin:12px 0; border-radius:12px; background:#fff8eb; }
+.inspector-question strong, .inspector-segment span { display:block; color:#b39359; font-size:13px; margin-bottom:5px; }
+.inspector-segment { background:#f1f7ff; }
+.inspector-segment span { color:#799ac4; }
+.inspector-note { padding:12px 0; font-size:13px!important; color:#93a8c1!important; }
+.chat-panel:has(.classroom-inspector) .chat-title { flex:0 0 auto; padding:12px 20px 8px; }
+.chat-panel:has(.classroom-inspector) .chat-body { flex:1; min-height:0; overflow-y:auto; }
+.chat-panel:has(.classroom-inspector) .chat-input { flex:0 0 auto; }
+.chat-panel:has(.classroom-inspector) .chat-text { max-width:320px; }
+
+/* 同一个选择栏切换整块右侧内容：课堂对话 / 转写 / 学生状态。 */
+.inspector-tabs { gap:19px; padding-top:7px; }
+.inspector-tabs button { font-size:17px; }
+.inspector-tabs .inspector-report { margin-left:auto; font-size:12px; padding:8px 0; color:#7f9bc1; display:flex; gap:4px; border-bottom:0; }
+.inspector-report .icon { width:14px; height:14px; }
+.inspector-content:has(>.chat-body) { padding:0; display:flex; flex-direction:column; }
+.inspector-content>.chat-body { padding:18px; }
+.inspector-context { font-size:12px; color:#9bacc1; padding:12px 0 0; }
+.inspector-content>.inspector-knowledge { padding:18px 0; }
+.inspector-content>.inspector-question { margin-top:18px; }
+
+/* 输出归入输出与事件，LLM 输入只保留请求正文。 */
+.output-payload { padding:16px 18px; margin-bottom:22px; background:#f3f8ff; border-radius:15px; }
+.output-payload summary { color:#6489ba; font-size:16px; cursor:pointer; }
+.output-payload pre { font:15px/1.85 "ChillRound",sans-serif; white-space:pre-wrap; overflow-wrap:anywhere; color:#6f88a8; margin:15px 0; }
+.output-links { display:flex; gap:12px; margin-bottom:18px; }

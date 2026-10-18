@@ -29,7 +29,12 @@ def test_theme_and_assets_match_reference():
     assets = [path for path in (REFERENCE / 'assets').rglob('*') if path.is_file()]
     assert assets
     for path in assets:
-        assert (FORMAL / 'assets' / path.relative_to(REFERENCE / 'assets')).read_bytes() == path.read_bytes()
+        copied_asset = FORMAL / 'assets' / path.relative_to(REFERENCE / 'assets')
+        if path.suffix == '.json':
+            # JSON metadata is identical across Git LF and upstream CRLF checkouts.
+            assert json.loads(copied_asset.read_text(encoding='utf-8')) == json.loads(path.read_text(encoding='utf-8'))
+        else:
+            assert copied_asset.read_bytes() == path.read_bytes()
 
 
 def test_formal_entry_does_not_run_prototype_simulation():

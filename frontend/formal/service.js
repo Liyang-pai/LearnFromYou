@@ -1,6 +1,43 @@
+// Read-only classroom projections. Nothing in this module sends model requests.
+const privateField=key=>key==='id'||key==='sources'||key.endsWith('_sources')||key.endsWith('_id')||key.endsWith('_ids')||['dependencies','independent_sources','supersedes','targets','provenance','image_url','authorization','api_key','runtime','prompt_fingerprint','student_prompt_fingerprint'].includes(key.toLowerCase());
+export function publicValue(value){
+  if(Array.isArray(value))return value.map(publicValue);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([k,v])=>!privateField(k)||k.endsWith('_sources')&&Array.isArray(v)&&v.some(row=>row&&typeof row==='object')).map(([k,v])=>[k,publicValue(v)]));
+  if(typeof value==='string'){try{return publicValue(JSON.parse(value));}catch{}}
+  return value;
+}
+export function elapsedSeconds(s,now=performance.now()){
+  const c=s.clock;if(!c)return Math.max(0,s.elapsed||0);
+  return Math.max(0,c.seconds+(c.running?Math.max(0,now-c.at)/1000:0));
+}
+export function stopClock(s,now=performance.now()){
+  s.clock={seconds:elapsedSeconds(s,now),at:now,running:false};
+}
+const recorded=new Set(['ready','transcript','segment','review_started','review_completed','review_glossary','llm_request','llm_output','state','student_view','teacher_batch','candidate','reply','student_validation_error','student_recovery','knowledge_review','resume_response','question_release','suppressed','invitation_expired','asr_empty','warning','error','mute','finished','status']);
+export function recordClassEvent(s,event,now=performance.now()){
+  if(event.type==='ready'||typeof event.elapsed==='number'&&(!s.clock||s.clock.running)){
+    const seconds=Math.max(elapsedSeconds(s,now),Number.isFinite(event.elapsed)?event.elapsed:0);
+    s.clock={seconds,at:now,running:event.type==='ready'||!!s.clock?.running};
+  }
+  if(event.type==='finished')stopClock(s,now);
+  const d=event.data||{};
+  if(d.state&&['ready','state','knowledge_review','resume_response','reply','finished','invitation_expired'].includes(event.type))s.cognition=d.state;
+  if(recorded.has(event.type))s.records.push({type:event.type,elapsed:event.elapsed??elapsedSeconds(s,now),time:event.time,data:d});
+}
+export function classroomStats(s){
+  const records=s.records||[],outputs=records.filter(r=>r.type==='llm_output'),reviews=records.filter(r=>r.type==='review_completed').flatMap(r=>r.data.segments||[]);
+  return {transcripts:records.filter(r=>r.type==='transcript').length,segments:records.filter(r=>r.type==='segment').length,
+    version:s.cognition?.version??null,modelSeconds:outputs.at(-1)?.data.seconds??null,reviewSeconds:reviews.filter(r=>r.review_seconds!=null).at(-1)?.review_seconds??null};
+}
+export function exportClassroom(s){
+  return {topic:s.lesson?.topic||'',duration_seconds:elapsedSeconds(s),statistics:classroomStats(s),
+    dialogue:(s.dialogue||[]).map(({role,text,elapsed,processing_status})=>({role,text,elapsed,processing_status})),
+    state:publicValue(s.cognition||{}),records:(s.records||[]).map(({type,elapsed,time,data})=>({type,elapsed,time,data:publicValue(data)}))};
+}
+
 // 正式前端业务状态与协议投影；不把识别片段或候选回复作为对话。
 export const emptySession = () => ({id:'',lesson:{},status:'尚未创建课堂',starting:false,active:false,ending:false,ended:false,
-  muted:false,tts:true,mic:false,sidebar:true,dialogue:[],raw:[],review:{understood:[],tentative:[],unclear:[],questions:[]},
+  muted:false,tts:true,mic:false,sidebar:true,sidebarTab:'conversation',detailsTab:'transcript',records:[],cognition:null,clock:null,dialogue:[],raw:[],review:{understood:[],tentative:[],unclear:[],questions:[]},
   image:null,pendingImage:null,uploading:false,uncertain:false,draft:'',pending:null,error:'',retryable:false,startedAt:null,
   createError:'',recovery:{resume:null,knowledge:{}},batchRetryPending:false,batchRetryId:null,batchRetryError:''});
 export const state = {
@@ -50,6 +87,7 @@ function reconcileReviews(s, snapshot) {
 }
 export function applyEvent(s, event) {
   const d=event.data || {};
+  recordClassEvent(s,event);
   if(typeof event.elapsed==='number')s.elapsed=event.elapsed;
   switch (event.type) {
     case 'ready': Object.assign(s,{id:d.session_id,lesson:d.lesson || s.lesson,active:true,starting:false,ended:false,

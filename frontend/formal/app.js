@@ -1,10 +1,11 @@
 // 正式前端入口：页面导航与课堂、录音生命周期分离，全部业务调用真实后端。
-import {state,api,emptySession,applyEvent,retrySession} from './service.js';
+import {state,api,emptySession,applyEvent,retrySession,elapsedSeconds,stopClock,exportClassroom} from './service.js';
 import {Microphone,prepareReplySound,playReplySound} from './audio.js';
 import {MicrophoneWaveform} from './waveform.js';
 import {render} from './views.js';
 import {updateClassroomView} from './classroom-view.js';
 import {confirmation} from './prototype.js';
+import {time as clockText} from './records-view.js';
 
 const waveform=new MicrophoneWaveform();
 const view=document.querySelector('#view'), mic=new Microphone({onLevel:(level,active)=>waveform.input(level,active)}), testMic=new Microphone();
@@ -12,17 +13,21 @@ document.addEventListener('visibilitychange',()=>waveform.sync());
 let socket=null,testSocket=null,routeToken=0,pageTimer,healthTimer,asrTimer,creating=false,startingTest=false;
 const automaticReports=new Set();
 let currentUrl=location.pathname+location.search;
+const scrollPositions=new Map();
+function updateClock(){for(const node of view.querySelectorAll('[data-class-clock]'))node.textContent=clockText(elapsedSeconds(state.session));}
+
 const path=()=>location.pathname.replace(/\/$/,'') || '/';
 function refresh() {
   const active=document.activeElement, id=active?.id, name=active?.name;
   const selection=active && 'selectionStart' in active ? [active.selectionStart,active.selectionEnd] : null;
   const positions=[...view.querySelectorAll('[data-scroll],.chat-body')].map(el=>[el.id || el.className,el.scrollTop,el.scrollHeight-el.clientHeight-el.scrollTop<40]);
+  for(const row of positions)scrollPositions.set(state.session.id+':'+row[0],row);
   const openDetails=[...view.querySelectorAll('details[open]')].map(el=>el.dataset.key || el.querySelector('summary')?.textContent);
   updateClassroomView(view,render(state,path(),location.search));
   waveform.bind(view.querySelector('[data-mic-wave]'));
   for(const el of view.querySelectorAll('details')) if(openDetails.includes(el.dataset.key || el.querySelector('summary')?.textContent)) el.open=true;
   for(const el of view.querySelectorAll('[data-scroll],.chat-body')) {
-    const saved=positions.find(row=>row[0]===(el.id || el.className));
+    const saved=scrollPositions.get(state.session.id+':'+(el.id || el.className));
     el.scrollTop=saved ? (saved[2] ? el.scrollHeight : saved[1]) : el.scrollHeight;
   }
   const focus=id ? document.getElementById(id) : name ? [...view.querySelectorAll('[name]')].find(el=>el.name===name) : null;
@@ -52,6 +57,7 @@ async function navigate(url,push=true) {
   }
   if(push) history.pushState(null,'',url); routeToken++; clearTimeout(pageTimer);
   currentUrl=url;
+  if(path()==='/classroom/details'){const tab=new URLSearchParams(location.search).get('tab');if(['transcript','input','student','output'].includes(tab))state.session.detailsTab=tab;}
   const nextPath=path(),nextId=nextPath.split('/').pop();
   if(nextPath.startsWith('/report/') && state.report.session_id!==nextId)state.report={session_id:nextId,status:'idle',loading:true};
   if(nextPath.startsWith('/history/') && state.detail.id!==nextId)state.detail={id:nextId,items:[],warnings:[],review:{},before:null,status:'indexing'};
@@ -107,7 +113,7 @@ async function createClassRequest() {
   try {
     socket=await connect('/ws/session',event=>{if(state.session===next)classEvent(event);},()=>{
       if(state.session!==next)return;
-      const current=state.session,unexpected=current.active || current.starting || current.ending;
+      const current=state.session;stopClock(current);const unexpected=current.active || current.starting || current.ending;
       const wasStarting=current.starting;
       current.active=current.starting=current.ending=current.mic=false; current.pending=null;
       void mic.stop(null,null);
@@ -138,7 +144,7 @@ function classEvent(event) {
     if(d.code==='no_audio_frames')s.retryable=false;
     void mic.stop(socket).then(()=>{s.mic=false;refresh();});
   }
-  if(!['audio_input','llm_output','llm_request','state','candidate','vad','question_release'].includes(event.type)) refresh();
+  if(!['audio_input','vad'].includes(event.type)) refresh();
 }
 async function message() {
   const s=state.session;
@@ -340,6 +346,8 @@ view.addEventListener('click',event=>{
     else if(a==='setup-choice'){state.setup[button.dataset.field]=button.dataset.value;refresh();}
     else if(a==='toggle-create-review'){state.createReview=!(state.createReview??state.settings.asr_review);refresh();}
     else if(a==='open-asr')await navigate('/settings/asr');
+    else if(a==='sidebar-tab'){if(['conversation','transcript','student'].includes(id)){s.sidebarTab=id;refresh();}}
+    else if(a==='details-tab'){if(['transcript','input','student','output'].includes(id)){s.detailsTab=id;history.replaceState(null,'','/classroom/details?tab='+id);currentUrl=location.pathname+location.search;refresh();}}
     else if(a==='class-details')await navigate('/classroom/details');
     else if(a==='back-class')await navigate('/classroom');
     else if(a==='back-create')await navigate('/create');
@@ -367,6 +375,7 @@ view.addEventListener('click',event=>{
     else if(a==='history-earlier')await loadDetail(state.detail.id,true);
     else if(a==='export-session'){
       const archived=path().startsWith('/history/'),record=archived?state.detail:s;
+      if(!archived){downloadText('课堂详情-'+(s.id||'记录')+'.json',JSON.stringify(exportClassroom(s),null,2));return;}
       let rows=record.dialogue || [];
       if(archived){
         let before=null,revision='';rows=[];
@@ -406,6 +415,8 @@ async function boot() {
   try { [state.health,state.settings]=await Promise.all([api('/api/health'),api('/api/settings')]);state.settingsDraft={...state.settings,api_key:''}; }
   catch(error){state.notice=error.message;}
   await action(()=>navigate(location.pathname+location.search,false));
+  setInterval(updateClock,1000);
+  document.addEventListener('visibilitychange',updateClock);
   healthTimer=setInterval(()=>void loadHealth().then(()=>{if(['/', '/create'].includes(path()))refresh();}).catch(()=>{}),8000);
 }
 void boot();

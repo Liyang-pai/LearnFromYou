@@ -3,15 +3,15 @@ import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const business=await readFile(new URL('../frontend/formal/service.js',import.meta.url),'utf8');
-const {state,applyEvent,retrySession}=await import('data:text/javascript;base64,'+Buffer.from(business).toString('base64'));
+const {state,applyEvent,retrySession,stopClock}=await import('data:text/javascript;base64,'+Buffer.from(business).toString('base64'));
 let source=await readFile(new URL('../frontend/formal/app.js',import.meta.url),'utf8');
 source=source.replace(/^import .*;$/gm,'').replace('void boot();','');
 const pending=[];
 const node={addEventListener(){},querySelectorAll:()=>[],querySelector:()=>node,innerHTML:'',focus(){},reportValidity:()=>true};
 const location={pathname:'/',protocol:'http:',host:'localhost',href:'http://localhost/'};
 const context=vm.createContext({state,api(url){return new Promise((resolve,reject)=>pending.push({url,resolve,reject}));},
-  Microphone:class{},MicrophoneWaveform:class{bind(){} sync(){}},prepareReplySound(){},playReplySound(allowed){if(allowed())soundCount++;},applyEvent,retrySession,updateClassroomView(){},render:()=>'',document:{querySelector:()=>node,querySelectorAll:()=>[],addEventListener(){},activeElement:null},
-  location,history:{pushState(_,__,path){location.pathname=path;}},window:{addEventListener(){},scrollTo(){}},clearTimeout,setTimeout,console});
+  stopClock,updateClassroomView(){},Microphone:class{},MicrophoneWaveform:class{bind(){} sync(){}},prepareReplySound(){},playReplySound(allowed){if(allowed())soundCount++;},applyEvent,retrySession,render:()=>'',document:{querySelector:()=>node,querySelectorAll:()=>[],addEventListener(){},activeElement:null},
+  location,history:{replaceState(_,__,path){location.pathname=path;},pushState(_,__,path){location.pathname=path;}},window:{addEventListener(){},scrollTo(){}},clearTimeout,setTimeout,console});
 let soundCount=0;
 vm.runInContext(source+'\nthis.testApi={navigate,loadReport,createClass,startTest,classEvent};',context);
 const app=context.testApi;

@@ -1,6 +1,7 @@
 // 将唯一基准原型的模板绑定到真实业务；不加载原型模拟脚本。
 import {reference,navIcons} from './reference.js';
-import {recoveryTasks,retryPending,canRetry} from './service.js';
+import {recoveryTasks,retryPending,canRetry,elapsedSeconds} from './service.js';
+import {inspector,liveDetail,time} from './records-view.js';
 export const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function template(id){const t=document.createElement('template');t.innerHTML=reference[id].body;return t.content;}
 export function act(node,name,id){if(!node)return;node.dataset.action=name;if(id)node.dataset.id=id;node.removeAttribute('onclick');node.classList.remove('disabled');node.type='button';}
@@ -138,7 +139,7 @@ export function classroom(state){
   if(!has){act(named(root,'创建试讲'),'home-create');act(named(root,'创建一次试讲'),'home-create');return html(root);}
   setText(root,'.page-head p',[s.lesson.topic,[s.lesson.grade,s.lesson.subject].filter(Boolean).join(' · ')].filter(Boolean).join(' / '));
   for(const button of root.querySelectorAll('button')){const label=button.textContent.trim();if(label==='查看课堂详情')act(button,'class-details');if(label==='结束试讲'){act(button,'end-class');button.disabled=!s.active || s.ending;}if(label==='生成报告'){act(button,'generate-report');button.disabled=!s.active || s.ending;}}
-  for(const clock of root.querySelectorAll('.page-head b'))clock.textContent=formatTime(s.elapsed);
+  for(const clock of root.querySelectorAll('.page-head b')){clock.dataset.classClock='';clock.textContent=time(elapsedSeconds(s));}
   const reply=s.dialogue.filter(r=>r.role==='student').at(-1),bubble=root.querySelector('.speech-bubble');if(bubble){bubble.textContent=reply?.text || '我在听，你继续讲。';bubble.hidden=s.muted;}
   if(s.dialogue.length)setText(root,'.stage-top h2','和小纸一起，把问题讲清楚');
   setText(root,'.stage-note',s.status);setText(root,'.stage-top .badge',s.starting?'正在创建':s.mic?'麦克风已开启':s.ended?'已结束':'本次试讲');
@@ -149,9 +150,8 @@ export function classroom(state){
   const dock=root.querySelector('.control-dock');dock.classList.add('classroom-controls');const off=!s.active || s.ending;
   dock.innerHTML=control('mic',s.mic?'暂停麦克风':'开启麦克风','toggle-mic',s.mic,off || s.micPending || s.uploading || s.uncertain)+control('student',s.muted?'恢复学生发言':'暂停学生发言','toggle-muted',!s.muted,off)+control('sound','声音播报','toggle-tts',s.tts&&!s.muted,off || s.muted)+control('sidebar',s.sidebar?'收起侧栏':'展开侧栏','toggle-sidebar',s.sidebar,false);
   root.querySelector('.class-layout').classList.toggle('sidebar-collapsed',!s.sidebar);root.querySelector('.chat-panel').hidden=!s.sidebar;
-  const summary=s.review.unclear[0] || s.review.tentative[0] || s.review.understood[0];
-  setText(root,'.student-status .badge',s.muted?'暂不发言':s.speaking?'正在回应':s.mic?'正在听课':s.review.unclear.length?'有些困惑':'继续听课');setText(root,'.student-status p',s.muted?'小纸继续听课，暂时不发出回应。':summary || s.status);
   const chat=root.querySelector('.chat-body');chat.id='dialogue-list';chat.dataset.scroll='';chat.innerHTML=chatRows(s.dialogue) || '<div class="empty">从你的第一段讲解开始。可以输入文字，或开启麦克风。</div>';chat.style.overflowY='auto';
+  const panel=document.createElement('div');panel.innerHTML=inspector(s,chat.outerHTML);const recordsPanel=panel.firstElementChild;const report=root.querySelector('.chat-title button');if(report)recordsPanel.querySelector('.live-tabs').append(report);root.querySelector('.student-status')?.remove();root.querySelector('.chat-title')?.remove();chat.replaceWith(recordsPanel);
   const old=root.querySelector('.chat-input'),form=document.createElement('form');form.id='message-form';form.className='chat-input screenshot-composer';
   const chip=s.image?`<div class="screenshot-chip"><button type="button" class="screenshot-thumb" data-action="preview-image" aria-label="放大预览教学截图"><img src="${escape(s.image.url)}" alt="当前教学截图"></button><div class="chip-copy"><div class="chip-name">${escape(s.image.name || '当前教学截图')}</div><div class="chip-tip">当前教学截图 · 点击放大</div></div><button type="button" class="remove-shot" data-action="remove-image" aria-label="移除截图"${s.uploading?' disabled':''}>×</button></div>`:'';
   form.innerHTML=`<div class="composer-card">${chip}<div class="composer-line"><textarea class="input" id="teacher-draft" name="draft" aria-label="讲解或提问" placeholder="输入讲解或提问…" maxlength="5000"${off?' disabled':''}>${escape(s.draft)}</textarea><button type="button" class="add-shot" data-action="upload-image" aria-label="添加或更换截图"${off || s.uploading?' disabled':''}>＋</button><button class="btn primary" type="submit"${off || s.pending || s.uploading || s.uncertain?' disabled':''}><span>发送</span></button></div></div><div class="composer-help">${s.uploading?'正在上传截图，请稍候':'支持 Ctrl+V 粘贴截图'}</div>${s.uncertain?'<div class="composer-image-error">截图状态尚未确认。<button type="button" data-action="reconcile-image">核对当前图</button></div>':''}`;
@@ -164,7 +164,10 @@ export function classroom(state){
   return html(root);
 }
 export function details(state,archived){
-  const s=archived?state.detail:state.session,rows=archived?s.items:s.dialogue,root=shell(template('10'),archived?'/history/'+s.id:'/classroom/details'),view=s.review||{},summary=root.querySelectorAll('.review-summary strong');
+  if(!archived)return shellContent(liveDetail(state.session),'/classroom/details');
+  const s=state.detail,rows=s.items,root=shell(template('10'),'/history/'+s.id),view=s.review||{};
+  root.querySelector('.main').innerHTML=`<div class="page-head"><div><h1>课堂记录</h1><p>${escape(s.topic||'历史课堂')}</p></div><div class="row-actions"><button class="btn" data-action="history-all">返回课堂列表</button><button class="btn" data-action="export-session">导出记录</button></div></div><div class="review-summary"><div><small>本次主题</small><strong></strong></div><div><small>试讲时长</small><strong></strong></div><div><small>讲解记录</small><strong></strong></div></div><div class="review-grid"><section class="review-panel"><h2>讲解记录</h2><div data-review-records></div></section><aside class="review-panel"><h2>理解与疑问</h2><div class="understanding-card"><h3>目前的理解</h3></div><div class="understanding-card"><h3>理解障碍</h3></div><div class="understanding-card"><h3>学生问题</h3></div></aside></div>`;
+  const summary=root.querySelectorAll('.review-summary strong');
   summary[0].textContent=s.topic || s.lesson?.topic || '未记录';summary[1].textContent=formatTime(s.elapsed || Math.max(0,...rows.map(r=>r.elapsed||0)));summary[2].textContent=rows.filter(r=>r.role==='teacher'&&r.request_count>0).length+' 段';
   act(named(root,'返回教室'),archived?'history-all':'back-class');act(named(root,'导出记录'),'export-session');
   const holder=root.querySelector('[data-review-records]');holder.innerHTML=rows.length?rows.map(row=>`<article class="review-record"><div class="review-record-head"><time>${formatTime(row.elapsed)}</time><span>${row.role==='teacher'?row.request_count?'讲授批次':'尚未提交模型':'小纸回应'}</span></div><p>${escape(row.text)}</p>${row.role==='teacher'&&row.segments?.length?`<details class="review-original"><summary>查看识别原文</summary>${row.segments.map(seg=>`<p>${escape(seg.raw_text??'原文未记录')}</p>`).join('')}</details>`:''}</article>`).join(''):'<p class="hint">还没有讲解记录。返回教室开始讲解后，可以在这里回看。</p>';
