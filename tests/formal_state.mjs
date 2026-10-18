@@ -1,0 +1,22 @@
+// 正式页面协议测试：批次重试、草稿确认、候选隔离，完全离线。
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const source=await readFile(new URL('../frontend/formal/service.js',import.meta.url),'utf8');
+const {emptySession,applyEvent}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const s=emptySession();
+const event=(type,data)=>applyEvent(s,{type,data});
+event('transcript',{id:'t1',text:'拆分片段'}); event('state',{candidate:{text:'尚未发出'}});
+assert.equal(s.dialogue.length,0);
+event('teacher_batch',{batch_id:'one',text:'实际\n提交文本',request_count:1,processing_status:'submitted'});
+event('teacher_batch',{batch_id:'one',text:'实际\n提交文本',request_count:2,processing_status:'failed'});
+event('teacher_batch',{batch_id:'one',text:'实际\n提交文本',request_count:3,processing_status:'processed'});
+assert.equal(s.dialogue.length,1); assert.equal(s.dialogue[0].request_count,3);
+s.draft='等待接收'; s.pending={id:'client1',text:s.draft};
+event('teacher_input_accepted',{client_message_id:'wrong'}); assert.equal(s.draft,'等待接收');
+s.draft='用户后来继续编辑'; event('teacher_input_accepted',{client_message_id:'client1'});
+assert.equal(s.draft,'用户后来继续编辑'); assert.equal(s.pending,null);
+s.pending={id:'client2',text:s.draft}; event('error',{message:'接收失败',client_message_id:'client2'});
+assert.equal(s.draft,'用户后来继续编辑'); assert.equal(s.pending,null);
+s.pending={id:'client3',text:s.draft}; event('teacher_input_accepted',{client_message_id:'client3'}); assert.equal(s.draft,'');
+event('reply',{text:'实际学生回复'}); assert.equal(s.dialogue.length,2);
+console.log('formal state: batch dedupe, confirmed drafts and actual replies passed');

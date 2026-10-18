@@ -97,7 +97,8 @@ class ModelManager:
                 previous = record["files"][asset.name]
                 if (not isinstance(previous, list) or len(previous) != 2
                         or any(type(value) is not int for value in previous)
-                        or signatures[asset.name][0] != asset.size):
+                        or signatures[asset.name][0] != asset.size
+                        or self.invalid.get((str(directory / asset.name), asset.sha256)) == signatures[asset.name]):
                     return False
                 if signatures[asset.name] != previous:
                     changed.append(asset)
@@ -139,7 +140,9 @@ class ModelManager:
 
     def _vad_ready(self):
         try:
-            return self._signature(self.vad_path)[0] == self.vad.size
+            signature = self._signature(self.vad_path)
+            return (signature[0] == self.vad.size
+                    and self.invalid.get((str(self.vad_path), self.vad.sha256)) != signature)
         except (OSError, ValueError):
             return False
 
@@ -183,18 +186,35 @@ class ModelManager:
                                "license_url": model.license_url, "revision": model.revision,
                                "size_bytes": size, "download_bytes": size,
                                "downloadable": model.downloadable, "installed": installed,
-                               "selected": self.selected_id == model.id, "state": state, "job": job})
+                               "selected": self.selected_id == model.id, "state": state, "job": job,
+                               "files": [self._file_detail(self.directory(model) / asset.name, asset)
+                                         for asset in model.files]})
             ready = bool(self.selected_id and self._installed(self.catalog[self.selected_id]) and self._vad_ready())
             return {"models": models, "selected_id": self.selected_id, "models_dir": str(self.root.resolve()),
                     "vad_ready": self._vad_ready(), "asr_ready": ready,
                     "busy": self.busy, "activity": self.activity, "engine_state": "loading" if self.loading else
                     "loaded" if self.engine else "failed" if self.error else "idle",
-                    "error": self.error, "notice": notice}
+                    "error": self.error, "notice": notice,
+                    "vad": self._file_detail(self.vad_path, self.vad)}
+
+    def _file_detail(self, path, asset):
+        try:
+            signature = self._signature(path)
+            cache_key = (str(path), asset.sha256)
+            state = ('verified' if self.verified.get(cache_key) == signature else
+                     'invalid' if self.invalid.get(cache_key) == signature else 'present')
+            return {'name': asset.name, 'size_bytes': signature[0], 'expected_bytes': asset.size,
+                    'sha256': asset.sha256, 'state': state}
+        except (OSError, ValueError):
+            return {'name': asset.name, 'size_bytes': 0, 'expected_bytes': asset.size,
+                    'sha256': asset.sha256, 'state': 'missing'}
 
     def select(self, model_id):
         with self.lock:
             if self.busy:
                 raise ValueError("试讲或 ASR 调试创建、进行或结束处理中，不能切换模型")
+            if self.download_task and not self.download_task.done():
+                raise ValueError('模型维护正在进行，请等待完成或取消后再切换模型')
             model = self.model(model_id)
             if not self._installed(model):
                 raise ValueError("模型尚未安装完成，请先下载或重新下载")
@@ -304,6 +324,97 @@ class ModelManager:
     def _update_job(self, model_id, **values):
         with self.lock:
             self.jobs[model_id].update(values)
+
+    def _check_maintenance(self, model_id):
+        model = self.model(model_id)
+        if self.busy:
+            raise ValueError('请先结束试讲或 ASR 调试再维护模型')
+        if self.download_task and not self.download_task.done():
+            raise ValueError('已有模型维护正在进行，请等待完成或取消')
+        return model
+
+    async def verify(self, model_id):
+        """Explicitly hash local assets again; never download or load inference."""
+        with self.lock:
+            model = self._check_maintenance(model_id)
+            self.cancel_event = threading.Event()
+            self.jobs[model_id] = {'state': 'verifying', 'action': 'verify', 'model_id': model_id,
+                                   'verified': False, 'error': None, 'files': []}
+            self.download_task = asyncio.create_task(asyncio.to_thread(self._verify_local, model, self.cancel_event))
+            task = self.download_task
+        await asyncio.shield(task)
+        with self.lock:
+            return dict(self.jobs[model_id])
+
+    def _verify_local(self, model, cancel):
+        files = []
+        error = None
+        try:
+            directory = self.directory(model)
+            assets = [(directory / asset.name, asset) for asset in model.files]
+            assets.append((self.vad_path, self.vad))
+            for path, asset in assets:
+                if cancel.is_set():
+                    raise DownloadCancelled()
+                try:
+                    if asset.sha256:
+                        # An explicit verification must not trust a cached signature.
+                        self.verified.pop((str(path), asset.sha256), None)
+                        self.invalid.pop((str(path), asset.sha256), None)
+                        self._verify(path, asset, cancel)
+                    elif self._signature(path)[0] <= 0:
+                        raise ValueError(f'{asset.name} 文件无效')
+                except (OSError, ValueError) as exc:
+                    error = str(exc) if isinstance(exc, ValueError) else f'{asset.name} 缺失或无法读取'
+                    files.append({**self._file_detail(path, asset), 'error': error})
+                else:
+                    files.append(self._file_detail(path, asset))
+            if cancel.is_set():
+                raise DownloadCancelled()
+            # Valid loose/copied standard files become selectable without a download.
+            if not error and model.downloadable:
+                self._write_record(directory, {'revision': model.revision,
+                    'files': {asset.name: self._signature(directory / asset.name) for asset in model.files}})
+            self._update_job(model.id, state='failed' if error else 'verified' if model.downloadable else 'checked',
+                             verified=not error and model.downloadable, files=files, error=error,
+                             message=('开发兼容模型没有固定校验清单，仅检查文件存在' if not model.downloadable else None),
+                             vad_ready=self._vad_ready())
+        except DownloadCancelled:
+            self._update_job(model.id, state='cancelled', verified=False, files=files)
+        except (OSError, ValueError):
+            self._update_job(model.id, state='failed', verified=False, files=files,
+                             error='本地文件校验或校验记录保存失败，请检查文件与目录权限')
+
+    async def prepare_vad(self, model_id):
+        """Prepare the shared VAD only, retaining model assets and selection."""
+        with self.lock:
+            model = self._check_maintenance(model_id)
+            self.root.mkdir(parents=True, exist_ok=True)
+            shared = self._safe_file(self.root / '_shared')
+            shared.mkdir(exist_ok=True)
+            if shutil.disk_usage(self.root).free < self.vad.size + 10 * 1024 * 1024:
+                raise ValueError('磁盘空间不足，无法准备 VAD')
+            self.cancel_event = threading.Event()
+            self.jobs[model_id] = {'state': 'downloading', 'action': 'prepare_vad', 'downloaded_bytes': 0,
+                                   'total_bytes': self.vad.size, 'file': self.vad.name, 'error': None}
+            self.download_task = asyncio.create_task(asyncio.to_thread(self._prepare_vad, model, self.cancel_event))
+            return dict(self.jobs[model_id])
+
+    def _prepare_vad(self, model, cancel):
+        try:
+            with httpx.Client(follow_redirects=True, transport=self.transport,
+                              timeout=httpx.Timeout(15, connect=10)) as client:
+                self._fetch(client, self.vad, self.root / '_shared' / self.vad.name, model.id, 0, cancel)
+            if cancel.is_set():
+                raise DownloadCancelled()
+            self._update_job(model.id, state='prepared', file='')
+        except DownloadCancelled:
+            self._update_job(model.id, state='cancelled', file='')
+        except (httpx.HTTPError, OSError, ValueError) as exc:
+            message = str(exc) if isinstance(exc, ValueError) else (
+                '官方 VAD 源连接失败，请检查网络或代理后重试' if isinstance(exc, httpx.HTTPError)
+                else 'VAD 文件写入失败，请检查磁盘空间与目录权限')
+            self._update_job(model.id, state='failed', error=message)
 
     async def download(self, model_id):
         with self.lock:

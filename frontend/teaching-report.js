@@ -25,7 +25,11 @@
     }[data.status];
     if (data.status === 'generating') element('teachingReportStatus').textContent = data.progress || '正在生成教学报告，请稍等……';
     if (data.status === 'idle' && autoWait > 0) element('teachingReportStatus').textContent = '正在结束课堂并准备报告……';
-    const body = element('teachingReportBody');
+    renderBody(element('teachingReportBody'), data);
+    controls();
+  }
+
+  function renderBody(body, data) {
     body.replaceChildren();
     if (data.status === 'ready' && data.report) {
       const report = data.report;
@@ -45,7 +49,6 @@
         node('h3', '应该如何改'), node('p', report.action.text), node('h3', '下次怎么办'),
         node('p', `${practice.minutes}分钟练习：${practice.task}`), node('p', '完成标准：' + practice.criterion));
     }
-    controls();
   }
 
   async function load(method = 'GET') {
@@ -102,7 +105,7 @@
     anchor.href = `/api/teaching-report/${session}/export`; anchor.download = `试讲教学报告-${session}.md`;
     anchor.click();
   });
-  window.teachingReport = {open, reset, unavailable};
+  window.teachingReport = {open, reset, unavailable, renderBody};
   const sid = new URLSearchParams(location.search).get('teaching_report');
   // Refresh may happen between the finished event and backend registration.
   // Waiting uses GET only, including this narrow resource-cleanup window.

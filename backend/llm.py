@@ -3,8 +3,8 @@ import json
 import time
 import httpx
 from pydantic import ValidationError
-from . import config
 from .runtime import RUNTIME, fingerprint
+from .settings import model_settings
 
 REPORT_REQUEST_TIMEOUT = 60
 # Independent of the concise report budget. Thinking and JSON share output
@@ -19,8 +19,25 @@ class ModelError(Exception):
 
 
 class ModelClient:
-    def __init__(self, emit):
-        self.emit = emit
+    def __init__(self, emit, snapshot=None):
+        snapshot = dict(snapshot) if snapshot is not None else model_settings()
+        self.api_key = snapshot['api_key']
+        self.base_url = snapshot['base_url']
+        self.model = snapshot['model']
+        self.image_model = snapshot['image_model']
+        def redact(value):
+            if isinstance(value, str):
+                return value.replace(self.api_key, '[REDACTED]')
+            if isinstance(value, dict):
+                return {redact(key): redact(item) for key, item in value.items()}
+            if isinstance(value, (list, tuple)):
+                return [redact(item) for item in value]
+            return value
+        async def safe_emit(kind, data):
+            if self.api_key:
+                data = redact(data)
+            await emit(kind, data)
+        self.emit = safe_emit
         self.http = httpx.AsyncClient(timeout=httpx.Timeout(90, connect=15))
 
     async def close(self):
@@ -29,7 +46,7 @@ class ModelClient:
     async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None, images=()):
         report_phase = phase.startswith('teaching_report')
         profile_phase = phase == 'student_profile'
-        if not config.API_KEY:
+        if not self.api_key:
             raise ModelError("未找到 Deepseek_API 或 DEEPSEEK_API_KEY，请检查项目 .env")
         if images and phase not in ('student', 'student_resume'):
             raise ValueError('图片仅用于本次课堂学生请求')
@@ -50,7 +67,7 @@ class ModelClient:
             max_tokens = min(student_tokens, remaining_tokens) if phase in ('student', 'student_resume', 'knowledge_review') else 3500
             if phase in ('student', 'student_resume', 'knowledge_review'):
                 remaining_tokens -= max_tokens
-            body = {"model": config.IMAGE_MODEL if images else config.MODEL, "messages": messages, "response_format": {"type": "json_object"},
+            body = {"model": self.image_model if images else self.model, "messages": messages, "response_format": {"type": "json_object"},
                     "temperature": 0.25, "max_tokens": max_tokens}
             # Keep screenshot binaries out of websocket/debug/JSONL exports.
             logged_body = body
@@ -64,8 +81,8 @@ class ModelClient:
             started = time.monotonic()
             try:
                 async with asyncio.timeout(REPORT_REQUEST_TIMEOUT if report_phase else 90):
-                    response = await self.http.post(config.BASE_URL + "/chat/completions", json=body,
-                                                    headers={"Authorization": "Bearer " + config.API_KEY})
+                    response = await self.http.post(self.base_url + "/chat/completions", json=body,
+                                                    headers={"Authorization": "Bearer " + self.api_key})
                 response.raise_for_status()
                 envelope = response.json()
                 raw = envelope["choices"][0]["message"]["content"]

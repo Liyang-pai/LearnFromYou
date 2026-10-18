@@ -1,0 +1,31 @@
+/* 生产环境绑定与窗口适配；视觉数值来自原型基础样式和主题。 */
+html,body,#view{width:100%;min-height:100%;margin:0}body{overflow:hidden}.app{width:100%;height:100dvh;min-height:660px}a{color:inherit;text-decoration:none}button,input,textarea,select{font:inherit}button:not(:disabled),a{cursor:pointer}button:disabled{cursor:default;opacity:.55}[hidden]{display:none!important}input.input,textarea.input,select.input{width:100%;color:#284c77;background:#fff;font-size:17px;border:1px solid #dfe9f5;border-radius:12px;padding:12px 14px}textarea.input{resize:vertical;line-height:1.8}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid #69a8ff;outline-offset:3px}.subject-icon{width:32px;height:32px;object-fit:contain}.history-list{display:grid;gap:12px;max-height:65vh;overflow:auto}.history-list .recent-lesson{width:100%;min-height:110px}.modal-backdrop{position:fixed;inset:0;background:#263c5966;backdrop-filter:blur(3px);z-index:100;display:grid;place-items:center;padding:24px}.modal-backdrop .modal{position:relative;inset:auto;transform:none;max-height:92vh;overflow:auto}.modal-header>button.icon{border:0;background:transparent;font-size:25px;color:#7690ae}.modal-body{padding:20px 0}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}dialog{border:0;border-radius:22px;padding:26px;max-width:min(680px,92vw);color:var(--ink);font:17px/1.8 ChillRound,"Microsoft YaHei UI",sans-serif}dialog::backdrop{background:#263c5966;backdrop-filter:blur(3px)}dialog img{display:block;max-width:100%;max-height:75vh;object-fit:contain}dialog p{margin:12px 0 20px}.toast{position:fixed;z-index:200;bottom:24px;left:50%;transform:translateX(-50%);max-width:90vw;background:#365579ed;color:white;padding:13px 22px;border-radius:14px;font-size:16px}.binding-empty{color:#8ca0ba;padding:18px;font-size:16px}.actual-text{white-space:pre-wrap;overflow-wrap:anywhere}.main .chat-row .chat-text{white-space:pre-wrap;overflow-wrap:anywhere}.chat-text small{display:block;font-size:12px;opacity:.75;margin-bottom:5px}.screenshot-composer textarea{font:inherit}.profile-manual{width:100%;min-height:300px;resize:vertical}.model-hash{overflow-wrap:anywhere}.debug-diagnostic{white-space:pre-wrap;overflow-wrap:anywhere}.segments button{border:0;background:transparent;color:inherit;padding:8px 12px;font:inherit}.segments button.selected{background:#e9f3ff;color:#438ce9;border-radius:9px}.main .settings-tabs a{color:inherit}.main .settings-tabs a.active{color:#287ff1}
+
+.prototype-toggle{border:0;padding:3px}.segments button{border-radius:9px}.screenshot-composer .add-shot{font-family:Arial,sans-serif}
+#action-confirm{padding:0;max-width:94vw;background:transparent;overflow:visible}#action-confirm>.modal{position:static;transform:none;max-width:94vw;margin:0;background:#fff;max-height:92vh}#action-confirm .modal-body{padding:0 28px 25px}#action-confirm .modal-header p{margin:8px 0 0}#action-confirm .modal-footer{margin:0}.version-table strong{overflow-wrap:anywhere;max-width:65%;text-align:right}
+/* Live classroom records use shared business projections, never sample markup. */
+.classroom-inspector .live-tabs{flex-shrink:0;display:flex;align-items:center;gap:18px;padding:7px 20px 0;border-bottom:1px solid #edf1f7}
+.live-tabs{display:flex;gap:28px;border-bottom:1px solid #e2ebf6;margin:0 0 24px}
+.live-tabs button[role=tab]{font:19px/1.5 "ChillRound",sans-serif;padding:13px 3px;border:0;border-bottom:3px solid transparent;background:transparent;color:#8295ae;cursor:pointer;white-space:nowrap}
+.live-tabs button[aria-selected=true]{color:#528df2;border-bottom-color:#528df2}
+.classroom-inspector .live-tabs{margin-bottom:0;gap:18px}
+.classroom-inspector .live-tabs button[role=tab]{font-size:17px}
+.classroom-inspector .live-tabs>.btn{margin-left:auto;font-size:12px;min-height:32px;padding:5px 0;border:0;background:none;gap:3px}
+.classroom-inspector .live-tabs>.btn .icon{width:14px;height:14px}
+.classroom-inspector .inspector-content:has(.chat-body){overflow:hidden;padding:0;display:flex;flex-direction:column}
+.classroom-inspector .chat-body{flex:1;min-height:0}
+.inspector-footer a{font-size:13px;color:#6794d8;text-decoration:none;margin-left:auto}
+.live-record{padding:15px 0;border-bottom:1px solid #edf1f7;overflow-wrap:anywhere}
+.live-record-title{font-size:15px;color:#7091ba;margin-bottom:7px}
+.live-record p{white-space:pre-wrap;font-size:17px;line-height:1.8;color:#526f94}
+.live-record small{display:block;white-space:pre-wrap;color:#8a9fbb;font-size:14px;line-height:1.8;margin-top:7px}
+.live-record details{margin-top:7px;font-size:14px;color:#8199b9}
+.live-record summary,.live-payload summary{cursor:pointer}
+.live-state-group h3{font-size:20px;margin:20px 0 0}
+.live-state-group:first-child h3{margin-top:16px}
+.live-payload{padding:16px 18px;background:#f5f9ff;border-radius:14px;margin:14px 0;font-size:16px;color:#6586b1}
+.live-payload pre{font:15px/1.8 "ChillRound",sans-serif;white-space:pre-wrap;overflow-wrap:anywhere;color:#526f94;margin:15px 0 0}
+.records-empty{padding:26px 10px;color:#8b9fb9;font-size:16px;line-height:1.9;text-align:center}
+.live-detail{min-height:420px;overflow:auto;max-height:calc(100vh - 380px)}
+.live-detail .live-state-group{max-width:1000px}
+.live-detail:focus-visible,.inspector-content:focus-visible{outline:2px solid #69a8ff;outline-offset:-3px}

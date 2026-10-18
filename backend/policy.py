@@ -262,8 +262,6 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
             raise ValueError('沉默不能标记已回应教师请求')
         if any(rid not in requests or requests[rid].status != 'pending' for rid in candidate.response_request_ids):
             raise QuestionReleaseError(candidate.question_id, reason='候选关联的教师邀请或请求已经失效')
-        if candidate.kind == 'question' and any(requests[rid].kind != 'invite_questions' for rid in candidate.response_request_ids):
-            raise QuestionReleaseError(candidate.question_id, reason='只有明确邀请说明疑问才能由 question 回应')
     if candidate.kind != 'question' and (candidate.question_release_request or candidate.question_id):
         raise QuestionReleaseError(candidate.question_id, reason='不能把提问关联放进 answer/ack 绕过限制')
     if resume and not allow_silence:

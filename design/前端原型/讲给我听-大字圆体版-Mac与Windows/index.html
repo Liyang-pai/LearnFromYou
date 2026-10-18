@@ -1,0 +1,31 @@
+<!doctype html>
+<!-- 独立静态交互原型入口；只加载本地素材和模拟数据，不连接产品服务。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'self' about:; form-action 'none'; base-uri 'self'">
+  <title>讲给我听 · 静态交互原型</title>
+  <link rel="stylesheet" href="src/prototype.css">
+  <link rel="stylesheet" href="src/theme.css?v=20261018-detail-debug-tabs">
+  <script src="src/screens.js?v=20261018-detail-debug-tabs" defer></script>
+  <script src="src/app.js?v=20261018-detail-debug-tabs" defer></script>
+  <script src="src/interactions.js?v=20261018-detail-debug-tabs" defer></script>
+  <script src="src/features.js?v=20261018-detail-debug-tabs" defer></script>
+</head>
+<body class="prototype-review">
+  <header class="preview-bar">
+    <div class="preview-brand"><strong>讲给我听</strong><span>静态交互原型</span><small>模拟数据 · 不联网</small></div>
+    <div class="preview-actions">
+      <label for="scene">场景</label><select id="scene" aria-label="查看页面与状态"></select>
+      <button id="simulate" title="模拟识别、思考或学生回应">演示下一步</button>
+      <button id="fault">异常演示</button>
+      <button id="reset">重置演示</button>
+    </div>
+  </header>
+  <main id="viewport"><iframe id="canvas" title="讲给我听原型画面" sandbox="allow-same-origin allow-downloads" aria-label="应用交互画面"></iframe></main>
+  <footer class="preview-footer"><span id="previewStatus">页面正在准备…</span><span>无后端 / 无麦克风采集 / 无模型请求 / 刷新清空模拟内容</span></footer>
+  <input id="imagePicker" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+  <div id="hostToast" role="status" aria-live="polite"></div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "chinese": "语文",
+  "math": "数学",
+  "english": "英语",
+  "physics": "物理",
+  "chemistry": "化学",
+  "biology": "生物",
+  "history": "历史",
+  "geography": "地理",
+  "civics": "道德与法治",
+  "science": "科学",
+  "computing": "信息科技",
+  "other": "其他（自定义）"
+}

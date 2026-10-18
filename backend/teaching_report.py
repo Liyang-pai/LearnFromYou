@@ -1,5 +1,7 @@
 """A teaching report is independent of the AI student's post-class simulation."""
 import asyncio
+from collections import OrderedDict
+import threading
 import hashlib
 import json
 import logging
@@ -109,9 +111,12 @@ class ReportService:
         self.model_factory = model_factory or ModelClient
         self.tasks = {}
         self.lock = asyncio.Lock()
+        self.start_lock = asyncio.Lock()
+        self.materials = OrderedDict()
+        self.material_lock = threading.RLock()
 
     def path(self, session_id):
-        return config.ROOT / 'logs' / f'{session_id}.teaching-report-v2.json'
+        return config.data_root() / 'logs' / f'{session_id}.teaching-report-v2.json'
 
     def save(self, result):
         path = self.path(result['session_id'])
@@ -119,9 +124,23 @@ class ReportService:
         temporary.write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
         temporary.replace(path)
 
+    def material(self, session_id):
+        # Source and prompt changes invalidate material/hash together. Polling never
+        # rereads an unchanged raw log; cap memory retained across historical classes.
+        from .history import classroom_path, source_stamp
+        path = classroom_path(session_id)
+        key = (str(path), source_stamp(path), source_hash({}))
+        with self.material_lock:
+            if key not in self.materials:
+                classroom = read_classroom(config.data_root(), session_id)
+                self.materials[key] = (classroom, source_hash(classroom))
+                while len(self.materials) > 8:
+                    self.materials.popitem(last=False)
+            self.materials.move_to_end(key)
+            return self.materials[key]
+
     def get(self, session_id):
-        classroom = read_classroom(config.ROOT, session_id)
-        digest = source_hash(classroom)
+        classroom, digest = self.material(session_id)
         result = {'schema_version': 2, 'session_id': session_id, 'source_hash': digest, 'status': 'idle',
                   'progress': '课堂已结束，可以生成报告。', 'report': None, 'error': ''}
         path = self.path(session_id)
@@ -150,31 +169,37 @@ class ReportService:
         return result
 
     async def start(self, session_id):
-        # No await between checking the job and registering it: double clicks share one job.
-        result = self.get(session_id)
-        if result['status'] in ('ready', 'generating'):
+        # Reading a large old classroom must not block websocket/audio work.
+        # The lock covers job registration after the asynchronous material lookup.
+        async with self.start_lock:
+            result = await asyncio.to_thread(self.get, session_id)
+            if result['status'] in ('ready', 'generating'):
+                return result
+            classroom, _ = await asyncio.to_thread(self.material, session_id)
+            result.update(status='generating', error='', report=None, progress='正在等待分析，请稍等……')
+            self.save(result)
+            self.tasks[session_id] = asyncio.create_task(self.run(result, classroom))
+            # Enter the task's try/finally and freeze its model configuration before
+            # returning, including when it must wait for another report's worker.
+            await asyncio.sleep(0)
             return result
-        classroom = read_classroom(config.ROOT, session_id)
-        result.update(status='generating', error='', report=None, progress='正在等待分析，请稍等……')
-        self.save(result)
-        self.tasks[session_id] = asyncio.create_task(self.run(result, classroom))
-        return result
 
     async def run(self, result, classroom):
         model = None
         try:
+            async def audit(kind, data):
+                path = self.path(result['session_id']).with_suffix('.events.jsonl')
+                text = json.dumps({'type': kind, 'data': data}, ensure_ascii=False)
+                for secret in (config.API_KEY, getattr(model, 'api_key', None)):
+                    if secret:
+                        text = text.replace(json.dumps(secret, ensure_ascii=False)[1:-1], '[REDACTED]')
+                with path.open('a', encoding='utf-8') as stream:
+                    stream.write(text + '\n')
+            model = self.model_factory(audit)
             async with self.lock:
-                async def audit(kind, data):
-                    path = self.path(result['session_id']).with_suffix('.events.jsonl')
-                    text = json.dumps({'type': kind, 'data': data}, ensure_ascii=False)
-                    if config.API_KEY:
-                        text = text.replace(config.API_KEY, '[REDACTED]')
-                    with path.open('a', encoding='utf-8') as stream:
-                        stream.write(text + '\n')
-                model = self.model_factory(audit)
                 from .report_pipeline import ReportPipeline
                 async with asyncio.timeout(REPORT_BUDGET):
-                    pipeline = ReportPipeline(model, config.ROOT, result['session_id'], result['source_hash'],
+                    pipeline = ReportPipeline(model, config.data_root(), result['session_id'], result['source_hash'],
                                               lambda message: self.progress(result, message))
                     report = await pipeline.generate(classroom)
                 validate_sources(report, classroom)
@@ -186,8 +211,9 @@ class ReportService:
             result.update(status='failed', report=None, error='本次分析已到5分钟执行上限；成功阶段已保存，可重试继续')
         except (ModelError, ValueError) as exc:
             message = str(exc)
-            if config.API_KEY:
-                message = message.replace(config.API_KEY, '[REDACTED]')
+            for secret in (config.API_KEY, getattr(model, 'api_key', None)):
+                if secret:
+                    message = message.replace(secret, '[REDACTED]')
             result.update(status='failed', report=None, error=message)
         except Exception:
             logging.getLogger(__name__).exception('Teaching report generation failed')

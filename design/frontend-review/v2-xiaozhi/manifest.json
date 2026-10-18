@@ -1,0 +1,772 @@
+{
+  "generated": "2026-10-17 Asia/Shanghai",
+  "version": "用户原图角色替换版",
+  "scope": "静态概念设计；原始透明PNG直接嵌入；未重绘角色；未接入后端；未启动智能体；全为示例数据",
+  "character": {
+    "file": "assets/小纸-用户原图.png",
+    "sha256": "d9188f847fdfe3bf1169ee73864b5c4f8031f8bab652ec86b6482f0349d35dc0",
+    "width": 700,
+    "height": 700,
+    "hasAlpha": true,
+    "editing": "未编辑，直接使用用户原始文件"
+  },
+  "pages": [
+    {
+      "name": "01-首页",
+      "category": "主页面",
+      "png": "png/01-首页.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4ab03533ee6752ccfbccedf41506e0c469007050db81bd3b34ef5488dc19b164",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 407
+      }
+    },
+    {
+      "name": "02-创建试讲-空白",
+      "category": "创建与画像",
+      "png": "png/02-创建试讲-空白.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "597c1c077a077c508b89a65cb58d4681a54a98d6d1b3d788769cf40cdcae8a3d",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 396
+      }
+    },
+    {
+      "name": "03-创建试讲-画像就绪",
+      "category": "创建与画像",
+      "png": "png/03-创建试讲-画像就绪.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "bbaf9df87c02d8c93907b3a950fe4413329e98e61151795098f45ebd1023fe6f",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 464
+      }
+    },
+    {
+      "name": "04-我的教室-空状态",
+      "category": "课堂",
+      "png": "png/04-我的教室-空状态.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "03e1ae7fd4852544207283005f299d0a0faac9b734b35adc8d4f8ae463cf30f3",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 89
+      }
+    },
+    {
+      "name": "05-我的教室-准备开始",
+      "category": "课堂",
+      "png": "png/05-我的教室-准备开始.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "a95b35a0250000957632911a2bd396151cea59803923076bb48777d237d9e796",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 260
+      }
+    },
+    {
+      "name": "06-我的教室-正在听课",
+      "category": "课堂",
+      "png": "png/06-我的教室-正在听课.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4d59f397acf95a16b0ffc5984eb5eb304f200a08e8290609f70b491c293fae02",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 312
+      }
+    },
+    {
+      "name": "07-我的教室-学生思考",
+      "category": "课堂",
+      "png": "png/07-我的教室-学生思考.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "33faa5e9794e81be3f8bedabf6ed268f03c5970e792be3f0df1ba3f3e728870b",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 344
+      }
+    },
+    {
+      "name": "08-我的教室-学生提问",
+      "category": "课堂",
+      "png": "png/08-我的教室-学生提问.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "24bef35bc0f363a8e15499136cd4c8c6c2f03b5fa8f1c57efaa2bbf71e09a06a",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 345
+      }
+    },
+    {
+      "name": "09-我的教室-学生暂不发言",
+      "category": "课堂",
+      "png": "png/09-我的教室-学生暂不发言.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4034aac023e58fb50743ed4850efe40166c1e02620881f4247b18957f10bee6c",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 356
+      }
+    },
+    {
+      "name": "10-课堂详情-转写与教学片段",
+      "category": "完整信息覆盖",
+      "png": "png/10-课堂详情-转写与教学片段.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "66c3b4ba9555798ec5de2c98055016b3b515104d8e1bb9b5a40f3c3d9fbd96b2",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 548
+      }
+    },
+    {
+      "name": "11-课堂详情-认知与问题",
+      "category": "完整信息覆盖",
+      "png": "png/11-课堂详情-认知与问题.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "1dc973f3bf8ce1b34a79f25828c5877c94b506ce46082adb8aeb45a6ce1d73ac",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 573
+      }
+    },
+    {
+      "name": "12-课堂详情-模型请求与结果",
+      "category": "完整信息覆盖",
+      "png": "png/12-课堂详情-模型请求与结果.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "3109ab8be3dbcd8b2358f0c22560f0ca8d1fb84dc6038841892d49d71708517b",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 730
+      }
+    },
+    {
+      "name": "13-课堂详情-处理过程",
+      "category": "完整信息覆盖",
+      "png": "png/13-课堂详情-处理过程.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "46023d1b09e619d3583b1d63939de3cba86a875b286d8f71e423c60bf5536b87",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 538
+      }
+    },
+    {
+      "name": "14-教学截图-确认上传",
+      "category": "截图",
+      "png": "png/14-教学截图-确认上传.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4ab83bcc8cc8c13f77a758f11b0ab977d194426fdc3114d23d6346534ffc25fb",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 340
+      }
+    },
+    {
+      "name": "15-教学截图-放大查看",
+      "category": "截图",
+      "png": "png/15-教学截图-放大查看.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "dd5768e571dd8f7d1683597a500fe59b672f7af3b651aa7e9dc2ac9d4d62c9a3",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 340
+      }
+    },
+    {
+      "name": "16-教学截图-上传失败",
+      "category": "截图",
+      "png": "png/16-教学截图-上传失败.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "10ab5f14ae3d0bddc274598f21c8ac9f18f14dfae1dc0083c50c1819b7cb4d09",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 340
+      }
+    },
+    {
+      "name": "17-课堂偏好-快捷面板",
+      "category": "课堂",
+      "png": "png/17-课堂偏好-快捷面板.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "e6b2c8de5da9ad517fd48d8e6ee1e290737138f6bb488182ec2a95e4dda5e104",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 356
+      }
+    },
+    {
+      "name": "18-结束试讲-确认",
+      "category": "报告",
+      "png": "png/18-结束试讲-确认.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "da156e12207ebfb9421efa2a28d2a5ac33f804159808fb216c7838279024ea16",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 340
+      }
+    },
+    {
+      "name": "19-教学报告-生成中",
+      "category": "报告",
+      "png": "png/19-教学报告-生成中.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4f53ccd8b457dc3f8ba7095d4ef4c7526cbb0d24ec09bb468d2d5cb519f6e297",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 176
+      }
+    },
+    {
+      "name": "20-教学报告-完整报告",
+      "category": "报告",
+      "png": "png/20-教学报告-完整报告.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "38674c4303ceb68b9cf26e79c7e1d0bb8c698dd665b4f61420ba3d383ddb28e5",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 527
+      }
+    },
+    {
+      "name": "21-教学报告-失败重试",
+      "category": "报告",
+      "png": "png/21-教学报告-失败重试.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "bcc8548ba6b0ba5df18086293fe7b6e490b78c9907aa9f791ce777c3cbed259c",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 175
+      }
+    },
+    {
+      "name": "22-设置-默认模型与API",
+      "category": "设置",
+      "png": "png/22-设置-默认模型与API.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "7e755c860ce1e84bb44aeb4ce69337bb089ef278d6470b7dc7919a0adfe21b7c",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 408
+      }
+    },
+    {
+      "name": "23-设置-自定义模型与API",
+      "category": "设置",
+      "png": "png/23-设置-自定义模型与API.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "855dda0f8917e7b125d77ee1dac922bd0ed6795df3b81421c2d68babdc93b743",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 402
+      }
+    },
+    {
+      "name": "24-设置-语音与识别",
+      "category": "设置",
+      "png": "png/24-设置-语音与识别.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "3080eea3620026c95308d9da5f5a30a14485f8ab99c515f79c248071bec1d353",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 523
+      }
+    },
+    {
+      "name": "25-设置-模型下载中",
+      "category": "设置",
+      "png": "png/25-设置-模型下载中.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "bebcef6216b7d8c0f1af589d8049206e4d94dfe0d5fd28dbb913042e89d8ea74",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 542
+      }
+    },
+    {
+      "name": "26-设置-独立ASR测试",
+      "category": "设置",
+      "png": "png/26-设置-独立ASR测试.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "a3cb472c13d762d1f7b44f0072483e8a49e35cf0c5d0bde3b7d0abdb80074363",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 398
+      }
+    },
+    {
+      "name": "27-设置-课堂偏好",
+      "category": "设置",
+      "png": "png/27-设置-课堂偏好.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "dbaf915317d6eff708db123b6dc23ca2ad834e69309cc1668802919dda604240",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 385
+      }
+    },
+    {
+      "name": "28-设置-数据与诊断",
+      "category": "设置",
+      "png": "png/28-设置-数据与诊断.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "77691db46efb311f3572625f4fb3a75fc9367b590fa6d8a6f676782594f3292f",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 507
+      }
+    },
+    {
+      "name": "29-调试前端-课堂",
+      "category": "保留调试",
+      "png": "png/29-调试前端-课堂.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "9bf5fe69bc3fcda0257182ca03107a60d81b258f77640fd4f2c5d6ee8d087f54",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": true,
+        "visibleText": 468
+      }
+    },
+    {
+      "name": "30-调试前端-模型与录音",
+      "category": "保留调试",
+      "png": "png/30-调试前端-模型与录音.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "f6ea0fd5e632a9daf047f9794908c67ff97be4699ad72f8a486c72892752b9e0",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 336
+      }
+    },
+    {
+      "name": "31-创建试讲-画像生成中",
+      "category": "补充状态",
+      "png": "png/31-创建试讲-画像生成中.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "6536a5b52a64f253fb12b3b5dab09aa0dc3741739984ca0752e4a89239413a9a",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 414
+      }
+    },
+    {
+      "name": "32-创建试讲-画像生成失败",
+      "category": "补充状态",
+      "png": "png/32-创建试讲-画像生成失败.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "4d9d7d2de6977b3ae00995a1bc2302aec79abd4f6d970c616fc4fac3c1ccb4ab",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 504
+      }
+    },
+    {
+      "name": "33-重新生成画像-确认",
+      "category": "补充状态",
+      "png": "png/33-重新生成画像-确认.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "1a0ff1c426275931aea656a0bb0bba4e0d2d9d686e323c13b39bc5422cd5e333",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 464
+      }
+    },
+    {
+      "name": "34-课堂异常-处理暂停",
+      "category": "补充状态",
+      "png": "png/34-课堂异常-处理暂停.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "15fe4ab341028f4853e6cbc82730f661671373fcee74935edf6aa333e2d3660c",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 362
+      }
+    },
+    {
+      "name": "35-课堂异常-连接中断",
+      "category": "补充状态",
+      "png": "png/35-课堂异常-连接中断.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "e93aba190326926f17aa39b66e5f3179f619ca10b1829492c76b19e12918b34b",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 370
+      }
+    },
+    {
+      "name": "36-课堂异常-麦克风权限",
+      "category": "补充状态",
+      "png": "png/36-课堂异常-麦克风权限.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "6e1c29dcdc03dfcb340be0c1d3cc7520e76599028c06f80df8e639ba694bc7e6",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 260
+      }
+    },
+    {
+      "name": "37-设置-离开未保存",
+      "category": "补充状态",
+      "png": "png/37-设置-离开未保存.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "6db8645d96a7d1cc12d1f35736d42b7dae0e84839fa8f885c921f13e034b584a",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 402
+      }
+    },
+    {
+      "name": "38-语音模型-详情与修复",
+      "category": "功能补齐",
+      "png": "png/38-语音模型-详情与修复.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "8189c93dc08267bcc417daf83b04ea8e8ebdcfc353e744452cd61d462985ce9c",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 557
+      }
+    },
+    {
+      "name": "39-课堂详情-模型返回与校验",
+      "category": "功能补齐",
+      "png": "png/39-课堂详情-模型返回与校验.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "6d4304140872510dafc9f6393638962d2c01dcbf32fe9f96e8ccd5f9ad6b9d24",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 568
+      }
+    },
+    {
+      "name": "40-课堂详情-修订历史与复核",
+      "category": "功能补齐",
+      "png": "png/40-课堂详情-修订历史与复核.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "d1dbe30d9fe50bf310177dbd504f68156a7811dcfc14e10803ce380fe80d8bcd",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 405
+      }
+    },
+    {
+      "name": "41-创建试讲-更多教学设置",
+      "category": "功能补齐",
+      "png": "png/41-创建试讲-更多教学设置.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "aa7bc856cf9b29128055ba76ac0f5525768f2002903ed7989fcbc055334302b3",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 476
+      }
+    },
+    {
+      "name": "42-设置-连接测试结果",
+      "category": "功能补齐",
+      "png": "png/42-设置-连接测试结果.png",
+      "width": 1920,
+      "height": 1200,
+      "sha256": "8a9924a13ef07e5170312d55458d58c2ef462b7e78e7becfa080db1777d3fdcf",
+      "qa": {
+        "app": {
+          "width": 1600,
+          "height": 1000
+        },
+        "bodyWidth": 1600,
+        "overflow": [],
+        "internalIDs": false,
+        "visibleText": 426
+      }
+    }
+  ],
+  "errors": []
+}

@@ -9,7 +9,16 @@ API_KEY = os.getenv("DEEPSEEK_API_KEY") or os.getenv("Deepseek_API", "")
 BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/")
 MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
 IMAGE_MODEL = os.getenv("LLM_IMAGE_MODEL", "deepseek-flash")
-MODELS_DIR = ROOT / "asr/models"
+DATA_ROOT = Path(os.environ['LEARNFROMYOU_DATA_ROOT']) if os.getenv('LEARNFROMYOU_DATA_ROOT') else None
+SETTINGS_PATH = Path(os.environ['LEARNFROMYOU_SETTINGS_PATH']) if os.getenv('LEARNFROMYOU_SETTINGS_PATH') else None
+MODELS_DIR = Path(os.getenv('ASR_MODELS_DIR', ROOT / 'asr/models'))
+
+
+def data_root():
+    """Keep existing installs and ROOT-monkeypatched tests compatible."""
+    return Path(DATA_ROOT) if DATA_ROOT is not None else ROOT
+
+
 ASR_THREADS = int(os.getenv("ASR_THREADS", "2"))
 SEGMENT_PAUSE = float(os.getenv("SEGMENT_PAUSE", "3"))
 LONG_PAUSE = float(os.getenv("LONG_SEGMENT_PAUSE", "1"))

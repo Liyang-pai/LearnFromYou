@@ -24,3 +24,8 @@
 .image-previews figcaption{font-size:13px;color:#426187;margin-bottom:8px}
 .image-previews img{display:block;width:100%;max-height:280px;object-fit:contain;background:#fff;margin-bottom:8px}
 .classroom-image-input .failed{color:#a43434}
+
+/* History uses independent containers: navigating never resets the live lesson. */
+.history-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:24px 0}.history-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:18px}.history-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:24px;text-align:left;min-height:150px;color:var(--ink)}.history-card strong{font-size:21px}.history-card span,.history-card time{color:var(--muted)}.history-download{display:inline-block;padding:10px 18px;border:1px solid var(--line);border-radius:12px;text-decoration:none;color:var(--accent)}.history-download:not([href]){pointer-events:none;opacity:.5}.history-text{white-space:pre-wrap;overflow-wrap:anywhere}.history-turn{margin:16px 0;padding:18px;border-radius:14px;background:#f1f6ff}.history-turn.student{background:#f0f8f4}.history-turn small{color:var(--muted)}#historyPage .card{margin:20px 0}#historyWarning{color:#926322}#historyNotice{min-height:24px}.page-nav{flex-wrap:wrap}
+#historyDetail>.card{padding:24px}#historyDetail>.card>h2{margin-bottom:16px}#historyReportBody{overflow-wrap:anywhere}
+.history-processing{color:#926322;font-size:14px;margin-top:12px}.history-original{padding:12px 0;border-top:1px solid var(--line)}.history-turn details{margin-top:14px}.history-turn summary{cursor:pointer}

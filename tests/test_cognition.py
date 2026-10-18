@@ -155,7 +155,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
     phases = []
 
     class ClassroomModel:
-        def __init__(self, emit):
+        def __init__(self, emit, snapshot=None):
             pass
 
         async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
@@ -195,7 +195,7 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
     monkeypatch.setattr('backend.session.ModelClient', ClassroomModel)
     monkeypatch.setattr('backend.config.DIRECT_PAUSE', 0)
     with TestClient(service.app) as client:
-        page = client.get('/')
+        page = client.get('/debug')
         assert page.status_code == 200
         assert 'assessment' not in page.text
         assert 'lessonUploadFile' in page.text and 'asrReview' in page.text

@@ -226,3 +226,112 @@ def test_new_input_during_model_call_expires_uncommitted_invitation(tmp_path, mo
             assert session.state.response_requests[0].status == 'dismissed'
         finally: await session.close()
     asyncio.run(run())
+
+
+ORDINARY_KINDS = ['answer', 'check_understanding', 'check_audio']
+
+
+def ordinary_question(kind, attempts=0):
+    original = state()
+    original.questions[0].attempts = attempts
+    original.questions[0].status = 'pending' if attempts == 0 else 'asked' if attempts == 1 else 'deferred'
+    data = proposed()
+    data['response_request_updates'] = [{'id': 'r1', 'kind': kind, 'text': '教师请求', 'sources': ['t3']}]
+    data['candidate'].pop('question_release_request')
+    return original, data
+
+
+@pytest.mark.parametrize('kind', ORDINARY_KINDS)
+@pytest.mark.parametrize('attempts', [0, 1])
+def test_ordinary_request_allows_first_two_questions_and_counts_only_delivery(kind, attempts):
+    original, data = ordinary_question(kind, attempts)
+    after, c = apply_result(original, StudentResult.model_validate(data), SOURCES, {'t3'}, input_revision=3)
+    assert original.response_requests == [] and original.questions[0].attempts == attempts
+    assert after.questions[0].attempts == attempts
+    assert after.response_requests[0].status == 'pending'
+    mark_delivered(after, c)
+    assert after.questions[0].attempts == attempts + 1
+    assert after.questions[0].status == ('asked' if attempts == 0 else 'deferred')
+    assert after.response_requests[0].status == 'answered'
+
+
+@pytest.mark.parametrize('kind', ORDINARY_KINDS)
+@pytest.mark.parametrize('with_release', [False, True])
+def test_ordinary_request_never_authorizes_third_question(kind, with_release):
+    original, data = ordinary_question(kind, 2)
+    if with_release:
+        data['candidate']['question_release_request'] = candidate()['question_release_request']
+    before = original.model_dump()
+    with pytest.raises(QuestionReleaseError):
+        apply_result(original, StudentResult.model_validate(data), SOURCES, {'t3'}, input_revision=3)
+    assert original.model_dump() == before
+
+
+@pytest.mark.parametrize('status', ['answered', 'dismissed'])
+def test_ordinary_question_cannot_reply_to_closed_request(status):
+    original, data = ordinary_question('answer')
+    original.response_requests = [ResponseRequest(id='r1', kind='answer', text='教师请求', sources=['t3'], status=status)]
+    data['response_request_updates'] = []
+    with pytest.raises(QuestionReleaseError, match='已经失效'):
+        apply_result(original, StudentResult.model_validate(data), SOURCES, {'t3'}, input_revision=3)
+
+
+@pytest.mark.parametrize('fault', ['missing_request', 'missing_question', 'answer', 'ack'])
+def test_ordinary_question_still_requires_valid_references_and_kind(fault):
+    original, data = ordinary_question('check_understanding')
+    if fault == 'missing_request':
+        data['response_request_updates'] = []
+    elif fault == 'missing_question':
+        data['candidate']['question_id'] = 'missing'
+    else:
+        data['candidate']['kind'] = fault
+        data['candidate']['question_release_request'] = candidate()['question_release_request']
+    with pytest.raises(ValueError):
+        apply_result(original, StudentResult.model_validate(data), SOURCES, {'t3'}, input_revision=3)
+
+
+def test_understanding_check_delivers_first_clarification(tmp_path, monkeypatch):
+    async def run():
+        _, data = ordinary_question('check_understanding')
+        data['response_request_updates'][0]['sources'] = ['t1']
+        data['candidate']['sources'] = ['t1']
+        data['question_updates'] = [{'id': 'q1', 'topic': '规则原因', 'text': '规则为什么成立？',
+                                    'status': 'pending', 'sources': ['t1']}]
+        data['addressed'] = True
+        session, model, events = await start(tmp_path, monkeypatch, [data], muted=False)
+        try:
+            await teach(session, '你听懂了吗？')
+            await until(lambda: bool(replies(events)))
+            assert replies(events)[0]['data']['kind'] == 'question'
+            assert session.state.questions[0].attempts == 1
+            assert session.state.response_requests[0].kind == 'check_understanding'
+            assert session.state.response_requests[0].status == 'answered'
+            assert len(model.calls) == 1
+        finally:
+            await session.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('change', ['mute', 'stale'])
+def test_ordinary_clarification_cancelled_before_delivery_does_not_count(tmp_path, monkeypatch, change):
+    async def run():
+        session, _, events = await start(tmp_path, monkeypatch, [], muted=False)
+        try:
+            original, data = ordinary_question('check_understanding')
+            session.sources = deepcopy(SOURCES)
+            session.revision = 3
+            session.state, c = apply_result(original, StudentResult.model_validate(data), SOURCES, {'t3'}, input_revision=3)
+            session.candidate = {'reply': c, 'revision': 3, 'addressed': True,
+                                 'control_revision': session.control_revision}
+            if change == 'mute':
+                await session.set_muted(True)
+            else:
+                session.revision += 1
+            await session.try_speak(10)
+            assert not replies(events)
+            assert session.candidate is None
+            assert session.state.questions[0].attempts == 0
+            assert session.state.response_requests[0].status == 'pending'
+        finally:
+            await session.close()
+    asyncio.run(run())

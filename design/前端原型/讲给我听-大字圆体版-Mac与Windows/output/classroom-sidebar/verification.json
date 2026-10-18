@@ -1,0 +1,33 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "selected": "课堂对话",
+      "tabs": 3,
+      "oldStatus": false,
+      "overflow": false,
+      "inputVisible": true,
+      "panelWidth": 440
+    },
+    {
+      "selected": "转写",
+      "tabs": 3,
+      "oldStatus": false,
+      "overflow": false,
+      "inputVisible": true,
+      "panelWidth": 440
+    },
+    {
+      "selected": "学生状态",
+      "tabs": 3,
+      "oldStatus": false,
+      "overflow": false,
+      "inputVisible": true,
+      "panelWidth": 440
+    }
+  ],
+  "retained": [
+    "对话",
+    "输入草稿"
+  ]
+}

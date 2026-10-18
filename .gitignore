@@ -8,6 +8,9 @@
 logs/
 __pycache__/
 .pytest_cache/
+settings.local.json
+/output/formal-local/
 .DS_Store
 heat-capacity-test/
 tempCodeRunnerFile.command
+png
