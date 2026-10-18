@@ -92,9 +92,13 @@ export function create(state){
   }
   const confirm=named(root,'确认设定，创建试讲');act(confirm,'create');if(confirm){confirm.disabled=!!busy || !s.student_profile.trim();confirm.classList.toggle('primary',!confirm.disabled);}
   const toggle=root.querySelector('.profile-card .toggle');if(toggle){const input=document.createElement('button'),on=state.createReview??state.settings.asr_review;input.type='button';input.className='toggle prototype-toggle'+(on?' on':'');input.dataset.action='toggle-create-review';input.setAttribute('role','switch');input.setAttribute('aria-checked',String(on));input.setAttribute('aria-label','语音转文字审核');input.innerHTML='<i></i>';toggle.replaceWith(input);}
-  const ready=[...root.querySelectorAll('div')].find(el=>el.children.length===2 && el.textContent.includes('语音识别已就绪'));
-  if(ready && !state.health.asr_ready)ready.firstChild.textContent='语音识别待准备';
-  const change=[...root.querySelectorAll('.subtle-link')].find(el=>el.textContent.includes('更换模型'));if(change){change.dataset.action='open-asr';change.tabIndex=0;}
+  const change=[...panel.querySelectorAll('.subtle-link')].find(el=>el.textContent.includes('更换模型'));
+  if(change){
+    change.dataset.action='open-asr';change.tabIndex=0;
+    // 只更新模型入口旁的状态文本，不能覆盖导航容器或状态图标。
+    const label=[...change.parentNode.childNodes].find(node=>node.nodeType===Node.TEXT_NODE && node.textContent.includes('语音识别已就绪'));
+    if(label)label.textContent=state.health.asr_ready?' 语音识别已就绪 ':' 语音识别待准备 ';
+  }
   if(state.profileError){const notice=root.querySelector('.notice');if(notice)notice.textContent=state.profileError;}
   return html(root);
 }
