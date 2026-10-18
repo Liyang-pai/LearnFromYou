@@ -129,6 +129,18 @@ strong { font-weight: 650; }
 .stage-alert~.stage-center .speech-bubble { font-size: 20px; }
 .stage-alert~.stage-center .mascot.large { width: 195px; height: 195px; }
 .control-dock { border: 0; border-radius: 20px; padding: 14px 16px; box-shadow: none; gap: 9px; }
+.class-layout.sidebar-collapsed { grid-template-columns: minmax(0,1fr); }
+.class-layout .chat-panel[hidden] { display: none; }
+.control-dock.classroom-controls { justify-content: space-around; gap: 0; min-height: 108px; padding: 12px 22px; flex-shrink: 0; }
+.classroom-controls .toolbar-control { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; min-height: 82px; padding: 8px 6px; border: 0; border-radius: 14px; background: transparent; color: #587cad; font: 16px/1.35 "ChillRound",sans-serif; }
+.toolbar-control svg { width: 30px; height: 30px; flex-shrink: 0; color: #5b8fe6; }
+.toolbar-control span { white-space: nowrap; }
+.toolbar-control.is-off { color: #7e91ab; }
+.toolbar-control.is-off svg { color: #8fa2bc; }
+.toolbar-control .icon-slash { stroke: #9aabc2; stroke-width: 2.2; }
+.toolbar-control:disabled, .toolbar-control:disabled svg { color: #c0cad8; cursor: default; }
+.toolbar-control:disabled .icon-slash { stroke: currentColor; }
+.toolbar-control:not(:disabled):hover { background: #f3f7fd; }
 .dock-label, .dock-item { font-size: 16px; }
 .dock-label small { font-size: 14px; }
 .dock-sep { margin: 0 5px; }
@@ -238,21 +250,28 @@ strong { font-weight: 650; }
 .prototype-review #hostToast { font-size: 16px; border-radius: 18px; padding: 13px 21px; background: #426187f2; }
 
 /* DeepSeek 连接只展示服务和密钥。 */
-.main .api-simple-layout { display: block; max-width: 900px; }
-.main:has(>.settings-tabs) .api-simple-card { padding: 32px; min-height: 0; }
+.main .settings-layout.api-simple-layout { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,2fr); gap: 24px; max-width: none; width: 100%; flex: 0 0 auto; overflow: visible; align-items: stretch; }
+.main:has(>.settings-tabs) .api-simple-layout > .card { padding: 32px; min-height: 420px; }
 .api-simple-card .card-head { margin-bottom: 30px; }
 .api-service { font-size: 20px; padding: 9px 0; color: var(--ink); }
 .api-connection { display: flex; align-items: center; gap: 18px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
-.main:has(.api-simple-layout) > .savebar { max-width: 900px; }
+.main:has(.api-simple-layout) > .savebar { max-width: none; width: 100%; margin-top: 24px; }
 
 .profile-form .btn.profile-generate:disabled {
   background: #edf0f4; border-color: #edf0f4; color: #9aa6b6;
   box-shadow: none; opacity: 1; cursor: default;
 }
 
-.api-simple-layout > .api-preferences { margin-top: 22px; }
-.api-preferences .card-head { margin-bottom: 12px; }
+.api-simple-layout > .api-preferences { margin-top: 0; }
+.api-preferences .card-head { margin-bottom: 24px; }
+.api-preferences .setting-row { gap: 20px; align-items: center; padding: 24px 0; }
+.api-preferences .setting-row > div:first-child { min-width: 0; flex: 1; }
+.api-preferences .setting-row p { line-height: 1.8; margin-top: 9px; }
+.api-preferences .setting-row .row-actions { flex-shrink: 0; }
 .api-preferences .setting-row:last-child { border-bottom: 0; }
+/* 原型画幅会整体缩放，使用宿主窗口宽度识别窄窗口。 */
+.narrow-settings .main .api-simple-layout { grid-template-columns: minmax(0,1fr); grid-auto-rows: max-content; flex: 1; min-height: 0; overflow-y: auto; align-items: start; align-content: start; }
+.narrow-settings .main:has(>.settings-tabs) .api-simple-layout > .card { min-height: 0; }
 
 .profile-card .footer > .setting-row { padding: 0 0 16px; margin-bottom: 16px; }
 .profile-card .footer > .setting-row p { font-size: 14px; line-height: 1.5; }
@@ -262,3 +281,50 @@ strong { font-weight: 650; }
 .profile-form > .card-head { flex-shrink: 0; }
 .profile-form > .setup-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #d9e5f4 transparent; }
 .profile-form > .setup-actions { flex-shrink: 0; padding-top: 18px; margin-top: 12px; border-top: 1px solid var(--line); background: #fff; }
+
+/* 截图统一放在聊天输入区；加号紧邻发送按钮。 */
+.chat-input.screenshot-composer { display: block; padding: 14px; background: #fff; border-top: 1px solid #edf1f7; }
+.screenshot-composer .composer-card { background: #f5f8fc; border: 1px solid #e8eef7; border-radius: 19px; padding: 12px; }
+.screenshot-composer .composer-line { display: flex; align-items: center; gap: 8px; }
+.screenshot-composer .composer-line textarea { flex: 1; min-width: 0; min-height: 44px; margin: 0; resize: none; background: transparent !important; border: 0 !important; padding: 10px 0; font-size: 16px; line-height: 24px; color: #6684a9; }
+.screenshot-composer .add-shot { flex: 0 0 28px; width: 28px; height: 36px; min-height: 36px; display: grid; place-items: center; border: 0; background: transparent; padding: 0; color: #7896bf; border-radius: 10px; font: 24px/1 Arial; cursor: pointer; }
+.screenshot-composer .add-shot:hover { color: #528df2; background: #eaf2ff; }
+.screenshot-composer .composer-line > .btn { flex: 0 0 57px; width: 57px; min-height: 44px; padding: 10px 7px; border-radius: 13px; }
+.screenshot-chip { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px; background: #fff; border: 1px solid #e4edf9; border-radius: 13px; margin-bottom: 12px; }
+.screenshot-thumb { flex: 0 0 112px; width: 112px; height: 68px; border: 1px solid #edf2f8; border-radius: 8px; padding: 0; overflow: hidden; background: #f7faff; cursor: zoom-in; }
+.screenshot-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.screenshot-chip .chip-copy { min-width: 0; padding-right: 15px; }
+.screenshot-chip .chip-name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #526d91; }
+.screenshot-chip .chip-tip { font-size: 12px; color: #93a6bf; margin-top: 5px; }
+.screenshot-composer .remove-shot { position: absolute; right: -7px; top: -7px; display: grid; place-items: center; width: 23px; min-height: 23px; height: 23px; padding: 0; border: 2px solid #fff; border-radius: 50%; background: #8198b7; color: #fff; font: 19px/1 Arial; cursor: pointer; }
+.screenshot-composer .composer-help { font-size: 12px; color: #93a6bf; margin: 8px 2px 0; line-height: 18px; }
+.composer-image-error { font-size: 13px; color: #ae6e48; margin-top: 8px; }
+.composer-image-error button { border: 0; background: none; padding: 0; color: #528df2; cursor: pointer; }
+.image-lightbox { position: fixed; inset: 0; background: #263c5999; backdrop-filter: blur(3px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.image-preview { width: min(1132px, 100%); max-height: 94vh; background: #fff; border-radius: 22px; padding: 16px; box-shadow: 0 24px 90px #12294238; }
+.image-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 2px 5px 15px; color: #526d91; font-size: 17px; }
+.image-preview-head span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.image-preview-close { flex: 0 0 33px; width: 33px; height: 33px; border: 0; border-radius: 50%; background: #f1f5fa; color: #7690ae; font: 25px/1 Arial; cursor: pointer; }
+.image-preview > img { display: block; max-width: 100%; max-height: calc(94vh - 100px); width: auto; height: auto; object-fit: contain; margin: 0 auto; border-radius: 12px; }
+
+/* 统一课堂详情：面向用户的讲解记录与理解疑问。 */
+
+.review-crumb{font-size:14px;color:#8ba2bf;margin:0 0 8px}
+.review-summary{display:flex;gap:0;background:#fff;border-radius:20px;padding:17px 24px;margin-bottom:24px}
+.review-summary>div{padding:0 35px;border-right:1px solid #edf1f7}.review-summary>div:first-child{padding-left:0}.review-summary>div:last-child{border-right:0}
+.review-summary small{display:block;font-size:13px;color:#8a9db7;margin-bottom:4px}.review-summary strong{font-size:18px;color:#48668b}
+.review-grid{display:grid;grid-template-columns:1.15fr 1fr;gap:24px}
+.review-panel{background:white;border-radius:24px;padding:24px}
+.review-panel h2{font-size:24px}.review-panel>.section-help{font-size:15px;color:#8b9db5;margin-top:6px;margin-bottom:20px}
+.review-record{padding:0 0 18px;margin:0 0 18px;border-bottom:1px solid #edf1f7}.review-record:last-child{padding-bottom:0;margin-bottom:0;border:0}
+.review-record-head{display:flex;align-items:center;gap:12px;font-size:13px;color:#92a4bc;margin-bottom:9px}
+.review-record-head span{background:#f0f6fd;border-radius:7px;padding:2px 8px;color:#7895b8}
+.review-record p{font-size:17px;line-height:1.8;color:#526f94}.review-original{font-size:13px;color:#8a9fbb;margin-top:7px}
+.understanding-card{padding:19px;background:#f4f8fe;border-radius:16px;margin-bottom:16px}
+.understanding-card h3{font-size:18px;color:#537aa8;margin-bottom:11px}.understanding-card p{font-size:17px;line-height:1.85;color:#617e9f}
+.understanding-card ul{margin:0;padding-left:21px;color:#617e9f;font-size:17px;line-height:1.9}
+.understanding-card.question{background:#fff8e9}.understanding-card.question h3{color:#b68a40}
+.understanding-card:last-child{margin-bottom:0}.understanding-quote{font-size:17px;color:#617e9f;line-height:1.85}
+.review-record p { white-space: pre-wrap; }
+.review-original summary { cursor: pointer; }
+.review-original p { padding: 10px 12px; background: #f6f9fd; border-radius: 9px; margin-top: 8px; font-size: 15px; }

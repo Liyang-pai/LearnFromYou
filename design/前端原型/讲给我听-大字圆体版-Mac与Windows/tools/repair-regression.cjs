@@ -21,8 +21,8 @@ const {pathToFileURL}=require('url'),{chromium}=require('playwright');
  checks.push('调试课堂创建、麦克风、静音、播报开关有状态变化并留在调试页');
  for(const [label,key] of [['转写与片段','records'],['模型输入','messages'],['学生状态','knowledge'],['模型与事件','events']]){await frame().locator('.debug-grid .detail-tabs span').filter({hasText:label}).click();await ready('29');await frame().locator('.debug-console').filter({hasText:key}).waitFor();}
  checks.push('4个调试详情页签切换内容');
- const chooser=page.waitForEvent('filechooser');await button('确认教学截图').click();await(await chooser).setFiles(path.join(root,'assets','小纸-用户原图.png'));await ready('14');await button('确认上传').click();await ready('05');assert.equal((await state()).image.name,'小纸-用户原图.png');
- checks.push('调试截图入口打开选择器→本地预览→确认');
+ const chooser=page.waitForEvent('filechooser');await button('确认教学截图').click();await(await chooser).setFiles(path.join(root,'assets','小纸-用户原图.png'));await page.waitForFunction(()=>window.prototypeApp.state.image?.name==='小纸-用户原图.png');await ready('29');
+ checks.push('调试截图入口选择图片后留在调试课堂');
  await choose('13');await button('全部事件').click();await frame().getByRole('dialog',{name:'课堂事件筛选'}).waitFor();await button('只看异常').click();assert.equal((await state()).eventFilter,'异常');await frame().getByText('当前没有符合条件的事件。',{exact:true}).waitFor();await button('全部事件').last().click();assert.equal((await state()).eventFilter,'全部');await button('关闭').last().click();
  checks.push('全部事件弹窗可筛选并恢复全部事件');
  await choose('20');const download=page.waitForEvent('download');await button('导出日志').click();const file=await download;const exported=JSON.parse(fs.readFileSync(await file.path(),'utf8'));assert(exported.lesson.topic);assert(exported.messages);assert(!JSON.stringify(exported).includes('sources'));
@@ -33,7 +33,7 @@ const {pathToFileURL}=require('url'),{chromium}=require('playwright');
  await button('权重许可').click();await frame().getByLabel('许可地址').waitFor();await button('关闭').last().click();checks.push('模型详情对应所点模型，来源、版本、许可地址可查看');
  for(const name of ['校验 / 修复','准备 VAD']){await button(name).click();await frame().getByRole('dialog',{name:name+'（模拟）'}).waitFor();await frame().getByText(name+'完成。'+(name==='准备 VAD'?'模拟 VAD 已就绪。':'模拟文件检查已通过。'),{exact:true}).waitFor();await button('关闭').last().click();}
  assert((await state()).vadReady);await button('重新下载').click();await ready('25');await ready('24');assert((await state()).installed.includes('Whisper Small'));checks.push('校验、VAD准备和重新下载均有模拟过程与结果');
- await choose('14');await frame().getByRole('button',{name:'关闭',exact:true}).focus();await page.keyboard.press('Enter');await ready('08');checks.push('SVG关闭入口支持键盘Enter');
+ await choose('08');await button('放大预览教学截图').click();await frame().getByRole('button',{name:'关闭图片预览',exact:true}).focus();await page.keyboard.press('Enter');await ready('08');assert.equal(await frame().getByRole('dialog',{name:'教学截图放大预览'}).count(),0);checks.push('图片浮层关闭按钮支持键盘Enter');
  assert.equal(errors.length,0);assert.equal(external.length,0);assert.equal(await page.evaluate(()=>window.__micRequests||0),0);
  const result={date:new Date().toISOString(),checks,errors,externalRequests:external,microphoneRequests:0};fs.writeFileSync(path.join(root,'output','repair-regression.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));
  }finally{await browser.close();}

@@ -4,17 +4,17 @@
   const screens=window.PROTOTYPE_SCREENS, frame=document.getElementById('canvas');
   const scene=document.getElementById('scene'), viewport=document.getElementById('viewport');
   let screen='01', doc, toastTimer;
-  const state={lesson:{topic:'',grade:'由 AI 判断',subject:'由 AI 判断',level:'普通水平',type:'新课',points:'',profile:'',textbook:''},session:{active:false,phase:'ready',mic:false,muted:false,messages:[],elapsed:0},settings:{tts:true,captions:true,review:true},dirty:false};
+  const state={lesson:{topic:'',grade:'由 AI 判断',subject:'由 AI 判断',level:'普通水平',type:'新课',points:'',profile:'',textbook:''},session:{active:false,phase:'ready',mic:false,muted:false,tts:true,captions:true,sidebarCollapsed:false,messages:[],elapsed:0},settings:{allowStudentSpeech:true,tts:true,captions:true,review:true},dirty:false};
   function toast(text){const el=document.getElementById('hostToast');el.textContent=text;el.classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('visible'),2800);}
-  function fit(){const scale=Math.min((viewport.clientWidth-20)/1600,(viewport.clientHeight-18)/1000);frame.style.transform=`scale(${scale})`;frame.style.left=(viewport.clientWidth-1600*scale)/2+'px';frame.style.top=(viewport.clientHeight-1000*scale)/2+'px';}
+  function fit(){const scale=Math.min((viewport.clientWidth-20)/1600,(viewport.clientHeight-18)/1000);frame.style.transform=`scale(${scale})`;frame.style.left=(viewport.clientWidth-1600*scale)/2+'px';frame.style.top=(viewport.clientHeight-1000*scale)/2+'px';doc?.documentElement.classList.toggle('narrow-settings',viewport.clientWidth<1100);}
   function show(id){if(!screens[id])id='01';screen=id;scene.value=id;history.replaceState(null,'','#s='+id);render();}
   function buttons(text){return [...doc.querySelectorAll('button')].filter(b=>b.textContent.trim()===text);}
   function on(text,fn){for(const b of buttons(text)){b.dataset.bound='true';b.addEventListener('click',fn);}}
   function modalClose(){show(state.session.active?'08':'03');}
   function render(){
     const item=screens[screen];
-    frame.onload=()=>{doc=frame.contentDocument;hydrate();document.getElementById('previewStatus').textContent=item.name.replaceAll('-',' / ');};
-    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css"></head><body>${item.body}</body></html>`;
+    frame.onload=()=>{doc=frame.contentDocument;hydrate();fit();document.getElementById('previewStatus').textContent=item.name.replaceAll('-',' / ');};
+    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css?v=20261018-settings-columns2"></head><body>${item.body}</body></html>`;
     fit();
   }
   function hydrate(){

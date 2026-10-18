@@ -6,7 +6,7 @@
   Object.assign(state,{profileBusy:false,report:'idle',records:[],events:[],draftText:'',popup:null,returnScreen:'01',pendingRoute:null,faultNext:null});
   Object.assign(state.settings,{service:'DeepSeek',baseURL:'https://api.deepseek.com',textModel:'deepseek-chat',imageModel:'deepseek-flash'});
   let d,profileJob=0,replyJob=0,reportJob=0;
-  const classScreens=new Set(['05','06','07','08','09','14','15','16','17','18','34','35','36']);
+  const classScreens=new Set(['05','06','07','08','09','18','34','35','36']);
   const settingsScreens=new Set(['22','23','24','25','37','42']);
   const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const toast=text=>{const el=document.getElementById('hostToast');el.textContent=text;el.classList.add('visible');clearTimeout(state.toastTimer);state.toastTimer=setTimeout(()=>el.classList.remove('visible'),3200);};
@@ -17,7 +17,7 @@
     app.show(id);
   }
   function classScreen(){return !state.session.active?'04':state.session.muted?'09':({ready:'05',listening:'06',thinking:'07',question:'08',error:'34',disconnected:'35'})[state.session.phase]||'05';}
-  function close(){if(state.popup){state.popup=null;app.show(app.screen);return;}if(app.screen==='37'){state.pendingRoute=null;route('23',true);return;}route(state.returnScreen||classScreen(),true);}
+  function close(){if(state.popup?.type==='image-preview'){window.prototypeExtensions?.closeImagePreview();return;}if(state.popup){state.popup=null;app.show(app.screen);return;}if(app.screen==='37'){state.pendingRoute=null;route('23',true);return;}route(state.returnScreen||classScreen(),true);}
   function seedLesson(){
     if(!state.lesson.topic)Object.assign(state.lesson,{topic:'惯性的概念',grade:'初中 · 八年级',subject:'物理',points:'惯性的含义；生活中的惯性现象'});
     if(!state.lesson.profile)state.lesson.profile=mockProfile();
@@ -48,7 +48,9 @@
   }
   function startClass(){
     if(!state.lesson.topic.trim()||!state.lesson.profile.trim()){toast('请先填写主题并生成或手写学生画像。');return;}
-    const debug=app.screen==='29';replyJob++;Object.assign(state.session,{active:true,phase:'ready',mic:false,muted:false,messages:[],elapsed:0});state.records=[];state.events=[];state.report='idle';state.draftText='';addEvent('模拟课堂已创建','麦克风仍未开启。');route(debug?'29':'05');
+    window.prototypeExtensions?.resetImage();
+    const defaults=state.savedSettings||state.settings;
+    const debug=app.screen==='29';replyJob++;Object.assign(state.session,{active:true,phase:'ready',mic:false,muted:!defaults.allowStudentSpeech,tts:defaults.tts,captions:defaults.captions,sidebarCollapsed:false,messages:[],elapsed:0});state.records=[];state.events=[];state.report='idle';state.draftText='';addEvent('模拟课堂已创建','麦克风仍未开启。');route(debug?'29':classScreen());
   }
   function replyText(){return state.lesson.topic.includes('惯性')?'老师，静止的物体也有惯性吗？可以再举个例子吗？':`老师，“${state.lesson.topic}”可以再用一个具体例子解释吗？`;}
   function sendText(text){
@@ -102,20 +104,38 @@
     if(!classScreens.has(app.screen))return;
     const head=d.querySelector('.page-head p');if(head)head.textContent=(state.lesson.topic||'惯性的概念')+' / '+state.lesson.grade+' · '+state.lesson.subject;
     const timer=d.querySelector('.session-action b');if(timer)timer.textContent=formatTime(state.session.elapsed);
-    const bubble=d.querySelector('.speech-bubble');if(bubble){bubble.style.display=state.settings.captions?'':'none';if(state.session.messages.length){const latest=[...state.session.messages].reverse().find(m=>m.role==='student');if(latest&&state.session.phase==='question')bubble.textContent=latest.text;}}
-    const mic=d.querySelector('.dock-main');if(mic){mic.dataset.action='mic';mic.tabIndex=0;mic.setAttribute('role','button');mic.setAttribute('aria-label','麦克风（模拟）');mic.classList.toggle('off',!state.session.mic);}
-    const label=d.querySelector('.dock-label small');if(label)label.textContent=state.session.mic?'已开启 · 模拟':'尚未开启';
+    const bubble=d.querySelector('.speech-bubble');if(bubble){bubble.style.display=state.session.captions&&!state.session.muted?'':'none';if(state.session.messages.length){const latest=[...state.session.messages].reverse().find(m=>m.role==='student');if(latest&&state.session.phase==='question')bubble.textContent=latest.text;}}
+    bindClassControls();
     const chat=d.querySelector('.chat-body');if(chat){chat.replaceChildren();if(!state.session.messages.length){const empty=d.createElement('div');empty.className='empty';empty.textContent='从你的第一段讲解开始。可以输入文字，或点击“演示下一步”。';chat.append(empty);}for(const message of state.session.messages){const row=d.createElement('div');row.className='chat-row'+(message.role==='teacher'?' teacher':'');const avatar=d.createElement('div');avatar.className='chat-avatar';avatar.textContent=message.role==='teacher'?'我':'AI';const text=d.createElement('div');text.className='chat-text';text.textContent=message.text;row.append(avatar,text);chat.append(row);}chat.style.overflowY='auto';chat.scrollTop=chat.scrollHeight;}
     const old=d.querySelector('.chat-input .input');if(old){const input=d.createElement('textarea');input.className='input';input.dataset.field='draftText';input.placeholder='输入讲解或提问（模拟）…';input.setAttribute('aria-label','讲解或提问');input.maxLength=5000;input.value=state.draftText;old.replaceWith(input);}
   }
+  function applyClassSidebar(){
+    const collapsed=state.session.sidebarCollapsed,layout=d.querySelector('.class-layout'),panel=layout?.querySelector('.chat-panel');
+    if(!layout||!panel)return;
+    layout.classList.toggle('sidebar-collapsed',collapsed);panel.id='classroomSidebar';panel.hidden=collapsed;
+    const button=d.querySelector('[data-action="toggle-sidebar"]');if(button){button.setAttribute('aria-expanded',String(!collapsed));button.querySelector('span').textContent=collapsed?'展开侧栏':'收起侧栏';button.classList.toggle('is-off',collapsed);}
+  }
+  function bindClassControls(){
+    const dock=d.querySelector('.control-dock');if(!dock)return;
+    const paths={mic:'<path d="M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0zM5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/>',student:'<path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/>',sound:'<path d="M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14"/>',sidebar:'<rect x="2" y="4" width="20" height="16" rx="3"/><path d="M15 4v16m-5-11 3 3-3 3"/>'};
+    const control=(key,label,action,on,disabled=false)=>`<button type="button" class="toolbar-control${on?'':' is-off'}" data-action="${action}" ${key==='sidebar'?'aria-controls="classroomSidebar"':`aria-pressed="${on}"`}${disabled?' disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[key]}${!on&&key!=='sidebar'?'<path class="icon-slash" d="m3 3 18 18"/>':''}</svg><span>${label}</span></button>`;
+    dock.classList.add('classroom-controls');
+    dock.innerHTML=control('mic',state.session.mic?'暂停麦克风':'开启麦克风','mic',state.session.mic)+control('student',state.session.muted?'恢复学生发言':'暂停学生发言','toggle-student',!state.session.muted)+control('sound',state.session.muted?'声音播报':state.session.tts?'关闭声音':'开启声音','toggle-sound',state.session.tts&&!state.session.muted,state.session.muted)+control('sidebar','收起侧栏','toggle-sidebar',!state.session.sidebarCollapsed);
+    applyClassSidebar();
+    const status=d.querySelector('.student-status');if(status&&state.session.muted){status.querySelector('.badge').textContent='暂不发言';status.querySelector('p').textContent='小纸继续听课，暂时不发出回应。';}
+    else if(status&&state.session.phase==='question'&&!state.session.tts){status.querySelector('.badge').textContent='文字回应';status.querySelector('p').textContent='小纸照常回复，声音播报已关闭。';}
+  }
   function syncToggles(){
-    for(const old of [...d.querySelectorAll('.toggle')]){const title=old.closest('.setting-row')?.querySelector('strong')?.textContent||'';const key=title.includes('允许学生')?'muted':title.includes('播报')?'tts':title.includes('文字显示')?'captions':'review';const on=key==='muted'?!state.session.muted:state.settings[key];const toggle=d.createElement('button');toggle.className='toggle prototype-toggle'+(on?' on':'');toggle.setAttribute('role','switch');toggle.setAttribute('aria-label',title||'语音转文字审核');toggle.setAttribute('aria-checked',String(on));toggle.dataset.toggle=key;toggle.innerHTML='<i></i>';old.replaceWith(toggle);}
+    for(const old of [...d.querySelectorAll('.toggle')]){const title=old.closest('.setting-row')?.querySelector('strong')?.textContent||'';const key=title.includes('允许学生')?'allowStudentSpeech':title.includes('播报')?'tts':title.includes('文字显示')?'captions':'review';const on=state.settings[key];const toggle=d.createElement('button');toggle.className='toggle prototype-toggle'+(on?' on':'');toggle.setAttribute('role','switch');toggle.setAttribute('aria-label',title||'语音转文字审核');toggle.setAttribute('aria-checked',String(on));toggle.dataset.toggle=key;toggle.innerHTML='<i></i>';old.replaceWith(toggle);}
   }
   function act(action,el){
     if(action==='close'){close();return;}
     if(action==='edit-profile'){showProfileEditor();return;}
     if(action==='save-profile'){const value=d.getElementById('profileEditor').value.trim();if(!value)return toast('画像不能为空。');state.lesson.profile=value;state.popup=null;route('03');return;}
-    if(action==='mic'){toggleMic();return;}
+    if(action==='mic'){if(state.session.active)state.classControlFocus=action;toggleMic();return;}
+    if(action==='toggle-sidebar'){state.session.sidebarCollapsed=!state.session.sidebarCollapsed;applyClassSidebar();return;}
+    if(action==='toggle-student'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','仅本次模拟课堂');state.classControlFocus=action;route(classScreen());return;}
+    if(action==='toggle-sound'){if(state.session.muted)return;state.session.tts=!state.session.tts;state.classControlFocus=action;route(app.screen,true);return;}
     if(action==='save-textbook'){state.lesson.textbook=d.getElementById('textbookEditor').value.trim();state.popup=null;route('41');toast('教材版本已写入本次模拟设定。');return;}
     if(action==='save-custom-choice'){const value=d.getElementById('customChoice').value.trim();if(!value)return toast('请填写自定义内容。');state.lesson[state.customField]=value;state.popup=null;route(app.screen,true);return;}
     window.prototypeExtensions?.action(action,el);
@@ -125,7 +145,7 @@
     const text=el.textContent.trim();let handled=true;
     if(el.disabled)return;
     if(el.dataset.action)act(el.dataset.action,el);
-    else if(el.dataset.toggle){const key=el.dataset.toggle;if(key==='muted'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','静态模拟，不调用模型。');}else state.settings[key]=!state.settings[key];if(settingsScreens.has(app.screen))state.dirty=true;route(app.screen,true);}
+    else if(el.dataset.toggle){const key=el.dataset.toggle;state.settings[key]=!state.settings[key];if(settingsScreens.has(app.screen))state.dirty=true;route(app.screen,true);}
     else if(el.dataset.segment){state.lesson[el.dataset.segment]=text;route(app.screen,true);}
     else if(el.matches('.nav-item'))route(text==='首页'?'01':text==='创建试讲'?(state.lesson.profile?'03':'02'):text==='我的教室'?classScreen():text==='设置'?'22':'29');
     else if(el.matches('.settings-tabs span'))route(['22','24'][[...el.parentElement.children].indexOf(el)]);
@@ -137,13 +157,11 @@
     else if(text.includes('确认设定，创建试讲')||text==='创建试讲')startClass();
     else if(['手写画像','编辑画像'].includes(text))showProfileEditor();
     else if(text==='发送')sendText(state.draftText);
-    else if(text==='结束试讲'||text==='报告'){state.returnScreen=classScreen();state.session.active?route('18'):route(state.report==='ready'?'20':'19');}
-    else if(text==='结束并查看报告'||text==='重试生成报告')finish();
+    else if(text==='结束试讲'||text==='生成报告'||text==='报告'){state.returnScreen=classScreen();if(state.session.active)route('18');else if(state.report!=='idle')route(state.report==='ready'?'20':state.report==='failed'?'21':'19');else toast('请先创建一次试讲，再生成报告。');}
+    else if(text==='结束并生成报告'||text==='结束并查看报告'||text==='重试生成报告')finish();
     else if(['继续试讲','返回教室','返回课堂'].includes(text))route(classScreen(),true);
-    else if(text==='停止播报'){addEvent('模拟播报已停止');toast('已停止模拟播报。本原型不播放语音。');}
-    else if(text==='文字显示'){state.settings.captions=!state.settings.captions;route(app.screen,true);}
+    else if(app.screen==='29'&&text==='停止播报'){addEvent('模拟播报已停止');toast('已停止模拟播报。本原型不播放语音。');}
     else if(text==='开启麦克风'||text==='暂停麦克风')toggleMic();
-    else if(text==='课堂偏好'){state.returnScreen=classScreen();route('17');}
     else if(text==='完成')route(classScreen(),true);
     else if(text==='保留当前画像')close();
     else if(text==='查看课堂详情'||text==='查看课堂记录')route('10');
@@ -166,10 +184,11 @@
     for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'){el.tabIndex=0;el.setAttribute('role','button');}}
     for(const el of d.querySelectorAll('.modal-header>.icon')){el.onclick=null;el.dataset.action='close';}
     d.body.dataset.prototypeReady=app.screen;
+    if(state.classControlFocus){d.querySelector(`[data-action="${state.classControlFocus}"]`)?.focus();state.classControlFocus=null;}
   }
   frame.addEventListener('load',bind);
   document.getElementById('simulate').onclick=()=>{if(['19','21'].includes(app.screen)){finish();return;}if(['31','32'].includes(app.screen)){seedLesson();generate(true);return;}if(!state.session.active){seedLesson();startClass();return;}if(state.session.phase==='ready'){toggleMic();return;}if(state.session.phase==='listening'){sendText(state.lesson.topic.includes('惯性')?'物体具有保持原有运动状态的性质，这就是惯性。':'我们先用一个例子解释'+state.lesson.topic+'。');return;}state.session.phase='question';route(classScreen());};
   document.getElementById('fault').onclick=()=>{popup('选择一个异常演示',`<p class="hint">只改变本地模拟状态，不触碰真实服务。</p><div class="prototype-modal-text">${button('画像生成失败','fault-profile')}${button('课堂处理失败','fault-reply')}${button('报告生成失败','fault-report')}${button('截图上传失败','fault-image')}${button('麦克风权限受限','fault-mic')}${button('连接中断','fault-disconnect')}</div>`);};
-  const scene=document.getElementById('scene');scene.onchange=()=>{state.popup=null;state.faultNext=null;const id=scene.value;if(!['01','02','04','31'].includes(id)){seedLesson();if(classScreens.has(id)){state.session.active=true;state.session.muted=['09','17'].includes(id);state.session.mic=['06','07','08','09'].includes(id);state.session.phase=({'05':'ready','06':'listening','07':'thinking','08':'question','09':'question','34':'error','35':'disconnected'})[id]||'question';}}state.returnScreen=classScreen();route(id,true);};
+  const scene=document.getElementById('scene');scene.onchange=()=>{state.popup=null;state.faultNext=null;const id=scene.value;if(!['01','02','04','31'].includes(id)){seedLesson();if(classScreens.has(id)){state.session.active=true;state.session.muted=id==='09';state.session.mic=['06','07','08','09'].includes(id);state.session.phase=({'05':'ready','06':'listening','07':'thinking','08':'question','09':'question','34':'error','35':'disconnected'})[id]||'question';}}state.returnScreen=classScreen();route(id,true);};
   window.prototypeInteractions={app,route,state,toast,popup,download,addEvent,close,seedLesson,formatTime,classScreen,startClass,generate,finish,sendText,get document(){return d;}};
 })();
