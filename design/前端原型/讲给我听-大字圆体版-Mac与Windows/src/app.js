@@ -32,6 +32,21 @@
       }
       topbar.remove();
     }
+    const setupForm=doc.querySelector('.profile-form');
+    if(setupForm){
+      for(const badge of doc.querySelectorAll('.profile-form > .card-head > .badge,.profile-card > .card-head > .badge'))badge.remove();
+      const heading=setupForm.querySelector('.card-head');
+      const generate=[...setupForm.children].find(el=>el.matches('button.btn.full'));
+      if(heading && generate){
+        const scroll=doc.createElement('div');scroll.className='setup-scroll';
+        scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','教学设置表单');
+        while(heading.nextElementSibling && heading.nextElementSibling!==generate)scroll.append(heading.nextElementSibling);
+        heading.after(scroll);
+        const footer=doc.createElement('div');footer.className='setup-actions';
+        while(generate.nextElementSibling)footer.append(generate.nextElementSibling);
+        footer.prepend(generate);setupForm.append(footer);
+      }
+    }
     const navIcons={
       '首页':'<path d="m3 10 9-7 9 7"/><path d="M5 9v12h14V9M9 21v-8h6v8"/>',
       '创建试讲':'<path d="M12 5v14M5 12h14"/>',

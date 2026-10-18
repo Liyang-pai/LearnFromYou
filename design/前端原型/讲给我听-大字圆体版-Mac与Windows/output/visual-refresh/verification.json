@@ -1,5 +1,5 @@
 {
-  "date": "2026-10-17T16:46:00.770Z",
+  "date": "2026-10-17T16:55:28.114Z",
   "sceneCount": 40,
   "errors": [],
   "consoleErrors": [],
@@ -515,11 +515,6 @@
       "horizontalOverflow": false,
       "primaryActions": [
         {
-          "label": "正在生成画像…",
-          "visible": true,
-          "unobstructed": true
-        },
-        {
           "label": "确认设定，创建试讲",
           "visible": true,
           "unobstructed": true
@@ -546,11 +541,6 @@
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
-        {
-          "label": "重新生成学生画像",
-          "visible": true,
-          "unobstructed": true
-        },
         {
           "label": "确认设定，创建试讲",
           "visible": true,
@@ -780,11 +770,6 @@
       "horizontalOverflow": false,
       "primaryActions": [
         {
-          "label": "重新生成学生画像",
-          "visible": true,
-          "unobstructed": true
-        },
-        {
           "label": "确认设定，创建试讲",
           "visible": true,
           "unobstructed": true
@@ -865,11 +850,6 @@
       "horizontalOverflow": false,
       "primaryActions": [
         {
-          "label": "生成学生画像",
-          "visible": true,
-          "unobstructed": true
-        },
-        {
           "label": "确认设定，创建试讲",
           "visible": true,
           "unobstructed": true
@@ -896,11 +876,6 @@
       "hostOverflow": false,
       "horizontalOverflow": false,
       "primaryActions": [
-        {
-          "label": "重新生成学生画像",
-          "visible": true,
-          "unobstructed": true
-        },
         {
           "label": "确认设定，创建试讲",
           "visible": true,
