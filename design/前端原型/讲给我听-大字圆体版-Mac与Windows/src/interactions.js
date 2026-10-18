@@ -70,7 +70,7 @@
   }
   function finish(){
     replyJob++;Object.assign(state.session,{active:false,mic:false});state.report='generating';const token=++reportJob;route('19');
-    setTimeout(()=>{if(token!==reportJob)return;state.report=state.faultNext==='report'?'failed':'ready';state.faultNext=null;if(['19','21'].includes(app.screen))route(state.report==='ready'?'20':'21');},900);
+    setTimeout(()=>{if(token!==reportJob)return;state.report=state.faultNext==='report'?'failed':'ready';state.faultNext=null;if(['19','21'].includes(app.screen))route(state.report==='ready'?'20':'21');},3000);
   }
   function makeField(old,key,options){
     const field=d.createElement(options?'select':key==='points'?'textarea':'input');field.className=old.className.replace('placeholder','');field.dataset.field=key;

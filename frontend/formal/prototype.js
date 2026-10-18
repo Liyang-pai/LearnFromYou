@@ -175,9 +175,9 @@ export function details(state,archived){
   return html(root);
 }
 export function report(state,path){
-  const r=state.report,id=path.split('/').pop(),ready=r.status==='ready' && r.report,root=shell(template(ready?'20':r.status==='generating' || r.loading?'19':'21'),'/classroom');
+  const r=state.report,id=path.split('/').pop(),ready=r.status==='ready' && r.report,busy=r.status==='generating' || r.loading,root=shell(template(ready?'20':busy?'19':'21'),'/classroom');
   setText(root,'.page-head p',state.session.id===id?state.session.lesson.topic:'本次课堂');
-  for(const badge of root.querySelectorAll('.page-head .badge'))badge.textContent=ready?'报告已生成':r.status==='generating'?'正在生成':'等待生成';
+  for(const badge of root.querySelectorAll('.page-head .badge'))badge.textContent=ready?'报告已生成':busy?'正在生成':r.status==='failed'?'生成失败':'等待生成';
   for(const b of root.querySelectorAll('button')){
     const text=b.textContent.trim();if(text==='导出 Markdown'){const a=link(b,`/api/teaching-report/${id}/export`);a.setAttribute('download','');}
     if(text==='导出日志'){const a=link(b,`/api/history/${id}/log`);a.setAttribute('download','');}
@@ -193,13 +193,13 @@ export function report(state,path){
     const descriptions=root.querySelectorAll('.practice-card>p:not(.task)');for(const [i,p] of [...descriptions].entries())p.textContent=i===0?data.practice.task:data.practice.criterion;
   }else{
     const main=root.querySelector('.report-loading,.report-empty,.card');if(main){
-      setText(main,':scope>p',r.error || r.progress || (r.loading?'正在读取报告…':'尚未生成报告，点击后才会调用模型。'));
+      if(!busy)setText(main,':scope>p',r.error || '尚未生成报告，点击后才会调用模型。');
       const warning=main.querySelector('.warning-box');if(warning){warning.textContent=r.error || '';warning.hidden=!r.error;}
       if(r.status!=='failed' && !r.error && !r.loading && r.status!=='generating')setText(main,'h2','尚未生成教学报告');
       if(r.status!=='generating' && !r.loading){let b=[...main.querySelectorAll('button')].find(el=>el.dataset.action==='report-start');if(!b){b=document.createElement('button');b.className='btn primary';main.append(b);}b.textContent=r.status==='failed'?'重试生成报告':'生成报告';act(b,'report-start');}
     }
     const progress=root.querySelector('.progress');if(progress){progress.setAttribute('role','progressbar');progress.setAttribute('aria-label','报告正在处理');progress.querySelector('i')?.removeAttribute('style');}
-    setText(root,'.report-empty>.hint',r.error || r.progress || (r.loading?'正在读取报告…':'尚未生成报告。'));
+    setText(root,'.report-empty>.hint',busy?'课堂记录已保存，请稍候。':r.error || '尚未生成报告。');
   }
   return html(root);
 }

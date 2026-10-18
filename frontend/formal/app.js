@@ -9,7 +9,8 @@ import {confirmation} from './prototype.js';
 const waveform=new MicrophoneWaveform();
 const view=document.querySelector('#view'), mic=new Microphone({onLevel:(level,active)=>waveform.input(level,active)}), testMic=new Microphone();
 document.addEventListener('visibilitychange',()=>waveform.sync());
-let socket=null,testSocket=null,routeToken=0,pageTimer,healthTimer,asrTimer,reportWait=0,creating=false,startingTest=false;
+let socket=null,testSocket=null,routeToken=0,pageTimer,healthTimer,asrTimer,creating=false,startingTest=false;
+const automaticReports=new Set();
 let currentUrl=location.pathname+location.search;
 const path=()=>location.pathname.replace(/\/$/,'') || '/';
 function refresh() {
@@ -128,11 +129,11 @@ function classEvent(event) {
   if(event.type==='reply') void playReplySound(()=>state.session===s && !s.tts && !s.muted);
   if(event.type==='ready') { sessionStorage.setItem('last-classroom',s.id); void loadHealth(); }
   if(event.type==='finished') {
-    void mic.stop(null,null); reportWait=30;
-    // finished precedes resource cleanup and report task registration; poll GET only.
+    void mic.stop(null,null);automaticReports.add(s.id);
+    // 后端收尾与任务注册可能有间隔；只对本次主动结束的课堂补齐自动启动。
     void action(()=>navigate(`/report/${s.id}`));
   }
-  if(event.type==='report_unavailable') { state.report={session_id:d.session_id,status:'failed',error:d.message}; reportWait=0; }
+  if(event.type==='report_unavailable') { automaticReports.delete(d.session_id);if(state.report.session_id===d.session_id)state.report={session_id:d.session_id,status:'failed',error:d.message}; }
   if(event.type==='error' && ['audio_failure','audio_backlog','asr_failure','no_audio_frames'].includes(d.code)) {
     if(d.code==='no_audio_frames')s.retryable=false;
     void mic.stop(socket).then(()=>{s.mic=false;refresh();});
@@ -250,11 +251,17 @@ async function loadDetail(id,earlier=false,token=routeToken) {
 async function loadReport(id,method='GET',token=routeToken) {
   if(method==='POST'){state.report={session_id:id,status:'generating',progress:'正在提交报告生成任务…'};refresh();}
   try {
-    const data=await api(`/api/teaching-report/${id}`,method); if(token!==routeToken)return;
+    let data=await api(`/api/teaching-report/${id}`,method); if(token!==routeToken)return;
+    if(method==='GET' && data.status==='idle' && automaticReports.has(id)){
+      automaticReports.delete(id);
+      state.report={session_id:id,status:'generating',progress:'正在整理本次课堂，请稍候。'};refresh();
+      // start 接口与结束课堂共用任务锁；并发调用只复用同一报告任务。
+      data=await api(`/api/teaching-report/${id}`,'POST');if(token!==routeToken)return;
+    }
+    if(data.status!=='idle')automaticReports.delete(id);
     state.report=data;
-    if(data.status!=='idle') reportWait=0;
-    if(data.status==='generating' || data.status==='idle' && reportWait-->0) pageTimer=setTimeout(()=>void action(()=>loadReport(id,'GET',token)),1200);
-  } catch(error) {if(token===routeToken){state.report={session_id:id,status:'failed',error:error.message};reportWait=0;}}
+    if(data.status==='generating') pageTimer=setTimeout(()=>void action(()=>loadReport(id,'GET',token)),1200);
+  } catch(error) {if(token===routeToken){automaticReports.delete(id);state.report={session_id:id,status:'failed',error:error.message};}}
   finally {if(token===routeToken)refresh();}
 }
 async function saveSettings() {

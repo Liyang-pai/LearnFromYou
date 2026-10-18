@@ -14,6 +14,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=Path, required=True)
     parser.add_argument('--port', type=int, default=18770)
+    parser.add_argument('--report-delay', type=float, default=.3)
     args = parser.parse_args()
     args.data.mkdir(parents=True, exist_ok=True)
     from backend import config
@@ -86,7 +87,7 @@ def main():
                 (args.data / 'fail-report').unlink()
                 from backend.llm import ModelError
                 raise ModelError('离线注入的报告失败，可点击重试')
-            await asyncio.sleep(.3)
+            await asyncio.sleep(args.report_delay)
             return await super().generate(*a, **kw)
     service.reports = ReportService(lambda emit: ReportModel(emit, calls))
     uvicorn.run(service.app, host='127.0.0.1', port=args.port, log_level='warning')
