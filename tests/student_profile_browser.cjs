@@ -142,6 +142,38 @@ async function main() {
     assert(starts[0].lesson.student_profile.includes('整数加法'));
     assert(!('prerequisites' in starts[0].lesson));
     assert(await profile.isDisabled()); assert(await button.isDisabled());
+    // 可复用真实API已经生成的结果验证回填，不再产生模型调用。
+    if (process.env.PROFILE_LIVE_RESULTS) {
+      const files = process.env.PROFILE_LIVE_RESULTS.split(path.delimiter);
+      for (const file of files) {
+        const samples = JSON.parse(fs.readFileSync(file, 'utf8')).cases;
+        for (const sample of samples.filter(item => item.status === 'completed' && item.id.startsWith('grade-'))) {
+          Object.assign(result, sample.profile);
+          await page.goto(base);
+          await page.waitForFunction(() => !!window.studentProfile);
+          await page.locator('#topic').fill(sample.settings.topic);
+          if (sample.settings.grade) {
+            const standard = await page.locator('#grade option').evaluateAll(options => options.map(option => option.value));
+            await page.locator('#grade').selectOption(standard.includes(sample.settings.grade) ? sample.settings.grade : '__custom__');
+            if (!standard.includes(sample.settings.grade)) await page.locator('#gradeCustom').fill(sample.settings.grade);
+          }
+          await button.click(); await idle();
+          const choice = page.locator('#grade');
+          const standard = await choice.locator('option').evaluateAll(options => options.map(option => option.value));
+          assert.equal(await choice.inputValue(), standard.includes(result.grade) ? result.grade : '__custom__');
+          if (standard.includes(result.grade)) {
+            assert(await page.locator('#gradeCustom').isHidden());
+            if (result.grade === '一年级') {
+              assert.equal(await choice.locator('option:checked').evaluate(option => option.parentElement.label), '小学');
+            }
+          } else {
+            assert.equal(await page.locator('#gradeCustom').inputValue(), result.grade);
+          }
+          assert.equal(await profile.inputValue(), result.student_profile);
+          console.log('PASS real API result refill', sample.id, result.grade);
+        }
+      }
+    }
     assert.deepEqual(errors,[]);
     console.log('PASS blank-profile block, manual creation, classroom lock and responsive layout');
     console.log('Screenshots: '+output+'/student-profile-{desktop,mobile}.png');

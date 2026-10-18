@@ -4,6 +4,7 @@ let socket, running = false, starting = false, recording = false, ending = false
 let context, stream, source, worklet, processor, silentGain, flushed, fallbackTimer;
 let sentAudioFrames = 0;
 let micStarting = false, micStopping = false;
+let replySoundContext, replySoundBuffer, replySoundLoading;
 let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
 let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
 const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', student_resume:'解除静音后的回应判断', knowledge_review:'知识依赖复核'};
@@ -15,6 +16,37 @@ let imageUploadAvailable = null;
 const labels = {tentative:'推断待确认',understood:'课堂推断理解',unclear:'理解障碍',conflict:'矛盾待解决',invalid:'已失效',pending:'待提问',asked:'已提问',resolved:'已解决',deferred:'暂缓'};
 
 function send(data) { if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(data)); }
+async function prepareReplySound() {
+  try {
+    // Resume during the classroom start gesture, independently of microphone capture.
+    replySoundContext ||= new AudioContext();
+    await replySoundContext.resume();
+    if (!replySoundBuffer) {
+      replySoundLoading ||= (async () => {
+        const response = await fetch('/static/sounds/received-message.wav');
+        if (!response.ok) throw new Error('Reply sound unavailable');
+        replySoundBuffer = await replySoundContext.decodeAudioData(await response.arrayBuffer());
+      })().finally(() => { replySoundLoading = null; });
+      await replySoundLoading;
+    }
+  } catch {
+    // Notification audio is optional; replies must remain usable if audio is blocked.
+  }
+}
+async function playReplySound() {
+  if ($('tts').checked || $('mute').checked) return;
+  await prepareReplySound();
+  if (!replySoundBuffer || replySoundContext?.state !== 'running' || $('tts').checked || $('mute').checked) return;
+  try {
+    const sound = replySoundContext.createBufferSource();
+    sound.buffer = replySoundBuffer;
+    sound.connect(replySoundContext.destination);
+    sound.onended = () => sound.disconnect();
+    sound.start();
+  } catch {
+    // A playback failure must not interrupt the session event handler.
+  }
+}
 function showError(message, retry = false) {
   $('errorText').textContent = message; $('error').classList.remove('hidden'); $('retry').classList.toggle('hidden', !retry);
 }
@@ -210,7 +242,7 @@ function handle(event) {
       append($('events'),recordNode(`${stamp} · 解除静音回应 · ${d.status}`,JSON.stringify(d,null,2),true),true);
       if (d.status === 'failed') showError(d.message, true);
       break;
-    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '学生已发言，轮到你继续讲了。'; break;
+    case 'reply': bubble(d.text); showState(d.state); $('studentMood').textContent = '学生已发言，轮到你继续讲了。'; void playReplySound(); break;
     case 'question_release': {
       const status = {requested:'模型申请',approved:'已获准 · 等待发言',waiting:'等待发言',delivered:'已实际发出',cancelled:'已取消',denied:'未通过 · 跳过候选',rejected:'未通过 · 尝试修复'}[d.status] || d.status;
       $('studentMood').textContent = `提问申请：${status}`;
@@ -262,6 +294,7 @@ async function connect() {
 $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || ending || window.studentProfile?.busy || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const lesson = window.studentProfile.readLesson(); if(!lesson) return;
+  void prepareReplySound();
   starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
   window.teachingReport?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;

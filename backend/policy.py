@@ -77,8 +77,10 @@ def student_result_validator(state, sources, current_ids, recovery, *, input_rev
 
     def validate(result, final_attempt):
         proposed = StudentResult(**result.model_dump()) if resume else result
+        normalizations = []
         try:
-            updated, _ = apply_result(snapshot, proposed, sources, current_ids, resume=resume, input_revision=input_revision)
+            updated, _ = apply_result(snapshot, proposed, sources, current_ids, resume=resume,
+                                      input_revision=input_revision, normalizations=normalizations)
             if require_response and result.candidate.kind == 'silence' and any(
                     r.status == 'pending' and set(r.sources) & current_ids for r in updated.response_requests):
                 raise ResponseIntentError()
@@ -107,6 +109,12 @@ def student_result_validator(state, sources, current_ids, recovery, *, input_rev
                 detail.update(code='response_intent_unrepaired', message='教师回应请求未完成，已保留待回应记录；课堂继续')
             recovery.append(detail)
             return cleaned
+        if normalizations:
+            candidate = result.candidate.model_dump()
+            for detail in normalizations:
+                candidate.update(detail['after'])
+            result = result.model_copy(update={'candidate': Candidate.model_validate(candidate)}, deep=True)
+            recovery.extend({**detail, 'attempt': 2 if final_attempt else 1} for detail in normalizations)
         return result
     return validate
 
@@ -119,7 +127,34 @@ def normalize(text: str) -> str:
     return re.sub(r"[\W_]", "", text).lower()
 
 
-def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str], *, resume=False, input_revision=None, allow_silence=False):
+def normalize_candidate(candidate, knowledge, sources):
+    """Repair only unambiguous candidate bookkeeping, never infer adopted knowledge."""
+    before = candidate.model_dump()
+    refs = []
+    for sid in candidate.sources:
+        if sid not in sources and sid in candidate.knowledge_ids and sid in knowledge:
+            original_sources = knowledge[sid].sources
+            if not original_sources or any(ref not in sources for ref in original_sources):
+                raise ValueError('候选知识引用缺少有效的原始课堂来源')
+            refs.extend(original_sources)
+        else:
+            refs.append(sid)
+    after = {**before, 'sources': list(dict.fromkeys(refs))}
+    if candidate.kind in ('answer', 'ack') and candidate.question_release_request is None:
+        after['question_id'] = None
+    changed = [key for key in ('sources', 'question_id') if before[key] != after[key]]
+    if not changed:
+        return candidate.model_copy(deep=True), []
+    # Revalidate limits after expansion; never truncate evidence to make it fit.
+    normalized = Candidate.model_validate(after)
+    return normalized, [{'code': 'candidate_normalized',
+        'message': '回复关联字段已本地整理，未追加模型请求',
+        'sources': list(normalized.sources),
+        'before': {key: before[key] for key in changed},
+        'after': {key: after[key] for key in changed}}]
+
+
+def apply_result(state: StudentState, result: StudentResult, sources: dict, current_ids: set[str], *, resume=False, input_revision=None, allow_silence=False, normalizations=None):
     """Validate everything before committing anything; source validity isn't semantic proof."""
     next_state = state.model_copy(deep=True)
     questions = {q.id: q for q in next_state.questions}
@@ -213,7 +248,8 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         elif update.status == 'deferred':
             data['status'] = 'pending'
         questions[data["id"]] = Question(**data, attempts=old.attempts if old else 0)
-    candidate = result.candidate.model_copy(deep=True)
+    current = {k.id: k for k in next_state.knowledge}
+    candidate, changes = normalize_candidate(result.candidate, current, sources)
     check(candidate.sources)
     if candidate.question_id in aliases:
         candidate.question_id = aliases[candidate.question_id]
@@ -236,7 +272,6 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
             raise QuestionReleaseError(candidate.question_id, reason='仍有教师请求，须关联实际回应的请求或提供取消依据')
         if not pending and candidate.kind in ('answer', 'ack'):
             raise ValueError('没有教师待回应请求时只能有效提问或沉默')
-    current = {k.id: k for k in next_state.knowledge}
     if any(kid not in current for kid in candidate.knowledge_ids):
         raise ValueError('候选回复引用了不存在的知识前提')
     next_state.questions = list(questions.values())
@@ -261,6 +296,8 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
         raise RestrictedKnowledgeError(restricted)
     next_state.questions = list(questions.values())
     next_state.version += 1
+    if normalizations is not None:
+        normalizations.extend(changes)
     return next_state, candidate
 
 
