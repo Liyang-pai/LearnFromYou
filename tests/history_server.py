@@ -60,11 +60,23 @@ def main():
         session_module.ModelClient = BoundedModel
     else:
         from tests.test_teaching_report import save_classroom, FakeModel
+        from tests.test_history import student_request, event
         path = save_classroom(args.data)
         events = [json.loads(line) for line in path.read_text().splitlines()]
         events[0]['data']['lesson'] = {'topic': '链表历史验收', 'grade': '大学一年级', 'subject': '数据结构', 'student_profile': '当时确认的画像：已知变量，不知道链表。'}
         events[-1]['data']['lesson'] = events[0]['data']['lesson']
-        for index in range(4, 130): events.insert(-1, {'type': 'transcript', 'data': {'id': f't{index}', 'text': f'第 {index} 段：沿 next 访问节点。'}})
+        first_reply = next(i for i, item in enumerate(events) if item['type'] == 'reply')
+        first = [{'id': 't1', 'text': '链表由节点组成。'}, {'id': 't2', 'text': '沿 next 指针逐个访问节点。'},
+                 {'id': 't3', 'text': '最后一个节点指向空。'}]
+        events[first_reply:first_reply] = [student_request(first, multimodal=True),
+            student_request(first, attempt=2), event('state', {'processed_sources': ['t1', 't2', 't3']})]
+        for index in range(4, 130):
+            content = f'第 {index} 段：沿 next 访问节点。'
+            events.insert(-1, event('transcript', {'id': f't{index}', 'text': content}))
+            if index != 129:
+                events.insert(-1, student_request([{'id': f't{index}', 'text': content}]))
+                events.insert(-1, event('error', {'code': 'model_failure', 'sources': [f't{index}']}) if index == 5
+                              else event('state', {'processed_sources': [f't{index}']}))
         path.write_text('\n'.join(json.dumps(e, ensure_ascii=False) for e in events))
         second = args.data / 'logs/fedcba543210.jsonl'
         second.write_text(json.dumps({'type': 'transcript', 'data': {'id': 't1', 'text': '中断课堂的讲授'}}))

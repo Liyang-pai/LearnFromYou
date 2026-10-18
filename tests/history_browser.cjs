@@ -35,7 +35,7 @@ const python = process.env.LFY_TEST_PYTHON || path.join(root, '.venv/bin/python'
     await page.evaluate(()=>{window.__liveNode=document.getElementById('lessonPage');document.getElementById('teacherText').value='切换页面必须保留的讲课草稿';});
     await page.locator('#historyTab').click();
     await page.locator('.history-card').first().waitFor();
-    assert.equal(await page.locator('.history-card').count(),2);
+    assert.equal(await page.locator('.history-card').count(),process.env.HISTORY_REPLAY_SID ? 3 : 2);
     assert.equal(await page.locator('.history-card').first().locator('strong,span,time').count(),3);
     const card=page.locator('.history-card').filter({hasText:'链表历史验收'});
     await card.click();
@@ -43,17 +43,25 @@ const python = process.env.LFY_TEST_PYTHON || path.join(root, '.venv/bin/python'
     await page.waitForFunction(()=>document.querySelectorAll('.history-turn').length===50);
     assert.equal(await page.locator('.history-turn').count(),50);
     await page.getByText('教学报告已生成。',{exact:true}).waitFor({timeout:15000});
-    while(await page.locator('.history-turn').count()<132) {
+    while(await page.locator('.history-turn').count()<130) {
       const previous=await page.locator('.history-turn').count();
       await page.locator('#earlierHistory').click();
       await page.waitForFunction(n=>document.querySelectorAll('.history-turn').length>n,previous);
     }
-    assert.equal(await page.locator('.history-turn').count(),132);
+    assert.equal(await page.locator('.history-turn').count(),130);
     assert((await page.locator('.history-turn').first().innerText()).includes('链表由节点组成'));
     assert((await page.locator('.history-turn details').first().innerText()).includes('查看原始转写'));
     const download = page.waitForEvent('download'); await page.locator('#downloadHistory').click();
     assert.equal(fs.readFileSync(await (await download).path(),'utf8'),fs.readFileSync(path.join(data,'logs/012345abcdef.jsonl'),'utf8'));
     const requests=()=>JSON.parse(fs.readFileSync(path.join(data,'usage.json'))).requests.length;
+    const firstBatch=page.locator('.history-turn.teacher').first();
+    assert((await firstBatch.locator(':scope > small').innerText()).includes('讲授批次'));
+    assert.equal(await firstBatch.locator(':scope > .history-text').textContent(),'链表由节点组成。\n沿 next 指针逐个访问节点。\n最后一个节点指向空。');
+    await firstBatch.locator('summary').click();
+    await page.waitForFunction(()=>document.querySelector('.history-turn.teacher details').querySelectorAll('.history-original').length===3);
+    assert((await firstBatch.locator('.history-original').first().innerText()).includes('练表由节点组成'));
+    assert((await page.locator('#historyDialogue').innerText()).includes('学生处理失败'));
+    assert((await page.locator('.history-turn.teacher').last().innerText()).includes('发送批次未确认'));
     const count=requests(); await page.reload(); await page.getByText('教学报告已生成。',{exact:true}).waitFor(); assert.equal(requests(),count);
     await page.locator('#classroomTab').click();
     assert.equal(await page.locator('#teacherText').inputValue(),''); // Reload intentionally reset the live page.
@@ -98,7 +106,35 @@ const python = process.env.LFY_TEST_PYTHON || path.join(root, '.venv/bin/python'
     await page.setViewportSize({width:390,height:844});
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     await page.screenshot({path:path.join(data,'history-mobile.png'),fullPage:true});
+    if(process.env.HISTORY_REPLAY_SID){
+      const replaySid=process.env.HISTORY_REPLAY_SID;
+      const expected=JSON.parse(fs.readFileSync(path.join(data,'replay-expected.json'),'utf8'));
+      await page.route(`**/api/teaching-report/${replaySid}`,route=>{
+        assert.equal(route.request().method(),'GET','real log replay must never generate a report');
+        return route.fulfill({json:{session_id:replaySid,status:'failed',error:'本次仅核对历史批次，未重新生成报告。'}});
+      });
+      await page.setViewportSize({width:1440,height:1000});
+      await page.goto(base+'/history/'+replaySid);
+      await page.waitForFunction(()=>document.querySelectorAll('.history-turn').length>0);
+      while(await page.locator('#earlierHistory').isVisible()){
+        const previous=await page.locator('.history-turn').count();
+        await page.locator('#earlierHistory').click();
+        await page.waitForFunction(n=>document.querySelectorAll('.history-turn').length>n,previous);
+      }
+      const batch=page.locator('.history-turn.teacher').filter({has:page.getByText(expected.text,{exact:true})});
+      assert.equal(await batch.count(),1);
+      assert.equal(await batch.locator(':scope > .history-text').textContent(),expected.text);
+      await batch.locator('summary').click();
+      await page.waitForFunction(n=>Array.from(document.querySelectorAll('details[open]')).some(el=>el.querySelectorAll('.history-original').length===n),expected.raw.length);
+      assert.deepEqual(await batch.locator('.history-original > .history-text').allTextContents(),expected.raw);
+      await batch.scrollIntoViewIfNeeded();
+      await page.screenshot({path:path.join(data,'real-batch-desktop.png')});
+      await batch.screenshot({path:path.join(data,'real-batch-expanded.png')});
+      await page.setViewportSize({width:390,height:844});
+      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await page.screenshot({path:path.join(data,'real-batch-mobile.png')});
+    }
     assert.deepEqual(errors,[]); assert.deepEqual(failures,[]);
-    console.log(JSON.stringify({result:'PASS',cases:['four list fields','original profile','132 ordered turns','raw transcript','original log download','cache reuse','navigation preserves draft and microphone frames','interrupted lesson','history navigation','failed report manual retry','desktop/mobile'],data}));
+    console.log(JSON.stringify({result:'PASS',cases:['four list fields','original profile','130 turns with submitted batches','raw transcript','original log download','cache reuse','navigation preserves draft and microphone frames','interrupted lesson','history navigation','failed report manual retry','desktop/mobile'],data}));
   } finally {if(browser) await browser.close();server.kill();if(server.exitCode===null) await new Promise(r=>server.once('exit',r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

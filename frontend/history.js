@@ -51,10 +51,26 @@
       const container = el('historyDialogue'), fragment = document.createDocumentFragment();
       for (const item of data.items) {
         const row = document.createElement('article'); row.className = `history-turn ${item.role}`;
-        row.append(text('small', `${item.role === 'teacher' ? '老师' : '学生'}${item.time ? ' · ' + date(item.time) : ''}`), text('p', item.text, 'history-text'));
-        if (item.role === 'teacher' && item.raw_text !== item.text) {
+        const label = item.role !== 'teacher' ? '学生' : item.request_count ? '老师 · 讲授批次' : '老师 · 发送批次未确认';
+        row.append(text('small', `${label}${item.time ? ' · ' + date(item.time) : ''}`), text('p', item.text, 'history-text'));
+        if (item.processing_status === 'failed') row.append(text('p', '学生处理失败，此批讲授内容已保留。', 'history-processing'));
+        else if (item.processing_status === 'submitted') row.append(text('p', '已发起学生处理请求，未找到成功处理记录。', 'history-processing'));
+        else if (item.had_failure) row.append(text('p', '此前处理失败，重试后已处理。', 'history-processing'));
+        if (item.role === 'teacher' && (item.segments?.length || item.raw_text !== item.text)) {
           const details = document.createElement('details');
-          details.append(text('summary', '查看原始转写'), text('p', item.raw_text, 'history-text')); row.append(details);
+          const segments = item.segments || [{raw_text: item.raw_text, time: item.time, elapsed: item.elapsed}];
+          details.append(text('summary', `查看原始转写（${segments.length} 段）`));
+          // Large batches should not create all provenance nodes until expanded.
+          details.addEventListener('toggle', () => {
+            if (!details.open || details.childElementCount > 1) return;
+            for (const segment of segments) {
+              const original = document.createElement('div'); original.className = 'history-original';
+              const stamp = segment.time ? date(segment.time) : typeof segment.elapsed === 'number' ? `${segment.elapsed.toFixed(1)}s` : '时间未记录';
+              original.append(text('small', stamp), text('p', segment.raw_text ?? '此片段的原始转写未记录。', 'history-text'));
+              details.append(original);
+            }
+          });
+          row.append(details);
         }
         fragment.append(row);
       }

@@ -26,7 +26,7 @@
         <mxCell id="profile" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" value="① 学生画像&#10;展示这堂课开始时确认的完整画像&#10;读取历史记录，不使用现在的新画像替换" vertex="1">
           <mxGeometry height="140" width="350" x="50" y="850" as="geometry" />
         </mxCell>
-        <mxCell id="dialog" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" value="② 完整师生对话&#10;按实际发生顺序展示老师讲授与学生实际回复&#10;保留全部记录，不只展示摘要或最后几条" vertex="1">
+        <mxCell id="dialog" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" value="② 完整师生对话&#10;按实际提交给学生的批次展示老师讲授&#10;原始小片段可展开；学生只显示实际回复&#10;批次未确认或处理失败时保留提示" vertex="1">
           <mxGeometry height="140" width="350" x="435" y="850" as="geometry" />
         </mxCell>
         <mxCell id="report" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" value="③ 报告&#10;打开详情后检查独立报告缓存&#10;已有则展示；生成中则等待；缺失则自动生成&#10;失败显示原因与重试按钮（详见第 4 页）" vertex="1">
@@ -35,7 +35,7 @@
         <mxCell id="export" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" value="④ 导出日志按钮&#10;点击后下载本堂课原始 JSONL 日志&#10;直接下载文件，无需先加载完整日志到页面" vertex="1">
           <mxGeometry height="140" width="350" x="1205" y="850" as="geometry" />
         </mxCell>
-        <mxCell id="read" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=14;" value="长课堂加载方式&#10;对话分批读取，滚动加载更早内容，最终可查看完整对话；不截断历史记录。&#10;画像和对话直接读取；缺失报告时独立调用模型生成，不阻塞其他内容。&#10;原始转写和审核文本保留来源区别，审核失败时保留原文。" vertex="1">
+        <mxCell id="read" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=14;" value="长课堂加载方式&#10;每批读取 50 条展示消息，讲授批次不跨页拆分；可加载更早记录。&#10;旧缓存自动按新版重新整理；原始日志与已有报告保持不变。&#10;画像和对话无需模型；缺报告仍按独立流程生成。" vertex="1">
           <mxGeometry height="150" width="735" x="50" y="1080" as="geometry" />
         </mxCell>
         <mxCell id="boundary" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=14;" value="页面边界与异常&#10;列表不额外展示时长、完成状态、学生回复数量等字段。&#10;未正常结束或部分记录损坏的提示放在详情内；展示所有可读取内容。&#10;本版详情聚焦上述四项，不增加截图、认知状态等独立内容区。" vertex="1">
@@ -94,7 +94,7 @@
         <mxCell id="normalize" value="整理为统一课堂数据&#10;列表：主题、学段、学科、上课时间&#10;详情：历史学生画像、完整对话、报告引用&#10;内部保存完成状态与完整性信息" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="575" y="670" width="450" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="events" value="主要事件映射&#10;ready.lesson → 课程信息与当时确认的学生画像&#10;旧日志可回溯 preparation 的课程输入&#10;transcript → 老师原始转写或文字输入&#10;review_completed → 审核结果，关联同一段讲授&#10;reply → 学生实际发言；不把候选当成已发言&#10;保留时间与顺序，不按内容去重删减" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fffbea;strokeColor=#d6bd62;align=left;spacing=15;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="events" value="主要事件映射&#10;ready.lesson → 当时确认的课程与画像&#10;student 请求的 new_teacher_segments → 实际讲授批次&#10;transcript → 原始转写，供展开核对&#10;state / error → 是否有成功处理或失败记录&#10;reply → 学生实际发言；不展示候选&#10;按请求事件定位批次，相同批次重试合并" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fffbea;strokeColor=#d6bd62;align=left;spacing=15;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="55" y="650" width="430" height="225" as="geometry" />
         </mxCell>
         <mxCell id="exceptions" value="兼容与异常规则&#10;没有 finished：结合当前活动课堂判定状态&#10;旧记录缺画像：提示未保存，不重新生成&#10;尾行截断或其他坏行：保留已保存且可读取的对话&#10;未结束或记录不完整的提示只放详情内&#10;缺报告：正常结束且材料可用时自动生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
@@ -300,6 +300,74 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="e31" value="用户点击重试" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="error" target="eligible">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="p5" name="05 按实际请求整合讲授批次">
+    <mxGraphModel grid="1" gridSize="10" page="1" pageScale="1" pageWidth="1600" pageHeight="1420">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="历史讲授 · 按实际请求批次整合" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1480" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="note" value="只整理已有日志，不修改实时发送逻辑，不重新调用模型。请求发起不代表处理成功；批次正文逐段使用当时实际提交的文本。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="110" width="1480" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="read" value="后台逐行读取原始日志" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="230" width="440" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="raw" value="收集原始转写&#10;保留片段、原文与发生时间&#10;审核记录只更新未确认片段的展示文本" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="390" width="420" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="batch" value="提取 student 请求中的 new_teacher_segments&#10;支持普通文本和带图片请求中的文本部分&#10;忽略系统提示词、旧上下文及恢复发言请求" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="650" y="370" width="850" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="dedup" value="来源、顺序和文本完全一致的重复请求 → 合并&#10;保留首次请求的位置与时间；正文不润色、不补写&#10;请求批次可包含多个队列教学片段" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="650" y="550" width="850" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="state" value="匹配处理结果&#10;state 记录成功处理；model_failure 记录失败&#10;只有请求但缺少成功记录时，不宣称已成功处理" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="650" y="730" width="850" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="unknown" value="没有可确认请求批次的原始片段&#10;保留原位置与文字&#10;标注“发送批次未确认”，不猜测合并" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="50" y="710" width="420" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="order" value="合成历史时间线&#10;老师批次按首次请求事件排列&#10;学生回复保持实际发言顺序&#10;每批讲授不强行配一个学生回答" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="925" width="440" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="cache" value="写入版本 2 的摘要及分页对话缓存&#10;旧缓存自动重建；每页最多 50 条展示消息&#10;讲授批次不跨页拆分，原始日志与报告不变" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="1110" width="440" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="页面展示&#10;正文为实际提交文本；展开原始转写&#10;失败、未确认发送和缺失原文均明确提示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="580" y="1270" width="440" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" value="transcript" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="read" target="raw">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="student 请求" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="read" target="batch">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="batch" target="dedup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="dedup" target="state">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="未被任何请求覆盖" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="raw" target="unknown">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="state" target="order">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="unknown" target="order">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="order" target="cache">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="cache" target="ui">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
       </root>

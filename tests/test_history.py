@@ -146,3 +146,174 @@ def test_report_parallel_start_uses_one_task(tmp_path, monkeypatch):
         assert service.get(SID)['status'] == 'ready'
         assert len(calls) == 1
     asyncio.run(run())
+
+
+def event(kind, data, second=0):
+    return {'type': kind, 'data': data, 'time': f'2026-10-18T01:00:{second:02d}+00:00', 'elapsed': second}
+
+
+def student_request(segments, second=10, *, multimodal=False, phase='student', attempt=1):
+    payload = json.dumps({'new_teacher_segments': segments, 'current_state': {'note': '状态不是新讲授'},
+                          'teacher_sources': [{'id': 'old', 'text': '旧上下文不应出现'}]}, ensure_ascii=False)
+    content = [{'type': 'text', 'text': payload}, {'type': 'image_url', 'image_url': {'url': '[图片二进制已省略]'}}] if multimodal else payload
+    return event('llm_request', {'phase': phase, 'attempt': attempt, 'body': {'messages': [
+        {'role': 'system', 'content': '系统提示词不应出现'},
+        {'role': 'user', 'content': json.dumps({'teacher_segments': [{'id': 'old', 'text': '旧对话不应出现'}]})},
+        {'role': 'assistant', 'content': '未发言的模型文本不应出现'}, {'role': 'user', 'content': content}]}}, second)
+
+
+def write_events(root, events):
+    path = root / 'logs' / f'{SID}.jsonl'; path.parent.mkdir(exist_ok=True)
+    path.write_text('\n'.join(json.dumps(item, ensure_ascii=False) for item in events), encoding='utf-8')
+    return path
+
+
+async def all_dialogue(service):
+    await indexed(service); rows, before = [], None
+    while True:
+        page = await service.dialogue(SID, before)
+        assert len(page['items']) <= 50
+        rows = page['items'] + rows
+        before = page['before']
+        if before is None: return rows
+
+
+@pytest.mark.parametrize('multimodal', [False, True])
+def test_actual_batches_use_submitted_text_and_request_order(tmp_path, monkeypatch, multimodal):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    first = [{'id': 't1', 'text': '第一段实际提交的校正文本。'}, {'id': 't2', 'text': '第二段实际提交的文本。'}]
+    write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '第一段原始转写'}, 1),
+        event('transcript', {'id': 't2', 'text': '第二段原始转写'}, 2),
+        event('segment', {'sources': ['t1'], 'text': '队列片段不等于请求批次'}, 3),
+        event('segment', {'sources': ['t2'], 'text': '另一个队列片段'}, 4),
+        student_request(first, 5, multimodal=multimodal),
+        event('transcript', {'id': 't3', 'text': '先于学生回复收到的下一段'}, 6),
+        event('state', {'processed_sources': ['t2', 't1']}, 7),
+        event('reply', {'kind': 'answer', 'text': '真实学生回复'}, 8),
+        student_request([{'id': 't3', 'text': '下一批实际提交文本'}], 9),
+        event('review_completed', {'segments': [{'id': 't1', 'text': '事后审核不能覆盖实际发送文本'}]}, 10)])
+    async def run():
+        rows = await all_dialogue(HistoryService())
+        assert [row['role'] for row in rows] == ['teacher', 'student', 'teacher']
+        assert rows[0]['text'] == '\n'.join(item['text'] for item in first)
+        assert rows[0]['processing_status'] == 'processed'
+        assert rows[0]['time'].endswith('05+00:00')
+        assert [part['raw_text'] for part in rows[0]['segments']] == ['第一段原始转写', '第二段原始转写']
+        assert rows[0]['segments'][0]['time'].endswith('01+00:00')
+        assert rows[2]['text'] == '下一批实际提交文本'
+        assert rows[2]['processing_status'] == 'submitted'
+        assert '不应出现' not in json.dumps(rows, ensure_ascii=False)
+    asyncio.run(run())
+
+
+def test_automatic_and_manual_retry_collapse_at_first_request(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    segments = [{'id': 't1', 'text': '实际讲授'}]
+    repair = student_request(segments, 3, attempt=2)
+    repair['data']['body']['messages'].append({'role': 'user', 'content': '请修复结构，此句不是老师讲授'})
+    write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '原始讲授'}, 1),
+        student_request(segments, 2), event('student_validation_error', {'attempt': 1}, 3), repair,
+        event('error', {'code': 'model_failure', 'sources': ['t1']}, 4),
+        student_request(segments, 5), event('state', {'processed_sources': ['t1']}, 6),
+        event('reply', {'kind': 'ack', 'text': '收到'}, 7)])
+    async def run():
+        rows = await all_dialogue(HistoryService()); assert len(rows) == 2
+        assert rows[0]['request_count'] == 3 and rows[0]['had_failure']
+        assert rows[0]['processing_status'] == 'processed'
+        assert rows[0]['time'].endswith('02+00:00')
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('outcome,status', [
+    (event('error', {'code': 'model_failure', 'sources': ['t1']}), 'failed'),
+    (event('error', {'code': 'model_failure', 'sources': ['other']}), 'submitted'),
+    (event('llm_output', {'phase': 'student', 'raw': '{}'}), 'submitted'),
+    (event('state', {'processed_sources': ['other']}), 'submitted'),
+])
+def test_request_is_not_proof_of_success(tmp_path, monkeypatch, outcome, status):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '原文'}),
+                           student_request([{'id': 't1', 'text': '提交文本'}]), outcome])
+    async def run():
+        rows = await all_dialogue(HistoryService())
+        assert len(rows) == 1 and rows[0]['processing_status'] == status
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('phase', ['student_resume', 'knowledge_review', 'preparation'])
+def test_other_phases_and_uncertain_fragments_stay_unconfirmed(tmp_path, monkeypatch, phase):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '第一段未确认'}),
+        student_request([{'id': 't1', 'text': '不能把这个阶段当作新讲授'}], phase=phase),
+        event('reply', {'kind': 'answer', 'text': '实际发言'}),
+        event('transcript', {'id': 't2', 'text': '第二段未确认'})])
+    async def run():
+        rows = await all_dialogue(HistoryService())
+        assert [row['text'] for row in rows] == ['第一段未确认', '实际发言', '第二段未确认']
+        assert rows[0]['processing_status'] == rows[2]['processing_status'] == 'unconfirmed'
+    asyncio.run(run())
+
+
+def test_changed_wording_or_order_is_a_distinct_submission(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    first = [{'id': 't1', 'text': 'A'}, {'id': 't2', 'text': 'B'}]
+    changed = [{'id': 't1', 'text': '修订A'}, {'id': 't2', 'text': 'B'}]
+    write_events(tmp_path, [student_request(first), student_request(changed), student_request(list(reversed(first)))])
+    async def run():
+        rows = await all_dialogue(HistoryService())
+        assert [row['text'] for row in rows] == ['A\nB', '修订A\nB', 'B\nA']
+        assert rows[0]['segments'][0]['raw_text'] is None
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('segments', ['invalid', [{'text': '无来源'}], [{'id': 't1'}],
+                                     [{'id': 't1', 'text': 'A'}, {'id': 't1', 'text': 'B'}]])
+def test_malformed_batch_preserves_original_fragment(tmp_path, monkeypatch, segments):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '仍然保留的原文'}), student_request(segments)])
+    async def run():
+        service = HistoryService(); rows = await all_dialogue(service)
+        assert len(rows) == 1 and rows[0]['text'] == '仍然保留的原文'
+        assert rows[0]['processing_status'] == 'unconfirmed'
+        assert (await service.detail(SID))['warnings']
+    asyncio.run(run())
+
+
+def test_batch_pagination_never_splits_or_duplicates_fragments(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    events, expected = [], []
+    for batch in range(63):
+        segments = [{'id': f't{batch * 3 + n}', 'text': f'提交文本 {batch}-{n}'} for n in range(3)]
+        for segment in segments:
+            events.append(event('transcript', {'id': segment['id'], 'text': segment['text'] + ' 原文'}))
+            expected.append(segment['id'])
+        events.append(student_request(segments))
+        events.append(event('state', {'processed_sources': [segment['id'] for segment in segments]}))
+        if batch % 5 == 0: events.append(event('reply', {'kind': 'ack', 'text': f'回答 {batch}'}))
+    write_events(tmp_path, events)
+    async def run():
+        rows = await all_dialogue(HistoryService())
+        assert len(rows) == 76
+        teachers = [row for row in rows if row['role'] == 'teacher']
+        assert [sid for row in teachers for sid in row['source_ids']] == expected
+        assert all(len(row['segments']) == 3 for row in teachers)
+        assert all(row['processing_status'] == 'processed' for row in teachers)
+    asyncio.run(run())
+
+
+def test_cache_version_upgrade_rebuilds_without_touching_log_or_report(tmp_path, monkeypatch):
+    import backend.history as module
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    path = write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '原文'}),
+                                  student_request([{'id': 't1', 'text': '实际提交'}])])
+    raw = path.read_bytes(); stat = path.stat()
+    old = tmp_path / 'logs/.history' / SID / f'1-{stat.st_size}-{stat.st_mtime_ns}'
+    old.mkdir(parents=True); (old / 'meta.json').write_text('{"version":1}')
+    report = tmp_path / 'logs' / f'{SID}.teaching-report-v2.json'; report.write_text('报告原样保留')
+    async def run():
+        service = HistoryService(); assert (await service.detail(SID))['status'] == 'indexing'
+        await service.jobs[SID]
+        assert module.VERSION == 2 and not old.exists()
+        assert (await service.dialogue(SID))['items'][0]['text'] == '实际提交'
+        assert path.read_bytes() == raw and report.read_text() == '报告原样保留'
+    asyncio.run(run())

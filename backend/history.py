@@ -10,7 +10,7 @@ import threading
 
 from . import config
 
-VERSION = 1
+VERSION = 2
 PAGE_SIZE = 50
 
 
@@ -33,6 +33,93 @@ def source_stamp(path):
 
 def read_json(path):
     return json.loads(path.read_text(encoding='utf-8'))
+
+
+def student_segments(data):
+    """Read the current student input, never its conversation history or repairs."""
+    if data.get('phase') != 'student':
+        return []
+    for message in reversed(data.get('body', {}).get('messages', [])):
+        if message.get('role') != 'user':
+            continue
+        content = message.get('content')
+        parts = [content] if isinstance(content, str) else [
+            part.get('text') for part in content or [] if isinstance(part, dict) and part.get('type') == 'text']
+        for part in parts:
+            try:
+                payload = json.loads(part)
+            except (ValueError, TypeError):
+                continue
+            if not isinstance(payload, dict) or 'new_teacher_segments' not in payload:
+                continue
+            segments = payload['new_teacher_segments']
+            if not isinstance(segments, list) or any(
+                not isinstance(segment, dict) or not isinstance(segment.get('id'), str)
+                or not segment['id'] or not isinstance(segment.get('text'), str) for segment in segments
+            ) or len({segment['id'] for segment in segments}) != len(segments):
+                raise ValueError('Invalid teacher batch')
+            return segments
+    return []
+
+
+class HistoryDialogue:
+    """Keep request order and exact submitted wording; transcripts are provenance."""
+    def __init__(self):
+        self.rows, self.sources, self.batches = [], {}, {}
+        self.submitted = set()
+        self.active = None
+
+    def transcript(self, event):
+        data = event['data']
+        text, source_id = data['text'], data['id']
+        if not isinstance(text, str) or not isinstance(source_id, str) or source_id in self.sources:
+            raise ValueError('Invalid transcript')
+        row = {'role': 'teacher', 'text': text, 'raw_text': text, 'source_ids': [source_id],
+               'time': event.get('time'), 'elapsed': event.get('elapsed'),
+               'processing_status': 'unconfirmed', 'request_count': 0}
+        self.sources[source_id] = row
+        self.rows.append(row)
+
+    def request(self, event):
+        segments = student_segments(event['data'])
+        if not segments:
+            return
+        signature = tuple((segment['id'], segment['text']) for segment in segments)
+        row = self.batches.get(signature)
+        if row is None:
+            originals = []
+            for segment in segments:
+                source = self.sources.get(segment['id'], {})
+                originals.append({'source_id': segment['id'], 'text': segment['text'],
+                                  'raw_text': source.get('raw_text'), 'time': source.get('time'),
+                                  'elapsed': source.get('elapsed', segment.get('at'))})
+            row = {'role': 'teacher', 'text': '\n'.join(segment['text'] for segment in segments),
+                   'source_ids': [segment['id'] for segment in segments], 'segments': originals,
+                   'time': event.get('time'), 'elapsed': event.get('elapsed'), 'request_count': 0}
+            self.batches[signature] = row
+            self.rows.append(row)
+        row['request_count'] += 1
+        row['processing_status'] = 'submitted'
+        self.submitted.update(row['source_ids'])
+        self.active = row
+
+    def processed(self, data):
+        if self.active is not None and set(self.active['source_ids']) == set(data.get('processed_sources', [])):
+            self.active['processing_status'] = 'processed'
+            self.active = None
+
+    def failed(self, data):
+        if data.get('code') != 'model_failure' or self.active is None:
+            return
+        if data.get('sources') is not None and set(data['sources']) != set(self.active['source_ids']):
+            return
+        self.active.update(processing_status='failed', had_failure=True)
+
+    def finish(self):
+        # Only covered transcript placeholders disappear. Unconfirmed fragments
+        # retain their original event position, even between student responses.
+        return [row for row in self.rows if row.get('request_count', 0) or row['role'] != 'teacher'
+                or row['source_ids'][0] not in self.submitted]
 
 
 class HistoryService:
@@ -76,7 +163,7 @@ class HistoryService:
 
     def build(self, session_id):
         path, stamp, directory = self.location(session_id)
-        lesson, turns, teacher_rows = {}, [], {}
+        lesson, dialogue = {}, HistoryDialogue()
         started_at = None
         finished, damaged = False, 0
         with path.open(encoding='utf-8-sig', errors='replace') as stream:
@@ -103,26 +190,27 @@ class HistoryService:
                                 value = json.loads(message['content'])
                                 if isinstance(value, dict):
                                     lesson = value
+                    elif kind == 'llm_request':
+                        dialogue.request(event)
                     elif kind == 'transcript':
-                        text, source_id = data['text'], data['id']
-                        if not isinstance(text, str) or not isinstance(source_id, str) or source_id in teacher_rows:
-                            raise ValueError('Invalid transcript')
-                        row = {'role': 'teacher', 'text': text, 'raw_text': text,
-                               'time': event.get('time'), 'elapsed': event.get('elapsed')}
-                        teacher_rows[source_id] = row
-                        turns.append(row)
+                        dialogue.transcript(event)
                     elif kind == 'review_completed':
                         for segment in data.get('segments', []):
-                            row = teacher_rows.get(segment['id'])
+                            row = dialogue.sources.get(segment['id'])
                             if row is not None and isinstance(segment.get('text'), str):
                                 row['text'] = segment['text']
                                 row['review_status'] = segment.get('review_status')
+                    elif kind == 'state':
+                        dialogue.processed(data)
+                    elif kind == 'error':
+                        dialogue.failed(data)
                     elif kind == 'reply' and data.get('kind') in ('question', 'answer', 'ack'):
                         if isinstance(data.get('text'), str) and data['text'].strip():
-                            turns.append({'role': 'student', 'text': data['text'],
-                                          'time': event.get('time'), 'elapsed': event.get('elapsed')})
+                            dialogue.rows.append({'role': 'student', 'text': data['text'],
+                                                  'time': event.get('time'), 'elapsed': event.get('elapsed')})
                 except (ValueError, KeyError, TypeError, AttributeError):
                     damaged += 1
+        turns = dialogue.finish()
         warnings = []
         if not finished:
             warnings.append('课堂未正常结束或仍在进行，仅展示已保存的记录，不支持续讲。')
@@ -130,7 +218,7 @@ class HistoryService:
             warnings.append(f'{damaged} 条记录无法完整读取，以下仅展示可读取内容。')
         if not finished:
             reason = '课堂未正常结束，暂不能生成报告。'
-        elif not teacher_rows:
+        elif not dialogue.sources:
             reason = '本次没有教师讲授内容，无法生成报告。'
         elif damaged:
             reason = '课堂记录不完整，暂不能生成报告。'
