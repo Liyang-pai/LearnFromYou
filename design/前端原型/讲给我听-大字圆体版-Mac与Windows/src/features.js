@@ -140,6 +140,16 @@
     if(['19','20','21'].includes(app.screen)){const p=d.querySelector('.page-head p');if(p)p.textContent=(state.lesson.topic||'惯性的概念')+' / 示例报告 · 不是真实评价';}
   }
   function action(name,el){
+    if(name==='history-all'){
+      const cards=[...d.querySelectorAll('.recent-lesson')].map(card=>card.outerHTML).join('');
+      popup('试讲历史','<div class="history-list">'+cards+'</div>');return;
+    }
+    if(name==='history-preview'){
+      const records=[['惯性的概念','初中 · 物理','昨天 19:23'],['一次函数','初中 · 数学','10月14日'],['链表的基本操作','大学 · 数据结构','10月10日']];
+      const record=records[Number(el.dataset.history)];if(!record)return;
+      popup(record[0],'<p>'+escape(record[1])+'</p><p class="hint">讲解时间：'+escape(record[2])+'</p><p class="hint">静态原型示例记录。</p>');return;
+    }
+
     if(name.startsWith('fault-')){
       state.popup=null;const kind=name.slice(6);
       if(kind==='disconnect'){api.seedLesson();state.session.active=true;state.session.phase='disconnected';route('35',true);return;}
@@ -258,8 +268,18 @@
     if(text==='开始音频测试'||text==='停止上传'){toast('上传录音只在调试示意中保留，静态原型不读取或发送录音。');return true;}
     return false;
   }
+  const subjectIcons={'语文':'chinese','数学':'math','英语':'english','物理':'physics','化学':'chemistry','生物':'biology','历史':'history','地理':'geography','道德与法治':'civics','科学':'science','信息科技':'computing'};
+  function hydrateHistoryIcons(){
+    for(const card of d.querySelectorAll('.recent-lesson')){
+      const subject=card.dataset.subject||card.querySelector('.recent-copy > span')?.textContent.split('·').at(-1).trim()||'';
+      const key=subjectIcons[subject]||(['数据结构','计算机科学','计算机','编程','信息技术'].includes(subject)?'computing':'other');
+      const holder=card.querySelector('.recent-icon');if(!holder)continue;
+      const image=d.createElement('img');image.src='assets/subjects/'+key+'.svg';image.alt='';image.width=28;image.height=28;
+      holder.dataset.subjectIcon=key;holder.title=key==='other'?'其他（自定义）':subject;holder.replaceChildren(image);
+    }
+  }
   function hydrate(document){
-    d=document;setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
+    d=document;hydrateHistoryIcons();setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
     for(const avatar of d.querySelectorAll('.chat-row:not(.teacher) .chat-avatar')){avatar.replaceChildren();avatar.style.background='transparent';const image=d.createElement('img');image.src='assets/小纸-用户原图.png';image.alt='小纸';image.style.cssText='width:32px;height:32px;object-fit:contain';avatar.append(image);}
     if(app.screen==='35'&&state.session.phase==='disconnected'){const target=d.querySelector('.stage-center');if(target){const b=d.createElement('button');b.className='btn soft';b.textContent='恢复模拟连接';b.dataset.action='restore-connection';target.append(b);}}
     d.addEventListener('paste',e=>{if(app.screen!=='29'&&!e.target.closest('.chat-input'))return;const file=[...(e.clipboardData?.files||[])].find(f=>f.type.startsWith('image/'))||[...(e.clipboardData?.items||[])].find(item=>item.type.startsWith('image/'))?.getAsFile();if(file){e.preventDefault();addImage(file);}});

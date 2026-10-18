@@ -5,6 +5,8 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
+  /* 当前圆体的“惯”字轮廓异常，交给后备字体显示。 */
+  unicode-range: U+0-60EE, U+60F0-10FFFF;
 }
 :root {
   --ink: #304767;
@@ -328,3 +330,102 @@ strong { font-weight: 650; }
 .review-record p { white-space: pre-wrap; }
 .review-original summary { cursor: pointer; }
 .review-original p { padding: 10px 12px; background: #f6f9fd; border-radius: 9px; margin-top: 8px; font-size: 15px; }
+
+/* 表单保持自然高度，超出部分滚动，避免字段挤在一起。 */
+.profile-form > .card-head { margin-bottom: 26px; }
+.profile-form .setup-scroll > .field,
+.profile-form .setup-scroll > .form-pair,
+.profile-form .setup-scroll > .segment-row { margin-bottom: 24px; }
+.profile-form .setup-scroll .field label { margin-bottom: 10px; }
+.profile-form .setup-scroll > .form-pair .field { margin-bottom: 0; }
+.profile-form .setup-scroll .segment-row { min-height: 50px; }
+.profile-form .setup-scroll textarea.input { height: 160px; min-height: 160px; line-height: 1.8; padding: 14px; resize: vertical; }
+
+.setup-more { margin: 20px 0; border: 1px solid #e2eaf5; border-radius: 13px; background: #fcfdff; }
+.setup-more summary { cursor: pointer; padding: 12px 14px; font-size: 17px; }
+.setup-more summary::marker { color: #8ca6c8; }
+.setup-more summary .hint { float: right; }
+.setup-more-content { padding: 6px 16px 18px; }
+.setup-more-content label { display: block; font-size: 17px; margin-bottom: 10px; }
+
+/* 左侧品牌图文比例试版：删除此段即可恢复原比例。 */
+.sidebar .brand-name { font-size: 28px; font-weight: 800; letter-spacing: 0; }
+.sidebar .brand-en { letter-spacing: .5px; }
+
+.profile-card textarea.profile-inline { display: block; flex: 1; width: 100%; min-height: 0; margin: 0; font: inherit; font-size: 18px; line-height: 1.9; color: var(--ink); resize: none; overflow-y: auto; }
+.profile-card textarea.profile-inline::placeholder { color: #8ca0bb; }
+.profile-card textarea.profile-inline:focus { outline: 2px solid #bdd6ff; outline-offset: 1px; }
+
+/* 首页欢迎区：大角色与单一创建入口。 */
+.home-main { background: radial-gradient(ellipse at 50% 28%, #edf7ff99, transparent 55%), #f7faff; }
+.home-welcome { position: relative; padding: 18px 28px 36px; min-height: 650px; }
+.home-welcome .page-head { margin-bottom: 0; min-height: 100px; }
+.home-welcome h1 { font-size: 48px; color: #203a5c; }
+.welcome-wave { font-size: 40px; display: inline-block; margin-left: 10px; }
+.home-welcome .page-head p { font-size: 23px; margin-top: 12px; }
+.welcome-stage { position: relative; height: 360px; margin: 18px 0 12px; }
+.welcome-character { position: absolute; width: 380px; height: 360px; left: calc(50% - 290px); bottom: 0; }
+.welcome-character::before { content: ""; position: absolute; width: 285px; height: 285px; border-radius: 50%; background: #e9f5ff; left: 45px; bottom: 15px; }
+.welcome-character img { position: relative; display: block; width: 100%; height: 100%; object-fit: contain; }
+.welcome-bubble { position: absolute; left: calc(50% + 100px); top: 0; width: 280px; padding: 20px 25px 25px; border: 3px solid #bfdfff; border-radius: 48px; background: #fff; transform: rotate(-6deg); color: #263f62; font-size: 24px; line-height: 1.55; }
+.welcome-bubble strong { display: block; font-size: 39px; line-height: 1.3; color: #4a9bf1; margin-bottom: 5px; }
+.welcome-bubble::after { content: ""; position: absolute; width: 25px; height: 28px; bottom: -19px; left: 30px; background: #fff; border-left: 3px solid #bfdfff; border-bottom: 3px solid #bfdfff; transform: skewY(-30deg) rotate(-20deg); }
+.welcome-orb { position: absolute; border-radius: 50%; background: #e4f2ff; }
+.orb-one { width: 55px; height: 55px; left: 30px; bottom: 55px; }
+.orb-two { width: 75px; height: 75px; right: 45px; top: -100px; }
+.welcome-spark { position: absolute; color: #ffdd83; font-size: 35px; }
+.spark-one { left: 15px; top: 130px; }
+.spark-two { right: -4px; bottom: 85px; font-size: 27px; }
+.welcome-create { display: flex; align-items: center; justify-content: flex-start; gap: 25px; width: 500px; max-width: 100%; margin: 5px auto 0; padding: 22px 36px; border: 0; border-radius: 27px; background: linear-gradient(115deg,#348df7,#4b99f7); color: #fff; box-shadow: 0 8px 20px #528df217; text-align: left; cursor: pointer; }
+.welcome-create:hover { background: #3488ef; }
+.welcome-plus { display: flex; align-items: center; justify-content: center; width: 52px; height: 52px; flex-shrink: 0; border-radius: 14px; background: #fff; color: #4294f4; font: 42px/1 sans-serif; }
+.welcome-create strong { display: block; font-size: 27px; line-height: 1.4; }
+.welcome-create small { display: block; margin-top: 5px; font-size: 20px; color: #e3f0ff; }
+.home-main .home-bottom { margin-top: 0; }
+.recent-lessons .card-head { align-items: center; justify-content: space-between; }
+.recent-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
+.recent-lesson { display: grid; grid-template-columns: 1fr auto; align-content: start; align-items: flex-start; gap: 12px; min-width: 0; width: 100%; min-height: 220px; padding: 22px 14px; border: 1px solid #e7eff9; border-radius: 17px; background: #fff; color: var(--ink); font: inherit; text-align: left; cursor: pointer; white-space: normal; }
+.recent-lesson:hover { background: #f7faff; border-color: #bdd6ff; }
+.recent-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 46px; flex-shrink: 0; border-radius: 11px; background: #edf5ff; color: #5798ef; }
+.recent-icon .icon { width: 28px; height: 28px; }
+.recent-copy { display: flex; flex-direction: column; min-width: 0; gap: 10px; }
+.recent-copy strong { font-size: 21px; line-height: 1.5; }
+.recent-copy > span, .recent-copy small { font-size: 16px; color: #879bb5; line-height: 1.7; }
+.recent-lesson > .icon { margin-left: auto; width: 14px; color: #8fa9c9; grid-column: 2; grid-row: 1; }
+.recent-lesson .recent-icon { grid-column: 1; grid-row: 1; }
+.recent-lesson .recent-copy { grid-column: 1 / -1; }
+.history-list { display: grid; gap: 12px; }
+
+/* 首页首屏适配：收紧欢迎区，保留并排的信息卡片。 */
+.home-welcome { padding: 0 24px 20px; min-height: 0; }
+.home-welcome .page-head { min-height: 82px; }
+.home-welcome h1 { font-size: 38px; }
+.welcome-wave { font-size: 32px; }
+.home-welcome .page-head p { font-size: 20px; margin-top: 6px; }
+.welcome-stage { height: 245px; margin: 2px 0 8px; }
+.welcome-character { width: 280px; height: 255px; left: calc(50% - 230px); }
+.welcome-character::before { width: 205px; height: 205px; left: 35px; bottom: 12px; }
+.welcome-bubble { left: calc(50% + 65px); top: 7px; width: 230px; padding: 14px 20px 18px; border-width: 2px; border-radius: 34px; font-size: 20px; }
+.welcome-bubble strong { font-size: 30px; }
+.welcome-bubble::after { width: 20px; height: 22px; bottom: -15px; border-width: 2px; }
+.orb-one { width: 35px; height: 35px; left: 65px; bottom: 35px; }
+.orb-two { width: 48px; height: 48px; top: -60px; }
+.spark-one { top: 85px; font-size: 27px; }
+.spark-two { bottom: 60px; font-size: 23px; }
+.welcome-create { width: 330px; gap: 18px; padding: 14px 24px; border-radius: 19px; }
+.welcome-plus { width: 40px; height: 40px; border-radius: 10px; font-size: 32px; }
+.welcome-create strong { font-size: 22px; }
+.welcome-create small { margin-top: 3px; font-size: 16px; }
+
+/* 放大欢迎视觉，利用首屏剩余高度。 */
+.welcome-stage { height: 355px; }
+.welcome-character { width: 370px; height: 345px; left: calc(50% - 285px); }
+.welcome-character::before { width: 280px; height: 280px; left: 45px; bottom: 12px; }
+.welcome-bubble { left: calc(50% + 100px); top: 20px; width: 260px; padding: 18px 24px 22px; font-size: 23px; border-radius: 40px; }
+.welcome-bubble strong { font-size: 36px; }
+.spark-one { top: 125px; font-size: 32px; }
+.spark-two { bottom: 75px; font-size: 26px; }
+.welcome-create { width: 380px; padding: 17px 28px; gap: 22px; }
+.welcome-plus { width: 46px; height: 46px; font-size: 36px; }
+.welcome-create strong { font-size: 25px; }
+.welcome-create small { font-size: 18px; }

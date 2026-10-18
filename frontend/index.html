@@ -14,7 +14,7 @@
   <p id="runtimeVersion" class="hint" role="status"></p>
   <main>
     <aside class="development-note"><strong>开发调试界面</strong><span>当前页面用于验证 ASR 和试讲链路。面向用户的正式前端将另行开发。</span></aside>
-    <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button></nav>
+    <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button><button id="historyTab">历史课堂</button></nav>
     <div id="lessonPage">
     <section class="intro"><div><div class="eyebrow">一个正在学习的学生</div><h1>从你的讲解里，慢慢听懂。</h1><p>先告诉学生准备学什么，再开始讲课。没讲过的知识，不默认知道。</p></div><div class="local-note"><i></i> 本机识别语音<br><span>课堂文本交给 DeepSeek 理解</span></div></section>
     <div id="error" role="alert" class="error hidden"><span id="errorText"></span><button id="retry" class="small hidden">重试这一段</button><button id="dismiss" class="small">收起</button></div>
@@ -139,6 +139,18 @@
       <div id="modelCards" class="model-grid"><p class="empty">正在读取模型列表……</p></div>
       <p class="hint models-note">体积为所需文件的下载与安装占用，共享 VAD 另需约 644KB。识别准确性与速度取决于讲课内容和设备，推荐标签为选型建议，尚未提供实测评分。音频只在本机处理。</p>
     </section>
+    <section id="historyPage" class="hidden" aria-labelledby="historyHeading">
+      <div class="history-heading"><h1 id="historyHeading">历史课堂</h1><button id="refreshHistory">刷新</button></div>
+      <p id="historyNotice" role="status" aria-live="polite"></p>
+      <div id="historyListView"><div id="historyCards" class="history-cards"></div><button id="moreHistory" class="hidden">加载更多课堂</button></div>
+      <div id="historyDetail" class="hidden">
+        <div class="history-heading"><button id="backHistory">返回历史列表</button><a id="downloadHistory" class="history-download" download>导出日志</a></div>
+        <h2 id="historyTopic"></h2><p id="historyWarning" role="status"></p>
+        <section class="card"><h2>学生画像</h2><p id="historyProfile" class="history-text"></p></section>
+        <section class="card"><h2>完整师生对话</h2><button id="earlierHistory" class="hidden">加载更早记录</button><div id="historyDialogue" role="log" aria-label="历史师生对话"></div></section>
+        <section class="card"><h2>教学报告</h2><p id="historyReportStatus" role="status" aria-live="polite"></p><button id="retryHistoryReport" class="hidden">重试报告</button><div id="historyReportBody"></div></section>
+      </div>
+    </section>
     <footer>当前认知不等于标准答案。学生的知识来自明确的前置知识、本次讲授与实际展示的材料。</footer>
   </main>
   <dialog id="profileOverwrite" aria-labelledby="profileOverwriteTitle" aria-describedby="profileOverwriteDescription">
@@ -151,6 +163,7 @@
   <script src="/static/classroom-images.js?v=20261013-images-1" defer></script>
   <script src="/static/app.js?v=20261007-upload-1" defer></script>
   <script src="/static/teaching-report.js?v=20261011-interaction" defer></script>
+  <script src="/static/history.js?v=20261018" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
 </body>

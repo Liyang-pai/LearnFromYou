@@ -1,5 +1,7 @@
 """A teaching report is independent of the AI student's post-class simulation."""
 import asyncio
+from collections import OrderedDict
+import threading
 import hashlib
 import json
 import logging
@@ -109,6 +111,9 @@ class ReportService:
         self.model_factory = model_factory or ModelClient
         self.tasks = {}
         self.lock = asyncio.Lock()
+        self.start_lock = asyncio.Lock()
+        self.materials = OrderedDict()
+        self.material_lock = threading.RLock()
 
     def path(self, session_id):
         return config.ROOT / 'logs' / f'{session_id}.teaching-report-v2.json'
@@ -119,9 +124,23 @@ class ReportService:
         temporary.write_text(json.dumps(result, ensure_ascii=False), encoding='utf-8')
         temporary.replace(path)
 
+    def material(self, session_id):
+        # Source and prompt changes invalidate material/hash together. Polling never
+        # rereads an unchanged raw log; cap memory retained across historical classes.
+        from .history import classroom_path, source_stamp
+        path = classroom_path(session_id)
+        key = (str(path), source_stamp(path), source_hash({}))
+        with self.material_lock:
+            if key not in self.materials:
+                classroom = read_classroom(config.ROOT, session_id)
+                self.materials[key] = (classroom, source_hash(classroom))
+                while len(self.materials) > 8:
+                    self.materials.popitem(last=False)
+            self.materials.move_to_end(key)
+            return self.materials[key]
+
     def get(self, session_id):
-        classroom = read_classroom(config.ROOT, session_id)
-        digest = source_hash(classroom)
+        classroom, digest = self.material(session_id)
         result = {'schema_version': 2, 'session_id': session_id, 'source_hash': digest, 'status': 'idle',
                   'progress': '课堂已结束，可以生成报告。', 'report': None, 'error': ''}
         path = self.path(session_id)
@@ -150,15 +169,17 @@ class ReportService:
         return result
 
     async def start(self, session_id):
-        # No await between checking the job and registering it: double clicks share one job.
-        result = self.get(session_id)
-        if result['status'] in ('ready', 'generating'):
+        # Reading a large old classroom must not block websocket/audio work.
+        # The lock covers job registration after the asynchronous material lookup.
+        async with self.start_lock:
+            result = await asyncio.to_thread(self.get, session_id)
+            if result['status'] in ('ready', 'generating'):
+                return result
+            classroom, _ = await asyncio.to_thread(self.material, session_id)
+            result.update(status='generating', error='', report=None, progress='正在等待分析，请稍等……')
+            self.save(result)
+            self.tasks[session_id] = asyncio.create_task(self.run(result, classroom))
             return result
-        classroom = read_classroom(config.ROOT, session_id)
-        result.update(status='generating', error='', report=None, progress='正在等待分析，请稍等……')
-        self.save(result)
-        self.tasks[session_id] = asyncio.create_task(self.run(result, classroom))
-        return result
 
     async def run(self, result, classroom):
         model = None

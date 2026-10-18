@@ -42,6 +42,8 @@
         scroll.tabIndex=0;scroll.setAttribute('role','region');scroll.setAttribute('aria-label','教学设置表单');
         while(heading.nextElementSibling && heading.nextElementSibling!==generate)scroll.append(heading.nextElementSibling);
         heading.after(scroll);
+        const gradeSubject=scroll.querySelector('.form-pair');
+        if(gradeSubject)for(const row of [...scroll.querySelectorAll('.segment-row')])gradeSubject.before(row);
         const footer=doc.createElement('div');footer.className='setup-actions';
         while(generate.nextElementSibling)footer.append(generate.nextElementSibling);
         footer.prepend(generate);setupForm.append(footer);
