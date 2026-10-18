@@ -429,3 +429,25 @@ strong { font-weight: 650; }
 .welcome-plus { width: 46px; height: 46px; font-size: 36px; }
 .welcome-create strong { font-size: 25px; }
 .welcome-create small { font-size: 18px; }
+
+/* 课堂详情：转写与分段、学生状态及处理记录共用入口。 */
+.classroom-tabs { display:flex; gap:30px; margin:0 0 24px; border-bottom:1px solid #e2ebf6; }
+.classroom-tabs span { padding:12px 4px; font-size:19px; color:#8295ae; cursor:pointer; border-bottom:3px solid transparent; }
+.classroom-tabs span.active { color:#528df2; border-bottom-color:#528df2; }
+.classroom-tabs span:focus-visible, .knowledge-card[role="button"]:focus-visible { outline:2px solid #69a8ff; outline-offset:4px; }
+.classroom-record-grid { grid-template-columns:1.12fr 1fr; align-items:start; }
+.classroom-record-grid .card-head { margin-bottom:22px; }
+.classroom-record-grid .card-head h2 { font-size:24px; }
+.transcript-audit { font-size:14px; color:#609881; margin-top:8px; }
+.segment-card { padding:20px; border:1px solid #e6edf6; border-radius:17px; margin-bottom:18px; }
+.segment-card h3 { font-size:19px; color:#597da8; margin:8px 0; }
+.segment-card p { font-size:17px; line-height:1.85; color:#617e9f; }
+.segment-meta { color:#8b9eb6; font-size:14px; margin-top:14px; }
+.detail-next { padding:18px; background:#f4f8fe; border-radius:17px; margin-bottom:18px; }
+.detail-next p { font-size:17px; color:#758eae; margin-bottom:12px; }
+.detail-next button + button { margin-top:10px; }
+.duration-summary { display:flex; gap:14px; margin-bottom:22px; }
+.duration-summary>div { flex:1; padding:15px; border-radius:14px; background:#f4f8fe; }
+.duration-summary span { display:block; font-size:14px; color:#8b9eb6; }
+.duration-summary strong { display:block; font-size:23px; color:#5d83b0; }
+.knowledge-card[role="button"] { cursor:pointer; }

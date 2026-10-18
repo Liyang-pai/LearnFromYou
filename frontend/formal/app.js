@@ -1,5 +1,5 @@
 // 正式前端入口：页面导航与课堂、录音生命周期分离，全部业务调用真实后端。
-import {state,api,emptySession,applyEvent} from './service.js';
+import {state,api,emptySession,applyEvent,retrySession} from './service.js';
 import {Microphone,prepareReplySound,playReplySound} from './audio.js';
 import {MicrophoneWaveform} from './waveform.js';
 import {render} from './views.js';
@@ -79,8 +79,11 @@ function send(event) {
 async function connect(url,onmessage,onclose) {
   const ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}${url}`);
   ws.onmessage=e=>{ try { onmessage(JSON.parse(e.data)); } catch(error) { notice('服务消息无法显示：'+error.message); } };
-  ws.onclose=onclose;
-  await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=()=>reject(new Error('无法连接本机服务，请检查后台是否运行'));});
+  await new Promise((resolve,reject)=>{
+    ws.onopen=resolve;
+    ws.onerror=()=>reject(new Error('无法连接本机服务，请检查后台是否运行'));
+    ws.onclose=event=>{onclose(event);reject(new Error('本机服务连接已关闭，请检查后台后重新创建课堂'));};
+  });
   return ws;
 }
 async function createClass() {
@@ -97,19 +100,26 @@ async function createClassRequest() {
   if(state.health.asr_busy || state.health.classroom_active || state.test.active) throw new Error('课堂或识别测试正在占用资源，请先在原页面结束');
   if(s.pendingImage)URL.revokeObjectURL(s.pendingImage.url);
   const next=emptySession(); Object.assign(next,{draft:s.draft,lesson:{...state.setup},starting:true,tts:state.settings.tts,status:'正在创建课堂，尚未开启麦克风'}); state.session=next;
-  if(socket) { socket.onclose=null; socket.close(); }
+  if(socket) { socket.onclose=null;socket.onmessage=null; socket.close(); }
   refresh();
   try {
-    socket=await connect('/ws/session',classEvent,()=>{
+    socket=await connect('/ws/session',event=>{if(state.session===next)classEvent(event);},()=>{
+      if(state.session!==next)return;
       const current=state.session,unexpected=current.active || current.starting || current.ending;
+      const wasStarting=current.starting;
       current.active=current.starting=current.ending=current.mic=false; current.pending=null;
       void mic.stop(null,null);
-      if(unexpected) { current.error='连接已断开，已有课堂记录已保留。刷新或断线后的课堂不能续讲，请查看历史或创建新课堂。'; current.status='连接已断开'; }
-      refresh(); void loadHealth();
+      if(wasStarting){current.createError=current.error='创建时连接已断开，教学设置与草稿已保留，请返回创建页重试。';current.status='创建失败，内容已保留，可重试';}
+      else if(unexpected) { current.error='连接已断开，已有课堂记录已保留。刷新或断线后的课堂不能续讲，请查看历史或创建新课堂。'; current.status='连接已断开'; }
+      refresh(); void action(loadHealth);
     });
     send({type:'start',lesson:next.lesson,muted:false,tts:next.tts,asr_review:state.createReview??state.settings.asr_review});
     await navigate('/classroom');
-  } catch(error) { next.starting=false;next.error=error.message;refresh();throw error; }
+  } catch(error) {
+    next.starting=next.active=false;next.createError=next.error=error.message;next.status='创建失败，内容已保留，可重试';
+    if(state.session===next)await navigate('/classroom');
+    throw error;
+  }
 }
 function classEvent(event) {
   applyEvent(state.session,event);
@@ -324,6 +334,7 @@ view.addEventListener('click',event=>{
     else if(a==='open-asr')await navigate('/settings/asr');
     else if(a==='class-details')await navigate('/classroom/details');
     else if(a==='back-class')await navigate('/classroom');
+    else if(a==='back-create')await navigate('/create');
     else if(a==='report-back')await navigate(`/history/${id}`);
     else if(a==='home-create')await navigate(state.session.active?'/classroom':'/create');
     else if(a==='open-settings')await navigate('/settings');
@@ -337,7 +348,7 @@ view.addEventListener('click',event=>{
     else if(a==='toggle-tts'){if(!s.muted && s.active){const value=!s.tts;send({type:'tts',value});s.tts=value;if(!value)void prepareReplySound();s.speaking=false;refresh();}}
     else if(a==='toggle-sidebar'){s.sidebar=!s.sidebar;refresh();}
     else if(a==='end-class' || a==='generate-report')await endClass();
-    else if(a==='retry-class'){send({type:'retry'});s.error='';s.retryable=false;refresh();}
+    else if(a==='retry-class'){retrySession(s,send);refresh();}
     else if(a==='upload-image')picker.click();
     else if(a==='confirm-image')await confirmImage();
     else if(a==='cancel-image')cancelImage();

@@ -14,7 +14,7 @@
   function render(){
     const item=screens[screen];
     frame.onload=()=>{doc=frame.contentDocument;hydrate();fit();document.getElementById('previewStatus').textContent=item.name.replaceAll('-',' / ');};
-    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css?v=20261018-settings-columns2"></head><body>${item.body}</body></html>`;
+    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css?v=20261018-classroom-details"></head><body>${item.body}</body></html>`;
     fit();
   }
   function hydrate(){

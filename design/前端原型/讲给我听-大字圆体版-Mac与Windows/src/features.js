@@ -111,7 +111,7 @@
   function hydrateClassroomReview(){
     const topic=state.lesson.topic||'惯性的概念';
     const demo=topic.includes('惯性')&&!state.session.active&&!state.records.length&&!state.events.length&&state.report==='idle';
-    const examples=[{time:'00:52',kind:'语音讲解',raw:'物体具有保持原有运动状态的性质。'},{time:'01:18',kind:'文字补充',raw:'这里说的是一种性质，不是让物体继续运动的一种力。'},{time:'02:06',kind:'语音讲解',raw:'公交车突然刹车时，人会向前倾。车停了，人仍有保持原来运动状态的性质。'},{time:'03:12',kind:'文字补充',raw:'我们再想一想：原来静止的物体，会不会也有这种性质？'}];
+    const examples=[{time:'00:52',kind:'语音讲解',raw:'物体具有保持原有运动状太的性质。',adopted:'物体具有保持原有运动状态的性质。',review:'已校正',duration:'0.68 秒'},{time:'01:18',kind:'文字补充',raw:'这里说的是一种性质，不是让物体继续运动的一种力。'},{time:'02:06',kind:'语音讲解',raw:'公交车突然刹车时，人会向前倾。车停了，人仍有保持原来运动状态的性质。'},{time:'03:12',kind:'文字补充',raw:'我们再想一想：原来静止的物体，会不会也有这种性质？'}];
     const records=demo?examples:state.records,summary=d.querySelectorAll('.review-summary strong');
     summary[0].textContent=topic;summary[1].textContent=demo?'03:24':api.formatTime(state.session.elapsed);summary[2].textContent=records.length+' 段';
     if(demo)d.querySelector('.page-head p').textContent+='（示例内容）';
@@ -119,11 +119,12 @@
     if(!records.length){const empty=d.createElement('p');empty.className='hint';empty.textContent='还没有讲解记录。返回教室开始讲解后，可以在这里回看。';holder.append(empty);}
     for(const record of records){
       const row=d.createElement('article');row.className='review-record';
-      row.innerHTML=`<div class="review-record-head"><time>${escape(record.time)}</time><span>${escape(record.kind||'讲解')}</span></div><p>${escape(record.adopted||record.raw)}</p>`;
+      row.innerHTML=`<div class="review-record-head"><time>${escape(record.time)}</time><span>${escape(record.kind||'讲解')}</span></div><p>${escape(record.adopted||record.raw)}</p><div class="transcript-audit">${escape(record.kind==='文字补充'?'文字直通 · 无需语音审核':(record.review||'采用原文')+(record.duration?' · 审核 '+record.duration:''))}</div>`;
       if(record.kind!=='文字补充'){const original=d.createElement('details');original.className='review-original';original.innerHTML='<summary>查看识别原文</summary><p>'+escape(record.raw)+'</p>';row.append(original);}
       holder.append(row);
     }
-    if(!demo){
+    if(!demo){const aside=d.querySelector('.classroom-record-grid>aside');if(aside)aside.innerHTML='<h2>教学分段</h2><p class="section-help">当前模拟仅保存输入文字，尚无模型分段结果。</p><p class="hint">固定分段样例可通过重置演示查看。</p>'; }
+    if(!demo&&d.querySelector('.understanding-card')){
       const questions=[...new Set(replySummary())],cards=d.querySelectorAll('.understanding-card');
       cards[0].innerHTML='<h3>小纸目前的理解</h3><p>暂无可核对的理解记录。</p>';
       cards[1].innerHTML='<h3>还没有弄清的地方</h3><p>'+(questions.length?'目前有 '+questions.length+' 条课堂提问，等待进一步讲解与确认。':'暂未记录到需要进一步确认的疑问。')+'</p>';
@@ -131,15 +132,19 @@
     }
   }
   function hydrateDetails(){
+    for(const tab of d.querySelectorAll('.classroom-tabs span')){tab.tabIndex=0;tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(tab.classList.contains('active')));tab.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tab.click();}});}
+    for(const tabs of d.querySelectorAll('.classroom-tabs'))tabs.setAttribute('role','tablist');
     if(app.screen==='10')hydrateClassroomReview();
-    for(const el of d.querySelectorAll('.knowledge-card'))if(el.textContent.includes('知识修订历史'))el.dataset.action='knowledge-history';
+    for(const el of d.querySelectorAll('.knowledge-card'))if(el.textContent.includes('知识修订历史')){el.dataset.action='knowledge-history';el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','查看认知修订历史');el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}});}
     for(const el of d.querySelectorAll('.blue-text'))if(el.textContent.includes('展开全部')){el.dataset.action='full-request';el.tabIndex=0;el.setAttribute('role','button');}
-    if(['11','12','13','39'].includes(app.screen)&&state.records.length){const stat=d.querySelectorAll('.stats-strip b');if(stat.length>=3){stat[0].textContent=state.records.length;stat[1].textContent=state.records.length;stat[2].textContent=state.records.length+' 次';}}
+    if(['11','12','13','39'].includes(app.screen)&&state.records.length){const stat=d.querySelectorAll('.stats-strip b');if(stat.length>=3){stat[0].textContent=state.records.length;stat[1].textContent='—';stat[2].textContent='—';}}
     if(app.screen==='13'&&state.events.length){const column=d.querySelector('.main>.two-col>section');if(column){column.querySelectorAll('.activity-row').forEach(e=>e.remove());for(const item of state.events.slice(0,6)){const row=d.createElement('div');row.className='activity-row';row.innerHTML=`<span class="time">${escape(item.time)}</span><i class="timeline-dot"></i><div><strong>${escape(item.title)}</strong><p>${escape(item.detail)}</p></div>`;column.append(row);}}}
     if(state.reviewDone&&['11','40'].includes(app.screen)){for(const notice of d.querySelectorAll('.notice.amber')){notice.className='notice green';notice.textContent='模拟复核已完成；未请求模型。';}}
     if(['19','20','21'].includes(app.screen)){const p=d.querySelector('.page-head p');if(p)p.textContent=(state.lesson.topic||'惯性的概念')+' / 示例报告 · 不是真实评价';}
   }
   function action(name,el){
+    if(name==='classroom-student'){route('11');return;}
+    if(name==='classroom-model'){route('12');return;}
     if(name==='history-all'){
       const cards=[...d.querySelectorAll('.recent-lesson')].map(card=>card.outerHTML).join('');
       popup('试讲历史','<div class="history-list">'+cards+'</div>');return;

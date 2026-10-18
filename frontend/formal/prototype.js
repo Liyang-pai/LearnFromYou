@@ -1,5 +1,6 @@
 // 将唯一基准原型的模板绑定到真实业务；不加载原型模拟脚本。
 import {reference,navIcons} from './reference.js';
+import {recoveryTasks,retryPending,canRetry} from './service.js';
 export const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function template(id){const t=document.createElement('template');t.innerHTML=reference[id].body;return t.content;}
 export function act(node,name,id){if(!node)return;node.dataset.action=name;if(id)node.dataset.id=id;node.removeAttribute('onclick');node.classList.remove('disabled');node.type='button';}
@@ -110,7 +111,29 @@ const controls={mic:'<path d="M9 5a3 3 0 0 1 6 0v7a3 3 0 0 1-6 0zM5 10v2a7 7 0 0
 const formatTime=seconds=>`${Math.floor((seconds||0)/60).toString().padStart(2,'0')}:${Math.floor((seconds||0)%60).toString().padStart(2,'0')}`;
 function control(key,label,action,on,disabled){return `<button type="button" class="toolbar-control${on?'':' is-off'}" data-action="${action}" aria-pressed="${on}"${disabled?' disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${controls[key]}${!on&&key!=='sidebar'?'<path class="icon-slash" d="m3 3 18 18"/>':''}</svg><span>${label}</span></button>`;}
 function chatRows(rows){return rows.filter(row=>row.role!=='teacher' || row.request_count>0).map(row=>`<div class="chat-row${row.role==='teacher'?' teacher':''}"><div class="chat-avatar">${row.role==='teacher'?'我':'<img src="/static/formal/assets/小纸-用户原图.png" alt="小纸" style="width:32px;height:32px;object-fit:contain">'}</div><div class="chat-text">${row.role==='teacher'?`<small>${({submitted:'正在处理',processed:'已处理',failed:'处理失败'})[row.processing_status]||''}${row.request_count>1?' · 已重试':''}</small>`:''}${escape(row.text)}</div></div>`).join('');}
+function recoveryNotice(s){
+  const messages=[],live=s.active && !s.ending;
+  if(s.error)messages.push(`<p>${escape(s.error)}</p>`);
+  const resume=s.recovery.resume,knowledge=Object.values(s.recovery.knowledge);
+  if(resume){
+    if(resume.error)messages.push(`<p>恢复回应失败${live?'，可以重试':''}：${escape(resume.error)}</p>`);
+    if(live && s.muted)messages.push('<p>学生发言已暂停，恢复发言后再处理回应。</p>');
+    else if(live && resume.status==='running')messages.push('<p>正在恢复回应…</p>');
+  }
+  const errors=[...new Set(knowledge.map(task=>task.error).filter(Boolean))];
+  if(errors.length)messages.push(`<p>相关结论尚未完成复核${live?'，课堂可以继续':''}：${errors.map(escape).join('；')}</p>`);
+  if(live && knowledge.some(task=>task.status==='running'))messages.push('<p>正在复核相关结论，课堂可以继续。</p>');
+  if(live && (s.batchRetryPending || recoveryTasks(s).some(task=>task.status==='queued')))messages.push('<p>已提交，等待处理</p>');
+  const retryable=s.retryable || recoveryTasks(s).some(task=>task.retryable);
+  if(!messages.length)return '';
+  if(retryable && (!s.active || s.ending))messages.push(`<p>${s.ended?'课堂已结束':s.ending?'课堂正在结束':'连接已断开'}，未完成任务不能在本课堂重试。</p>`);
+  return `<div class="notice amber" role="${s.error || errors.length || resume?.error?'alert':'status'}" data-recovery-notice><div>${messages.join('')}${retryable?`<button type="button" class="btn soft" data-action="retry-class"${canRetry(s)?'':' disabled'}>${live && retryPending(s)?'已提交，等待处理':'重试未完成任务'}</button>`:''}</div></div>`;
+}
 export function classroom(state){
+  if(!state.session.id && !state.session.starting && state.session.createError){
+    const s=state.session;
+    return shellContent(`<div class="page-head"><div><h1>我的教室</h1><p>${escape(s.lesson.topic)}</p></div></div><section class="card"><h2>创建试讲失败</h2><p role="alert">${escape(s.createError)}</p><p>教学设置、学生画像和文字草稿已保留。返回创建页后，可以修改设置并重新创建。</p><button type="button" class="btn primary" data-action="back-create">返回创建页</button></section>`,'/classroom');
+  }
   const s=state.session,has=!!s.id || s.starting,root=shell(template(has?s.error?(!s.active && !s.ended?'35':'34'):s.muted?'09':s.dialogue.some(r=>r.role==='student')?'08':s.mic?'06':'05':'04'),'/classroom');
   if(!has){act(named(root,'创建试讲'),'home-create');act(named(root,'创建一次试讲'),'home-create');return html(root);}
   setText(root,'.page-head p',[s.lesson.topic,[s.lesson.grade,s.lesson.subject].filter(Boolean).join(' · ')].filter(Boolean).join(' / '));
@@ -132,7 +155,10 @@ export function classroom(state){
   const chip=s.image?`<div class="screenshot-chip"><button type="button" class="screenshot-thumb" data-action="preview-image" aria-label="放大预览教学截图"><img src="${escape(s.image.url)}" alt="当前教学截图"></button><div class="chip-copy"><div class="chip-name">${escape(s.image.name || '当前教学截图')}</div><div class="chip-tip">当前教学截图 · 点击放大</div></div><button type="button" class="remove-shot" data-action="remove-image" aria-label="移除截图"${s.uploading?' disabled':''}>×</button></div>`:'';
   form.innerHTML=`<div class="composer-card">${chip}<div class="composer-line"><textarea class="input" id="teacher-draft" name="draft" aria-label="讲解或提问" placeholder="输入讲解或提问…" maxlength="5000"${off?' disabled':''}>${escape(s.draft)}</textarea><button type="button" class="add-shot" data-action="upload-image" aria-label="添加或更换截图"${off || s.uploading?' disabled':''}>＋</button><button class="btn primary" type="submit"${off || s.pending || s.uploading || s.uncertain?' disabled':''}><span>发送</span></button></div></div><div class="composer-help">${s.uploading?'正在上传截图，请稍候':'支持 Ctrl+V 粘贴截图'}</div>${s.uncertain?'<div class="composer-image-error">截图状态尚未确认。<button type="button" data-action="reconcile-image">核对当前图</button></div>':''}`;
   old.replaceWith(form);
-  if(s.error){const warning=root.querySelector('.main>.notice') || document.createElement('div');warning.className='notice amber';warning.setAttribute('role','alert');warning.innerHTML=`<div><strong>${escape(s.error)}</strong>${s.retryable?'<button type="button" class="btn soft" data-action="retry-class">重试这一段</button>':''}</div>`;if(!warning.parentNode)root.querySelector('.page-head').after(warning);}
+  // Error templates contain preview-only warnings and an inert retry button.
+  root.querySelectorAll('.notice').forEach(node=>node.remove());
+  named(root,'重试这一段')?.remove();
+  const notice=recoveryNotice(s);if(notice)root.querySelector('.page-head').insertAdjacentHTML('afterend',notice);
   if(s.micError){const backdrop=template('36').querySelector('.backdrop');backdrop.setAttribute('role','dialog');backdrop.setAttribute('aria-modal','true');setText(backdrop,'.modal-header p',s.micError);const buttons=backdrop.querySelectorAll('.modal-footer button');act(buttons[0],'dismiss-mic-error');act(buttons[1],'toggle-mic');const close=backdrop.querySelector('.modal-header>svg');if(close){const b=document.createElement('button');b.className='btn ghost';b.textContent='×';b.setAttribute('aria-label','关闭');act(b,'dismiss-mic-error');close.replaceWith(b);}root.append(backdrop);}
   return html(root);
 }

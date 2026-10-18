@@ -1,0 +1,72 @@
+{
+  "errors": [],
+  "checks": [
+    {
+      "scene": "10",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    },
+    {
+      "scene": "11",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    },
+    {
+      "scene": "12",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    },
+    {
+      "scene": "13",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    },
+    {
+      "scene": "39",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    },
+    {
+      "scene": "40",
+      "overflow": false,
+      "tabs": [
+        "转写与分段",
+        "学生状态",
+        "模型请求与结果",
+        "耗时与恢复"
+      ],
+      "debugHeading": false
+    }
+  ],
+  "clickThrough": "10→11→40→10→12→39→13→11（键盘）"
+}
