@@ -50,4 +50,44 @@ await assert.rejects(starting,/录音准备已取消/);
 assert.equal(tracks.at(-1).stopped,true);assert.equal(messages.length,messageCount);
 assert.equal(cancelled.active,false);assert.equal(cancelled.context,null);assert.equal(cancelled.busy,false);
 assert.ok(contexts.every(context=>context.state==='closed'));
+
+// 音量回调兼容已有 start 参数；备用路径计算 RMS，不改变 PCM 发送内容。
+getMedia=async()=>mediaStream();
+const levels=[],meter=new Microphone({onLevel:(rms,active)=>levels.push([rms,active])});
+await meter.start(socket);
+const feed=samples=>meter.processor.onaudioprocess({inputBuffer:{getChannelData:()=>new Float32Array(samples)}});
+feed([0,0]);feed([0.02,-0.02]);feed([0.2,-0.2]);
+assert.equal(levels[1][0],0);
+assert.ok(Math.abs(levels[2][0]-0.02)<1e-7);
+assert.ok(levels[3][0]>levels[2][0]);
+assert.deepEqual([...new Float32Array(messages.at(-1))],[Math.fround(0.2),Math.fround(-0.2)]);
+const lateFrame=meter.processor.onaudioprocess;
+await meter.stop(socket);
+const afterStop=levels.length;
+lateFrame({inputBuffer:{getChannelData:()=>new Float32Array([1])}});
+assert.equal(levels.length,afterStop);
+assert.deepEqual(levels.at(-1),[0,false]);
+
+// 主路径直接复用 worklet 音量；flush 保留发送但不能重新点亮已暂停的波形。
+const baseContext=globalThis.AudioContext;
+globalThis.AudioContext=class extends baseContext {constructor(){super();this.audioWorklet.addModule=async()=>{};}};
+globalThis.AudioWorkletNode=class {
+  constructor(){this.port={postMessage:()=>{
+    this.port.onmessage({data:{samples:new Float32Array([0.1]),rms:0.1}});
+    this.port.onmessage({data:{flushed:true}});
+  }};}
+  connect(){} disconnect(){}
+};
+const primaryLevels=[],primary=new Microphone({onLevel:(rms,active)=>primaryLevels.push([rms,active])});
+await primary.start(socket);
+primary.worklet.port.onmessage({data:{samples:new Float32Array([0.8]),rms:0.05}});
+assert.deepEqual(primaryLevels.at(-1),[0.05,true],'主路径应复用 worklet 的 RMS');
+await primary.stop(socket);
+assert.ok(primaryLevels.slice(2).every(([rms,active])=>rms===0 && !active));
+assert.equal(messages.at(-1),JSON.stringify({type:'audio_stop'}));
+const broken=new Microphone({onLevel:()=>{throw new Error('可视化异常');}});
+await broken.start(socket);
+broken.worklet.port.onmessage({data:{samples:new Float32Array([0.1]),rms:0.1}});
+assert.equal(broken.frames,1,'音量回调异常不能阻断录音发送');
+await broken.stop(socket);
 console.log('formal audio: permission timeout, late cleanup, serialized restart and cancelled preparation passed');

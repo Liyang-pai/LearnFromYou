@@ -3,16 +3,17 @@ import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 const business=await readFile(new URL('../frontend/formal/service.js',import.meta.url),'utf8');
-const {state}=await import('data:text/javascript;base64,'+Buffer.from(business).toString('base64'));
+const {state,applyEvent}=await import('data:text/javascript;base64,'+Buffer.from(business).toString('base64'));
 let source=await readFile(new URL('../frontend/formal/app.js',import.meta.url),'utf8');
 source=source.replace(/^import .*;$/gm,'').replace('void boot();','');
 const pending=[];
 const node={addEventListener(){},querySelectorAll:()=>[],querySelector:()=>node,innerHTML:'',focus(){},reportValidity:()=>true};
 const location={pathname:'/',protocol:'http:',host:'localhost',href:'http://localhost/'};
 const context=vm.createContext({state,api(url){return new Promise((resolve,reject)=>pending.push({url,resolve,reject}));},
-  Microphone:class{},render:()=>'',document:{querySelector:()=>node,querySelectorAll:()=>[],addEventListener(){},activeElement:null},
+  Microphone:class{},MicrophoneWaveform:class{bind(){} sync(){}},prepareReplySound(){},playReplySound(allowed){if(allowed())soundCount++;},applyEvent,render:()=>'',document:{querySelector:()=>node,querySelectorAll:()=>[],addEventListener(){},activeElement:null},
   location,history:{pushState(_,__,path){location.pathname=path;}},window:{addEventListener(){},scrollTo(){}},clearTimeout,setTimeout,console});
-vm.runInContext(source+'\nthis.testApi={navigate,loadReport,createClass,startTest};',context);
+let soundCount=0;
+vm.runInContext(source+'\nthis.testApi={navigate,loadReport,createClass,startTest,classEvent};',context);
 const app=context.testApi;
 const first=app.navigate('/'),second=app.navigate('/history');
 assert.equal(pending.length,2,'新路由不能被旧路由的 loading 阻止');
@@ -36,3 +37,10 @@ const testA=app.startTest(),testB=app.startTest();await testB;
 assert.equal(pending.length,1,'双击识别测试只能发起一个健康检查');
 pending[0].reject(new Error('测试到此停止'));await assert.rejects(testA);
 console.log('formal navigation: stale history/report isolation and double-start locks passed');
+state.session.tts=false;state.session.muted=false;
+for(const type of ['candidate','state','transcript'])app.classEvent({type,data:{text:'不能触发提示音'}});
+assert.equal(soundCount,0);
+app.classEvent({type:'reply',data:{text:'实际回复'}});assert.equal(soundCount,1);
+state.session.tts=true;app.classEvent({type:'reply',data:{text:'语音播报开启'}});assert.equal(soundCount,1);
+state.session.tts=false;state.session.muted=true;app.classEvent({type:'reply',data:{text:'学生静音'}});assert.equal(soundCount,1);
+console.log('formal reply notification: actual replies only, TTS and mute guards passed');

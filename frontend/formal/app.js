@@ -1,10 +1,13 @@
 // 正式前端入口：页面导航与课堂、录音生命周期分离，全部业务调用真实后端。
 import {state,api,emptySession,applyEvent} from './service.js';
-import {Microphone} from './audio.js';
+import {Microphone,prepareReplySound,playReplySound} from './audio.js';
+import {MicrophoneWaveform} from './waveform.js';
 import {render} from './views.js';
 import {confirmation} from './prototype.js';
 
-const view=document.querySelector('#view'), mic=new Microphone(), testMic=new Microphone();
+const waveform=new MicrophoneWaveform();
+const view=document.querySelector('#view'), mic=new Microphone({onLevel:(level,active)=>waveform.input(level,active)}), testMic=new Microphone();
+document.addEventListener('visibilitychange',()=>waveform.sync());
 let socket=null,testSocket=null,routeToken=0,pageTimer,healthTimer,asrTimer,reportWait=0,creating=false,startingTest=false;
 let currentUrl=location.pathname+location.search;
 const path=()=>location.pathname.replace(/\/$/,'') || '/';
@@ -14,6 +17,7 @@ function refresh() {
   const positions=[...view.querySelectorAll('[data-scroll],.chat-body')].map(el=>[el.id || el.className,el.scrollTop,el.scrollHeight-el.clientHeight-el.scrollTop<40]);
   const openDetails=[...view.querySelectorAll('details[open]')].map(el=>el.dataset.key || el.querySelector('summary')?.textContent);
   view.innerHTML=render(state,path(),location.search);
+  waveform.bind(view.querySelector('[data-mic-wave]'));
   for(const el of view.querySelectorAll('details')) if(openDetails.includes(el.dataset.key || el.querySelector('summary')?.textContent)) el.open=true;
   for(const el of view.querySelectorAll('[data-scroll],.chat-body')) {
     const saved=positions.find(row=>row[0]===(el.id || el.className));
@@ -88,6 +92,7 @@ async function createClassRequest() {
   if(s.active || s.starting || s.ending) return navigate('/classroom');
   const form=document.querySelector('#setup-form'); if(form && !form.reportValidity()) return;
   if(!state.setup.topic.trim() || !state.setup.student_profile.trim()) throw new Error('请填写主题，并生成或填写学生设定');
+  void prepareReplySound();
   await loadHealth();
   if(state.health.asr_busy || state.health.classroom_active || state.test.active) throw new Error('课堂或识别测试正在占用资源，请先在原页面结束');
   if(s.pendingImage)URL.revokeObjectURL(s.pendingImage.url);
@@ -109,6 +114,7 @@ async function createClassRequest() {
 function classEvent(event) {
   applyEvent(state.session,event);
   const s=state.session,d=event.data || {};
+  if(event.type==='reply') void playReplySound(()=>state.session===s && !s.tts && !s.muted);
   if(event.type==='ready') { sessionStorage.setItem('last-classroom',s.id); void loadHealth(); }
   if(event.type==='finished') {
     void mic.stop(null,null); reportWait=30;
@@ -328,7 +334,7 @@ view.addEventListener('click',event=>{
     else if(a==='toggle-mic')await toggleMic();
     else if(a==='dismiss-mic-error'){s.micError='';refresh();}
     else if(a==='toggle-muted'){send({type:'mute',value:!s.muted});}
-    else if(a==='toggle-tts'){if(!s.muted && s.active){const value=!s.tts;send({type:'tts',value});s.tts=value;s.speaking=false;refresh();}}
+    else if(a==='toggle-tts'){if(!s.muted && s.active){const value=!s.tts;send({type:'tts',value});s.tts=value;if(!value)void prepareReplySound();s.speaking=false;refresh();}}
     else if(a==='toggle-sidebar'){s.sidebar=!s.sidebar;refresh();}
     else if(a==='end-class' || a==='generate-report')await endClass();
     else if(a==='retry-class'){send({type:'retry'});s.error='';s.retryable=false;refresh();}

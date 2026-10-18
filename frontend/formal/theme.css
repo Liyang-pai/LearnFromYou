@@ -223,7 +223,8 @@ strong { font-weight: 650; }
 .debug .main { background: #f7faff; }
 .debug-grid { grid-template-columns: 330px 1fr; }
 .debug-console { font: 14px/1.8 ui-monospace, "SFMono-Regular", Consolas, "ChillRound", monospace; color: #6e829c; background: #f5f8fc; border-radius: 15px; }
-.empty-class { border: 0; border-radius: 27px; background: #edf5ff; }
+.empty-class { border: 0; border-radius: 27px; background: #edf5ff; padding-bottom: 72px; }
+.empty-class > .mascot { margin-bottom: 24px; }
 .empty-class p { font-size: 18px; }
 .backdrop { background: #3a587448; backdrop-filter: blur(4px); }
 .modal { width: 850px; max-height: 94%; display: flex; flex-direction: column; border: 0; border-radius: 28px; box-shadow: 0 16px 70px #284b7026; }
@@ -259,7 +260,8 @@ strong { font-weight: 650; }
 .api-connection { display: flex; align-items: center; gap: 18px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
 .main:has(.api-simple-layout) > .savebar { max-width: none; width: 100%; margin-top: 24px; }
 
-.profile-form .btn.profile-generate:disabled {
+.profile-form .btn.profile-generate:disabled,
+.profile-card .btn[data-action="create"]:disabled {
   background: #edf0f4; border-color: #edf0f4; color: #9aa6b6;
   box-shadow: none; opacity: 1; cursor: default;
 }
@@ -347,6 +349,10 @@ strong { font-weight: 650; }
 .setup-more summary .hint { float: right; }
 .setup-more-content { padding: 6px 16px 18px; }
 .setup-more-content label { display: block; font-size: 17px; margin-bottom: 10px; }
+
+.profile-form .setup-asr-status { font-size: 18px !important; line-height: 1.6; gap: 8px; }
+.profile-form .setup-asr-status > .icon { width: 22px; height: 22px; flex-shrink: 0; }
+.profile-form .setup-asr-status > .subtle-link { font-size: 18px !important; }
 
 /* 左侧品牌图文比例试版：删除此段即可恢复原比例。 */
 .sidebar .brand-name { font-size: 28px; font-weight: 800; letter-spacing: 0; }

@@ -7,7 +7,11 @@ export async function requestMicrophone(getMedia, timeout = 30000) {
   finally{clearTimeout(timer);}
 }
 export class Microphone {
-  constructor() { this.active = false; this.busy = false; this.generation = 0; }
+  constructor({onLevel = () => {}} = {}) { this.active = false; this.busy = false; this.generation = 0; this.onLevel = onLevel; }
+  level(value, active = this.active && !this.stopping && !this.meterPaused) {
+    // 可视化失败不能打断音频发送，也不将音量写入课堂或模型消息。
+    try { this.onLevel(active && Number.isFinite(value) ? Math.max(0,value) : 0, active); } catch {}
+  }
   async start(socket, startEvent = rate => ({type:'audio_start', sample_rate:rate}), onFailure = () => {}) {
     // 旧音频图关闭完成后才允许建立新图，避免旧清理清空新音轨的引用。
     if (this.stopping) await this.stopping;
@@ -28,22 +32,29 @@ export class Microphone {
       if (socket.readyState !== WebSocket.OPEN) throw new Error('本机连接已断开');
       this.source = this.context.createMediaStreamSource(this.stream);
       this.gain = this.context.createGain(); this.gain.gain.value = 0;
-      const frame = samples => {
+      const frame = (samples, rms) => {
         if (!this.active || socket.readyState !== WebSocket.OPEN) return;
         if (socket.bufferedAmount > 1024 * 1024) { void this.stop(socket); onFailure(new Error('录音发送积压，麦克风已暂停，请稍后重试')); return; }
         socket.send(new Float32Array(samples).buffer); this.frames++;
+        if (!Number.isFinite(rms)) {
+          let sum = 0; for (const sample of samples) sum += sample * sample;
+          rms = samples.length ? Math.sqrt(sum / samples.length) : 0;
+        }
+        this.level(rms);
       };
       try {
         await this.context.audioWorklet.addModule('/static/formal/capture.js');
         ensureCurrent();
         this.worklet = new AudioWorkletNode(this.context,'capture-processor');
-        this.worklet.port.onmessage = e => e.data.flushed ? this.flushed?.() : frame(e.data.samples);
+        this.worklet.port.onmessage = e => e.data.flushed ? this.flushed?.() : frame(e.data.samples,e.data.rms);
         this.source.connect(this.worklet); this.worklet.connect(this.gain);
       } catch { ensureCurrent(); this.fallback(frame); }
       ensureCurrent();
       this.gain.connect(this.context.destination);
       socket.send(JSON.stringify(startEvent(this.context.sampleRate)));
       this.active = true; this.frames = 0;
+      this.meterPaused = false;
+      this.level(0);
       this.fallbackTimer = setTimeout(() => {
         if (this.active && !this.frames && !this.processor) {
           this.worklet?.disconnect(); this.source.disconnect(); this.fallback(frame);
@@ -61,6 +72,8 @@ export class Microphone {
     if (this.stopping) return this.stopping;
     // 结束、断线或取消准备后，迟到的权限结果不能再启动采集。
     this.generation++;
+    this.meterPaused = true;
+    this.level(0,false);
     this.stopping = (async () => {
       clearTimeout(this.fallbackTimer);
       if (this.worklet && this.active) await new Promise(resolve => {
@@ -74,6 +87,7 @@ export class Microphone {
   }
   async dispose() {
     this.active = false; clearTimeout(this.fallbackTimer);
+    this.level(0,false);
     const context = this.context, stream = this.stream;
     const nodes = [this.source,this.worklet,this.processor,this.gain];
     // 先移交本次资源引用，重复清理不会再次关闭同一音频图。
@@ -81,5 +95,38 @@ export class Microphone {
     stream?.getTracks().forEach(track => track.stop());
     for (const node of nodes) { try { node?.disconnect(); } catch {} }
     if (context && context.state !== 'closed') await context.close();
+  }
+}
+
+let replySoundContext, replySoundBuffer, replySoundLoading;
+export async function prepareReplySound() {
+  try {
+    // 在创建课堂或关闭播报的点击中解锁声音，无需开启麦克风。
+    replySoundContext ||= new AudioContext();
+    await replySoundContext.resume();
+    if (!replySoundBuffer) {
+      replySoundLoading ||= (async () => {
+        const response = await fetch('/static/sounds/received-message.wav');
+        if (!response.ok) throw new Error('提示音无法读取');
+        replySoundBuffer = await replySoundContext.decodeAudioData(await response.arrayBuffer());
+      })().finally(() => { replySoundLoading = null; });
+      await replySoundLoading;
+    }
+  } catch {
+    // 提示音失败不能阻断课堂或学生回复。
+  }
+}
+export async function playReplySound(shouldPlay) {
+  if (!shouldPlay()) return;
+  await prepareReplySound();
+  if (!shouldPlay() || !replySoundBuffer || replySoundContext?.state !== 'running') return;
+  try {
+    const sound = replySoundContext.createBufferSource();
+    sound.buffer = replySoundBuffer;
+    sound.connect(replySoundContext.destination);
+    sound.onended = () => sound.disconnect();
+    sound.start();
+  } catch {
+    // 浏览器拒绝播放时仍保留正常的文字回复。
   }
 }

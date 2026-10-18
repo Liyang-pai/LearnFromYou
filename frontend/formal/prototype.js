@@ -12,11 +12,13 @@ export function shell(root,path){
   const actions=root.querySelector('.page-head .row-actions');
   if(actions && top)for(const el of top.querySelectorAll('.top-status > *'))if(el.matches('button') || el.querySelector('b'))actions.append(el);
   top?.remove();
+  sidebar?.querySelectorAll('.side-current').forEach(el=>el.remove());
   for(const item of root.querySelectorAll('.sidebar .nav-item')){
-    const label=item.textContent.trim(),icon=item.querySelector('svg');if(icon && navIcons[label]){icon.innerHTML=navIcons[label];icon.setAttribute('stroke-width','1.8');icon.setAttribute('aria-hidden','true');}
+    const label=item.textContent.trim();
+    if(label==='调试前端'){item.remove();continue;}
+    const icon=item.querySelector('svg');if(icon && navIcons[label]){icon.innerHTML=navIcons[label];icon.setAttribute('stroke-width','1.8');icon.setAttribute('aria-hidden','true');}
     const route=label==='首页'?'/':label==='创建试讲'?'/create':label==='我的教室'?'/classroom':label==='设置'?'/settings':'/debug';
     const a=link(item,route);a.classList.toggle('active',route==='/' ? path==='/' || path.startsWith('/history') : route==='/settings'?path.startsWith('/settings'):path.startsWith(route));
-    if(route==='/debug'){a.target='_blank';a.rel='noopener';}
   }
   return root;
 }
@@ -84,7 +86,7 @@ export function create(state){
   if(previous){const editor=document.createElement('textarea');editor.className='profile-text profile-inline';editor.id='setup-student_profile';editor.name='student_profile';editor.setAttribute('aria-label','学生画像');editor.maxLength=3000;editor.disabled=!!busy;editor.value=s.student_profile;editor.textContent=s.student_profile;editor.placeholder='在这里直接填写学生画像。也可以在左侧输入教学主题，建议同时选择学生水平与课型，再点击“生成学生画像”。';previous.replaceWith(editor);}
   root.querySelectorAll('.profile-card .card-head button').forEach(el=>el.remove());
   const generate=[...panel.querySelectorAll('button')].find(el=>/生成.*画像/.test(el.textContent));
-  if(generate){act(generate,'generate-profile');generate.classList.add('profile-generate');generate.classList.toggle('primary',!!s.topic.trim());generate.disabled=!!busy || !s.topic.trim();setText(generate,'span',busy?'正在生成画像…':s.student_profile?'重新生成学生画像':'生成学生画像');
+  if(generate){act(generate,'generate-profile');generate.classList.add('profile-generate','large');generate.classList.toggle('primary',!!s.topic.trim());generate.disabled=!!busy || !s.topic.trim();setText(generate,'span',busy?'正在生成画像…':s.student_profile?'重新生成学生画像':'生成学生画像');
     const heading=panel.querySelector('.card-head'),scroll=document.createElement('div');scroll.className='setup-scroll';scroll.tabIndex=0;scroll.setAttribute('aria-label','教学设置表单');
     while(heading.nextElementSibling && heading.nextElementSibling!==generate)scroll.append(heading.nextElementSibling);heading.after(scroll);
     const pair=scroll.querySelector('.form-pair');if(pair)for(const row of scroll.querySelectorAll('.segment-row'))pair.before(row);
@@ -95,6 +97,7 @@ export function create(state){
   const change=[...panel.querySelectorAll('.subtle-link')].find(el=>el.textContent.includes('更换模型'));
   if(change){
     change.dataset.action='open-asr';change.tabIndex=0;
+    change.parentNode.classList.add('setup-asr-status');
     // 只更新模型入口旁的状态文本，不能覆盖导航容器或状态图标。
     const label=[...change.parentNode.childNodes].find(node=>node.nodeType===Node.TEXT_NODE && node.textContent.includes('语音识别已就绪'));
     if(label)label.textContent=state.health.asr_ready?' 语音识别已就绪 ':' 语音识别待准备 ';
@@ -116,6 +119,9 @@ export function classroom(state){
   const reply=s.dialogue.filter(r=>r.role==='student').at(-1),bubble=root.querySelector('.speech-bubble');if(bubble){bubble.textContent=reply?.text || '我在听，你继续讲。';bubble.hidden=s.muted;}
   if(s.dialogue.length)setText(root,'.stage-top h2','和小纸一起，把问题讲清楚');
   setText(root,'.stage-note',s.status);setText(root,'.stage-top .badge',s.starting?'正在创建':s.mic?'麦克风已开启':s.ended?'已结束':'本次试讲');
+  const center=root.querySelector('.stage-center'),wave=root.querySelector('.stage-center .wave') || document.createElement('div');
+  wave.className='wave classroom-wave';wave.dataset.micWave='';wave.setAttribute('aria-hidden','true');
+  wave.innerHTML='<i style="height:4px"></i>'.repeat(35);center.append(wave);
   const dock=root.querySelector('.control-dock');dock.classList.add('classroom-controls');const off=!s.active || s.ending;
   dock.innerHTML=control('mic',s.mic?'暂停麦克风':'开启麦克风','toggle-mic',s.mic,off || s.micPending || s.uploading || s.uncertain)+control('student',s.muted?'恢复学生发言':'暂停学生发言','toggle-muted',!s.muted,off)+control('sound','声音播报','toggle-tts',s.tts&&!s.muted,off || s.muted)+control('sidebar',s.sidebar?'收起侧栏':'展开侧栏','toggle-sidebar',s.sidebar,false);
   root.querySelector('.class-layout').classList.toggle('sidebar-collapsed',!s.sidebar);root.querySelector('.chat-panel').hidden=!s.sidebar;

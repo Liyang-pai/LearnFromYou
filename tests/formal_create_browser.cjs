@@ -44,7 +44,7 @@ const base = 'http://127.0.0.1:18979';
           document.querySelector('#view').innerHTML = create(state);
         }, variant);
         assert.deepEqual(await page.locator('.sidebar .nav-item').allTextContents(),
-          ['首页','创建试讲','我的教室','设置','调试前端'], `${label}, ${variant}: 导航必须完整`);
+          ['首页','创建试讲','我的教室','设置'], `${label}, ${variant}: 导航必须完整`);
         assert.equal(await page.locator('.sidebar .active').getAttribute('href'), '/create');
         const change = page.locator('#setup-form [data-action="open-asr"]');
         assert.equal(await change.count(), 1, `${label}, ${variant}: 更换模型入口必须保留`);
