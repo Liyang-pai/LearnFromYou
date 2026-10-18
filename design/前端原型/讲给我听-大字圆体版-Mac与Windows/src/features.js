@@ -108,13 +108,50 @@
     }
     if(state.popup?.type==='image-preview')showImagePreview();
   }
+  function hydrateClassroomInspector(){
+    const old=d.querySelector('.class-layout .student-status');if(!old)return;
+    const tab=state.classroomInspectorTab||'conversation';
+    const demo=app.screen==='08'&&!state.session.active&&!state.records.length;
+    const records=demo?[
+      {time:'02:06',raw:'公交车突然刹车，人会向前倾。',adopted:'公交车突然刹车，人会向前倾。',kind:'语音讲解',review:'采用原文'},
+      {time:'03:12',raw:'静止和运动的物体都有惯姓。',adopted:'静止和运动的物体都有惯性。',kind:'语音讲解',review:'已校正'}
+    ]:state.records;
+    const panel=d.createElement('section');panel.className='classroom-inspector';panel.setAttribute('aria-label','课堂实时记录');
+    panel.innerHTML=`<div class="inspector-tabs" role="tablist" aria-label="课堂侧栏分类">${[['conversation','课堂对话'],['transcript','转写'],['student','学生状态']].map(([key,label])=>`<button type="button" role="tab" aria-selected="${tab===key}" data-action="inspector-tab" data-tab="${key}">${label}</button>`).join('')}</div><div class="inspector-content" role="tabpanel" tabindex="0" aria-label="${tab==='conversation'?'课堂对话':tab==='transcript'?'转写':'学生状态'}"></div>`;
+    const content=panel.querySelector('.inspector-content');
+    const chat=d.querySelector('.chat-body'),title=d.querySelector('.chat-title');
+    const report=title?.querySelector('button');if(report){report.classList.add('inspector-report');panel.querySelector('.inspector-tabs').append(report);}
+    title?.remove();
+    if(tab==='conversation'){if(chat){content.append(chat);chat.scrollTop=chat.scrollHeight;}}
+    else{chat?.remove();content.insertAdjacentHTML('beforeend','<div class="inspector-context">'+(demo?'固定设计示例':'本次课堂')+'</div>');}
+    if(tab==='transcript'){
+      if(!records.length)content.innerHTML='<div class="inspector-empty"><strong>还没有转写记录</strong><p>开始讲解后，这里会展示识别原文、审核文本与教学分段。</p></div>';
+      for(const record of records.slice().reverse()){
+        const row=d.createElement('article');row.className='inspector-record';
+        row.innerHTML=`<div class="inspector-record-head"><time>${escape(record.time)}</time><span>${escape(record.kind||'语音讲解')}</span><em>${escape(record.review||'采用原文')}</em></div><p>${escape(record.adopted||record.raw)}</p>`;
+        if(record.kind!=='文字补充')row.innerHTML+=`<details><summary>识别原文</summary><p>${escape(record.raw)}</p></details>`;
+        content.append(row);
+      }
+      if(demo)content.innerHTML+='<div class="inspector-segment"><span>教学分段 · 已送入模型</span><p>结合刹车现象说明惯性，补充静止与运动的物体都具有惯性。</p></div>';
+      else if(records.length)content.innerHTML+='<p class="inspector-note">转写已保留；当前模拟未生成教学分段。</p>';
+    }else if(tab==='student'){
+      if(demo)content.innerHTML='<div class="inspector-knowledge"><span class="badge">课堂推断理解</span><p>惯性是一种性质，不是一种力。</p></div><div class="inspector-knowledge"><span class="badge amber">推断待确认</span><p>静止的物体也有惯性，还需要例子帮助理解。</p></div><div class="inspector-question"><strong>待回应 · 已提问 1 次</strong><p>“老师，静止的物体也有惯性吗？”</p></div>';
+      else{
+        content.innerHTML='<div class="inspector-empty"><strong>尚无可核对的认知记录</strong><p>在这里查看学生的理解、理解障碍和待回应问题。</p></div>';
+        const questions=[...new Set(replySummary())];
+        for(const question of questions){const row=d.createElement('article');row.className='inspector-question';row.innerHTML='<strong>课堂提问 · 模拟回应</strong><p>'+escape(question)+'</p>';content.append(row);}
+      }
+    }
+    if(tab!=='conversation'){const footer=d.createElement('div');footer.className='inspector-footer';footer.innerHTML='<span>'+(demo?'示例 · ': '')+(tab==='transcript'?records.length+' 条转写':'认知与问题')+'</span><button type="button" data-action="'+(tab==='transcript'?'inspector-transcript-detail':'classroom-student')+'">'+(tab==='transcript'?'完整转写与分段':'修订与完整状态')+' →</button>';panel.append(footer);}
+    old.replaceWith(panel);
+  }
   function hydrateClassroomReview(){
     const topic=state.lesson.topic||'惯性的概念';
     const demo=topic.includes('惯性')&&!state.session.active&&!state.records.length&&!state.events.length&&state.report==='idle';
     const examples=[{time:'00:52',kind:'语音讲解',raw:'物体具有保持原有运动状太的性质。',adopted:'物体具有保持原有运动状态的性质。',review:'已校正',duration:'0.68 秒'},{time:'01:18',kind:'文字补充',raw:'这里说的是一种性质，不是让物体继续运动的一种力。'},{time:'02:06',kind:'语音讲解',raw:'公交车突然刹车时，人会向前倾。车停了，人仍有保持原来运动状态的性质。'},{time:'03:12',kind:'文字补充',raw:'我们再想一想：原来静止的物体，会不会也有这种性质？'}];
     const records=demo?examples:state.records,summary=d.querySelectorAll('.review-summary strong');
-    summary[0].textContent=topic;summary[1].textContent=demo?'03:24':api.formatTime(state.session.elapsed);summary[2].textContent=records.length+' 段';
-    if(demo)d.querySelector('.page-head p').textContent+='（示例内容）';
+    if(summary.length){summary[0].textContent=topic;summary[1].textContent=demo?'03:24':api.formatTime(state.session.elapsed);summary[2].textContent=records.length+' 段';}
+    if(demo&&!d.querySelector('.page-head p').textContent.includes('示例'))d.querySelector('.page-head p').textContent+='（示例内容）';
     const holder=d.querySelector('[data-review-records]');
     if(!records.length){const empty=d.createElement('p');empty.className='hint';empty.textContent='还没有讲解记录。返回教室开始讲解后，可以在这里回看。';holder.append(empty);}
     for(const record of records){
@@ -137,12 +174,14 @@
     if(app.screen==='10')hydrateClassroomReview();
     for(const el of d.querySelectorAll('.knowledge-card'))if(el.textContent.includes('知识修订历史')){el.dataset.action='knowledge-history';el.tabIndex=0;el.setAttribute('role','button');el.setAttribute('aria-label','查看认知修订历史');el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();}});}
     for(const el of d.querySelectorAll('.blue-text'))if(el.textContent.includes('展开全部')){el.dataset.action='full-request';el.tabIndex=0;el.setAttribute('role','button');}
-    if(['11','12','13','39'].includes(app.screen)&&state.records.length){const stat=d.querySelectorAll('.stats-strip b');if(stat.length>=3){stat[0].textContent=state.records.length;stat[1].textContent='—';stat[2].textContent='—';}}
+    if(['10','11','12','13','39'].includes(app.screen)&&state.records.length){const stat=d.querySelectorAll('.stats-strip b');if(stat.length>=3){stat[0].textContent=state.records.length;stat[1].textContent='—';stat[2].textContent='—';}}
     if(app.screen==='13'&&state.events.length){const column=d.querySelector('.main>.two-col>section');if(column){column.querySelectorAll('.activity-row').forEach(e=>e.remove());for(const item of state.events.slice(0,6)){const row=d.createElement('div');row.className='activity-row';row.innerHTML=`<span class="time">${escape(item.time)}</span><i class="timeline-dot"></i><div><strong>${escape(item.title)}</strong><p>${escape(item.detail)}</p></div>`;column.append(row);}}}
     if(state.reviewDone&&['11','40'].includes(app.screen)){for(const notice of d.querySelectorAll('.notice.amber')){notice.className='notice green';notice.textContent='模拟复核已完成；未请求模型。';}}
     if(['19','20','21'].includes(app.screen)){const p=d.querySelector('.page-head p');if(p)p.textContent=(state.lesson.topic||'惯性的概念')+' / 示例报告 · 不是真实评价';}
   }
   function action(name,el){
+    if(name==='inspector-tab'){state.classroomInspectorTab=el.dataset.tab;rerender();return;}
+    if(name==='inspector-transcript-detail'){route('10');return;}
     if(name==='classroom-student'){route('11');return;}
     if(name==='classroom-model'){route('12');return;}
     if(name==='history-all'){
@@ -284,7 +323,7 @@
     }
   }
   function hydrate(document){
-    d=document;hydrateHistoryIcons();setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
+    d=document;hydrateHistoryIcons();setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateClassroomInspector();hydrateDetails();hydrateDebug();hydrateMaintenance();
     for(const avatar of d.querySelectorAll('.chat-row:not(.teacher) .chat-avatar')){avatar.replaceChildren();avatar.style.background='transparent';const image=d.createElement('img');image.src='assets/小纸-用户原图.png';image.alt='小纸';image.style.cssText='width:32px;height:32px;object-fit:contain';avatar.append(image);}
     if(app.screen==='35'&&state.session.phase==='disconnected'){const target=d.querySelector('.stage-center');if(target){const b=d.createElement('button');b.className='btn soft';b.textContent='恢复模拟连接';b.dataset.action='restore-connection';target.append(b);}}
     d.addEventListener('paste',e=>{if(app.screen!=='29'&&!e.target.closest('.chat-input'))return;const file=[...(e.clipboardData?.files||[])].find(f=>f.type.startsWith('image/'))||[...(e.clipboardData?.items||[])].find(item=>item.type.startsWith('image/'))?.getAsFile();if(file){e.preventDefault();addImage(file);}});

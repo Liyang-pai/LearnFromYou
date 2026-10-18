@@ -14,7 +14,7 @@
   function render(){
     const item=screens[screen];
     frame.onload=()=>{doc=frame.contentDocument;hydrate();fit();document.getElementById('previewStatus').textContent=item.name.replaceAll('-',' / ');};
-    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css?v=20261018-classroom-details"></head><body>${item.body}</body></html>`;
+    frame.srcdoc=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><base href="${new URL('.',location.href).href}"><style>${item.style}\n${interactionStyle}</style><link rel="stylesheet" href="src/theme.css?v=20261018-detail-debug-tabs"></head><body>${item.body}</body></html>`;
     fit();
   }
   function hydrate(){
@@ -68,7 +68,7 @@
     for(const button of doc.querySelectorAll('button'))button.type='button';
     on('创建一次试讲',()=>show('02'));on('创建试讲',()=>show('05'));on('查看课堂详情',()=>show('10'));on('返回教室',()=>show(state.session.active?'08':'04'));on('返回课堂',()=>show('08'));
     [...doc.querySelectorAll('.settings-tabs span')].forEach((el,i)=>el.onclick=()=>show(['22','24'][i]));
-    [...doc.querySelectorAll('.main>.detail-tabs span')].forEach((el,i)=>el.onclick=()=>show((['29','30'].includes(screen)?['29','30']:['10','11','12','13'])[i]));
+    [...doc.querySelectorAll('.main>.detail-tabs span')].forEach((el,i)=>el.onclick=()=>show((['29','30'].includes(screen)?['29','30']:['10','12','11','13'])[i]));
     for(const el of doc.querySelectorAll('.top-status>span'))if(el.textContent.includes('本机服务'))el.textContent='静态模拟 · 无服务连接';
     doc.addEventListener('keydown',e=>{if(e.key==='Escape')modalClose();});
     for(const close of doc.querySelectorAll('.modal-header>.icon')){close.setAttribute('role','button');close.tabIndex=0;close.setAttribute('aria-label','关闭');close.onclick=modalClose;}

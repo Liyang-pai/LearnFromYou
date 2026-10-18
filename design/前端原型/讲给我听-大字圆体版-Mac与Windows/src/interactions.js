@@ -164,7 +164,7 @@
     else if(el.dataset.segment){state.lesson[el.dataset.segment]=text;route(app.screen,true);}
     else if(el.matches('.nav-item'))route(text==='首页'?'01':text==='创建试讲'?(state.lesson.profile?'03':'02'):text==='我的教室'?classScreen():text==='设置'?'22':'29');
     else if(el.matches('.settings-tabs span'))route(['22','24'][[...el.parentElement.children].indexOf(el)]);
-    else if(el.matches('.main>.detail-tabs span'))route((['29','30'].includes(app.screen)?['29','30']:['10','11','12','13'])[[...el.parentElement.children].indexOf(el)]);
+    else if(el.matches('.main>.detail-tabs span'))route((['29','30'].includes(app.screen)?['29','30']:['10','12','11','13'])[[...el.parentElement.children].indexOf(el)]);
     else if(el.matches('.chat-tabs span'))route(['08','10','11','13'][[...el.parentElement.children].indexOf(el)]);
     else if(['创建一次试讲','再创建一次试讲'].includes(text))newLesson();
     else if(text.includes('生成学生画像')||text==='确认重新生成')generate(text==='确认重新生成');
@@ -194,7 +194,7 @@
     for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();if(key==='profile')syncCreateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(!['自定义…','其他（自定义）'].includes(field.value))return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
     d.addEventListener('click',click,true);
     d.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Enter'&&!e.shiftKey&&e.target.dataset.field==='draftText'){e.preventDefault();sendText(state.draftText);}if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.stopImmediatePropagation();e.target.dispatchEvent(new d.defaultView.MouseEvent('click',{bubbles:true,cancelable:true}));}},true);
-    for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'){el.tabIndex=0;el.setAttribute('role','button');}}
+    for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'&&el.getAttribute('role')!=='tab'){el.tabIndex=0;el.setAttribute('role','button');}}
     for(const el of d.querySelectorAll('.modal-header>.icon')){el.onclick=null;el.dataset.action='close';}
     d.body.dataset.prototypeReady=app.screen;
     if(state.classControlFocus){d.querySelector(`[data-action="${state.classControlFocus}"]`)?.focus();state.classControlFocus=null;}
