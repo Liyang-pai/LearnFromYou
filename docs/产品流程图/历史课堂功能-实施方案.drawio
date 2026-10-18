@@ -38,7 +38,7 @@
         <mxCell id="read" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=14;" value="长课堂加载方式&#10;对话分批读取，滚动加载更早内容，最终可查看完整对话；不截断历史记录。&#10;画像和对话直接读取；缺失报告时独立调用模型生成，不阻塞其他内容。&#10;原始转写和审核文本保留来源区别，审核失败时保留原文。" vertex="1">
           <mxGeometry height="150" width="735" x="50" y="1080" as="geometry" />
         </mxCell>
-        <mxCell id="boundary" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=14;" value="页面边界与异常&#10;列表不额外展示时长、完成状态、学生回复数量等字段。&#10;未正常结束或部分记录损坏的提示放在详情内；展示所有可恢复内容。&#10;本版详情聚焦上述四项，不增加截图、认知状态等独立内容区。" vertex="1">
+        <mxCell id="boundary" parent="1" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=14;" value="页面边界与异常&#10;列表不额外展示时长、完成状态、学生回复数量等字段。&#10;未正常结束或部分记录损坏的提示放在详情内；展示所有可读取内容。&#10;本版详情聚焦上述四项，不增加截图、认知状态等独立内容区。" vertex="1">
           <mxGeometry height="150" width="735" x="820" y="1080" as="geometry" />
         </mxCell>
         <mxCell id="e14" edge="1" parent="1" source="entry" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" target="list" value="">
@@ -97,7 +97,7 @@
         <mxCell id="events" value="主要事件映射&#10;ready.lesson → 课程信息与当时确认的学生画像&#10;旧日志可回溯 preparation 的课程输入&#10;transcript → 老师原始转写或文字输入&#10;review_completed → 审核结果，关联同一段讲授&#10;reply → 学生实际发言；不把候选当成已发言&#10;保留时间与顺序，不按内容去重删减" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fffbea;strokeColor=#d6bd62;align=left;spacing=15;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="55" y="650" width="430" height="225" as="geometry" />
         </mxCell>
-        <mxCell id="exceptions" value="兼容与异常规则&#10;没有 finished：结合当前活动课堂判定状态&#10;旧记录缺画像：提示未保存，不重新生成&#10;尾行截断或其他坏行：保留可恢复的对话&#10;未结束或记录不完整的提示只放详情内&#10;缺报告：正常结束且材料可用时自动生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="exceptions" value="兼容与异常规则&#10;没有 finished：结合当前活动课堂判定状态&#10;旧记录缺画像：提示未保存，不重新生成&#10;尾行截断或其他坏行：保留已保存且可读取的对话&#10;未结束或记录不完整的提示只放详情内&#10;缺报告：正常结束且材料可用时自动生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="1090" y="650" width="430" height="225" as="geometry" />
         </mxCell>
         <mxCell id="response" value="返回经过筛选的数据&#10;列表只返回四项展示字段及内部课堂编号&#10;详情画像、报告按需读取，对话分页加载&#10;完整原始日志通过下载接口直接传输" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
@@ -147,7 +147,7 @@
         <mxCell id="live" value="新课堂继续运行&#10;沿用现有事件日志逐条写入并刷新" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="200" width="620" height="85" as="geometry" />
         </mxCell>
-        <mxCell id="checkpoint" value="关键节点更新课堂摘要 / 检查点&#10;课堂就绪、内容或状态变化（合并频繁写入）&#10;先写临时文件，再原子替换" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="checkpoint" value="课堂就绪、结束或关闭后更新历史摘要&#10;旧日志首次查看时在后台整理并缓存&#10;存档仅用于历史查看，不保存可续讲运行状态" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="80" y="340" width="620" height="110" as="geometry" />
         </mxCell>
         <mxCell id="end" value="课堂正常结束？" style="rhombus;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
@@ -156,7 +156,7 @@
         <mxCell id="final" value="是：写入完成存档&#10;课程信息、时间线、最终状态、截图引用&#10;保留完整日志用于诊断" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="70" y="690" width="330" height="120" as="geometry" />
         </mxCell>
-        <mxCell id="interrupt" value="否：保留最后检查点和已有日志&#10;服务重启后识别遗留课堂&#10;标记“未正常结束”，保留可恢复内容" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="interrupt" value="否：保留已保存的历史记录&#10;标记“未正常结束”，仅供查看&#10;不恢复课堂，不支持续讲" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="440" y="690" width="330" height="120" as="geometry" />
         </mxCell>
         <mxCell id="independent" value="报告与原始日志独立读取&#10;已有报告复用缓存；缺失时按条件自动生成并保存&#10;导出按钮直接下载原始 JSONL，不导出摘要冒充日志" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
@@ -165,13 +165,13 @@
         <mxCell id="step1" value="① 数据层&#10;解析列表四项、历史学生画像和完整师生对话&#10;保留内部完整性标记，兼容旧记录和缺失画像" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="900" y="200" width="600" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="step2" value="② 历史 API&#10;列表摘要、排序和分页；详情与完整对话分批读取&#10;增加原始日志下载接口，避免整份日志进入页面" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="step2" value="② 历史 API&#10;列表摘要、排序和分页；详情与完整对话每批 50 条读取&#10;增加原始日志下载接口，避免整份日志进入页面" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="900" y="365" width="600" height="110" as="geometry" />
         </mxCell>
         <mxCell id="step3" value="③ 正式前端&#10;列表：主题 / 学段 / 学科 / 上课时间&#10;详情：学生画像 / 完整师生对话 / 报告 / 导出日志&#10;适配现有设计；保留 /debug 调试入口" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="900" y="530" width="600" height="110" as="geometry" />
         </mxCell>
-        <mxCell id="step4" value="④ 新课堂存档&#10;增量摘要与检查点、结束存档和缓存更新&#10;旧日志按需转换，不要求一次性全量迁移" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+        <mxCell id="step4" value="④ 新课堂存档&#10;就绪、结束或关闭后更新摘要和历史缓存&#10;旧日志按需转换，不要求一次性全量迁移" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
           <mxGeometry x="900" y="695" width="600" height="110" as="geometry" />
         </mxCell>
         <mxCell id="accept" value="⑤ 验收&#10;列表仅四项；画像属于当时课堂；对话完整且顺序正确&#10;缺报告自动生成；重复打开复用任务；失败可手动重试&#10;未结束、无讲授内容时不生成；画像与对话不被阻塞&#10;30 MB 以上日志分页不丢记录，原始日志可下载" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">

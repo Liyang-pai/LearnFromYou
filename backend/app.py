@@ -4,7 +4,7 @@ import anyio
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
@@ -20,10 +20,12 @@ from .session import Session
 from .runtime import RUNTIME
 from .teaching_report import ReportService, export_markdown
 from .classroom_images import MAX_IMAGE_BYTES, find_image
+from .history import HistoryService, classroom_path
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
 reports = ReportService()
+histories = HistoryService()
 
 
 @asynccontextmanager
@@ -33,6 +35,7 @@ async def lifespan(app):
     finally:
         if active_session:
             await active_session.close()
+        await histories.close()
         await reports.close()
         await models.shutdown()
 
@@ -52,13 +55,13 @@ def local_origin(origin):
 @app.middleware("http")
 async def protect_local_actions(request: Request, call_next):
     # A remote page must not trigger downloads or open folders on this machine.
-    if request.method == "POST":
+    if request.method == "POST" or request.url.path.startswith("/api/history"):
         origin = request.headers.get("origin")
         if (origin and not local_origin(origin)) or request.headers.get("sec-fetch-site") == "cross-site":
             return JSONResponse({"detail": "仅允许本机页面执行模型操作"}, status_code=403)
     response = await call_next(request)
     # This frontend is a development UI: never mix scripts from different edits.
-    if request.url.path in ("/", "/models") or request.url.path.startswith("/static/"):
+    if request.url.path in ("/", "/models") or request.url.path.startswith(("/static/", "/history", "/api/history")):
         response.headers["Cache-Control"] = "no-store"
     return response
 
@@ -66,6 +69,43 @@ async def protect_local_actions(request: Request, call_next):
 @app.get("/")
 async def index():
     return FileResponse(config.ROOT / "frontend/index.html")
+
+
+@app.get('/history')
+@app.get('/history/{session_id}')
+async def history_page(session_id: str | None = None):
+    return FileResponse(config.ROOT / 'frontend/index.html')
+
+
+@app.get('/api/history')
+async def history_list(offset: int = Query(0, ge=0), limit: int = Query(20, ge=1, le=50)):
+    return await histories.listing(offset, limit)
+
+
+@app.get('/api/history/{session_id}')
+async def history_detail(session_id: str):
+    try:
+        return await histories.detail(session_id)
+    except (ValueError, OSError) as exc:
+        raise report_error(exc) from None
+
+
+@app.get('/api/history/{session_id}/dialogue')
+async def history_dialogue(session_id: str, before: int | None = Query(None, ge=0)):
+    try:
+        return await histories.dialogue(session_id, before)
+    except (ValueError, OSError) as exc:
+        raise report_error(exc) from None
+
+
+@app.get('/api/history/{session_id}/log')
+async def history_log(session_id: str):
+    try:
+        path = await asyncio.to_thread(classroom_path, session_id)
+    except (ValueError, OSError) as exc:
+        raise report_error(exc) from None
+    return FileResponse(path, media_type='application/x-ndjson', filename=f'classroom-{session_id}.jsonl',
+                        headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
 
 
 @app.get("/api/health")
@@ -351,6 +391,7 @@ async def websocket(ws: WebSocket):
                     session = Session(ws.send_json, engine, vad_path, model_id)
                     active_session = session
                     await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)), asr_review)
+                    histories.schedule(session.id)
                 elif not session or not session.ready or session.closed:
                     raise ValueError("请先创建试讲")
                 elif kind == "audio_start":
@@ -384,6 +425,7 @@ async def websocket(ws: WebSocket):
                     # when the browser disconnects during tail processing.
                     with anyio.CancelScope(shield=True):
                         await session.finish()
+                        histories.schedule(session.id)
                         await models.release()
                         owns_engine = False
                         if active_session is session:
@@ -416,6 +458,7 @@ async def websocket(ws: WebSocket):
         with anyio.CancelScope(shield=True):
             if session:
                 await session.close()
+                histories.schedule(session.id)
             if owns_engine:
                 await models.release()
             if active_session is session:

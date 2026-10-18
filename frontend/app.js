@@ -410,20 +410,26 @@ window.classroomImages = new ClassroomImageInput({
   pause:() => stopMic()
 });
 // The model screen shares this page so navigating never disconnects a lesson.
-function showPage(models, updateURL = true) {
-  $('lessonPage').classList.toggle('hidden', models);
-  $('modelsPage').classList.toggle('hidden', !models);
-  for (const [id, active] of [['modelsTab', models], ['classroomTab', !models]]) {
+function showPage(page, updateURL = true) {
+  // Keep the legacy boolean calls from ASR model controls working.
+  if (typeof page === 'boolean') page = page ? 'models' : 'classroom';
+  const historyVisible = page === 'history';
+  for (const [id, name] of [['lessonPage','classroom'], ['modelsPage','models'], ['historyPage','history']]) $(id).classList.toggle('hidden', page !== name);
+  for (const [id, name] of [['classroomTab','classroom'], ['modelsTab','models'], ['historyTab','history']]) {
+    const active = page === name;
     $(id).classList.toggle('selected', active);
     if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current');
   }
-  if (updateURL) history.pushState(null, '', models ? '/models' : '/');
+  if (updateURL) history.pushState(null, '', historyVisible ? '/history' : page === 'models' ? '/models' : '/');
+  if (historyVisible) window.classroomHistory?.open(); else window.classroomHistory?.leave();
 }
-$('modelsTab').onclick = () => showPage(true);
-$('classroomTab').onclick = () => showPage(false);
-$('changeModel').onclick = () => showPage(true);
-window.addEventListener('popstate', () => showPage(location.pathname === '/models', false));
-showPage(location.pathname === '/models', false);
+function pageFromURL() { return location.pathname.startsWith('/history') ? 'history' : location.pathname === '/models' ? 'models' : 'classroom'; }
+$('modelsTab').onclick = () => showPage('models');
+$('classroomTab').onclick = () => showPage('classroom');
+$('historyTab').onclick = () => showPage('history');
+$('changeModel').onclick = () => showPage('models');
+window.addEventListener('popstate', () => showPage(pageFromURL(), false));
+showPage(pageFromURL(), false);
 
 function formatBytes(size) {
   return size >= 1e9 ? (size / 1e9).toFixed(2) + ' GB' : Math.round(size / 1e6) + ' MB';
