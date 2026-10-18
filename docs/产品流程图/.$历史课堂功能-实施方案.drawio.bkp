@@ -1,0 +1,210 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-10-18T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="p1" name="01 页面内容与用户流程">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1350" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="历史课堂 · 页面内容与用户流程" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1480" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="scope" value="根据用户确认的内容绘制｜方案图，尚未实现｜列表仅四项；详情为四个内容区。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="105" width="1480" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="entry" value="打开“历史课堂”" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="210" width="500" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="list" value="点进去前 · 课堂列表卡片&#10;主题（如：惯性的概念）&#10;学段 · 学科&#10;上课时间（如：昨天 19:23）" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="335" width="500" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="click" value="点击一堂课" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="540" width="500" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="detail" value="课堂详情&#10;返回历史列表；保留当前正在进行的课堂" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="550" y="675" width="500" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="① 学生画像&#10;展示这堂课开始时确认的完整画像&#10;读取历史记录，不使用现在的新画像替换" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="850" width="350" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="dialog" value="② 完整师生对话&#10;按实际发生顺序展示老师讲授与学生实际回复&#10;保留全部记录，不只展示摘要或最后几条" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="435" y="850" width="350" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="report" value="③ 报告&#10;展示这堂课已有的教学报告&#10;未生成、生成中或失败时显示对应提示" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="850" width="350" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="export" value="④ 导出日志按钮&#10;点击后下载本堂课原始 JSONL 日志&#10;直接下载文件，无需先加载完整日志到页面" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="1205" y="850" width="350" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="read" value="长课堂加载方式&#10;对话分批读取，滚动加载更早内容，最终可查看完整对话；不截断历史记录。&#10;打开详情不重新调用模型；原始转写和审核文本保留来源区别，审核失败时保留原文。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="50" y="1080" width="735" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="boundary" value="页面边界与异常&#10;列表不额外展示时长、完成状态、学生回复数量等字段。&#10;未正常结束或部分记录损坏的提示放在详情内；展示所有可恢复内容。&#10;本版详情聚焦上述四项，不增加截图、认知状态等独立内容区。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=16;spacing=14;" vertex="1" parent="1">
+          <mxGeometry x="820" y="1080" width="735" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="entry" target="list">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="list" target="click">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="click" target="detail">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="detail" target="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="detail" target="dialog">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="detail" target="report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="detail" target="export">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="p2" name="02 日志读取与兼容">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1350" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="历史课堂 · 从现有日志到页面" style="text;html=0;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontSize=25;fontStyle=1;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="新增历史读取层，与现有报告生成流程分开；已有报告读取器要求正常结束，不能直接用于全部历史记录。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="85" width="1480" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="request" value="前端请求历史列表 / 课堂详情 / 日志下载&#10;拟新增只读 API（路径在实施时确定）" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="185" width="450" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="validate" value="校验课堂编号与访问边界&#10;只读取允许的课堂文件&#10;保留同源限制；不返回任意路径" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="315" width="450" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="cache" value="有匹配且有效的课堂存档？" style="rhombus;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="640" y="455" width="320" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="archive" value="读取固定格式的课堂存档&#10;核对版本及源日志是否变化" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="130" y="475" width="350" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="log" value="兼容读取 logs/{session_id}.jsonl&#10;逐行解析，仅提取历史功能所需事件" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="475" width="400" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="normalize" value="整理为统一课堂数据&#10;列表：主题、学段、学科、上课时间&#10;详情：历史学生画像、完整对话、报告引用&#10;内部保存完成状态与完整性信息" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="670" width="450" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="events" value="主要事件映射&#10;ready.lesson → 课程信息与当时确认的学生画像&#10;旧日志可回溯 preparation 的课程输入&#10;transcript → 老师原始转写或文字输入&#10;review_completed → 审核结果，关联同一段讲授&#10;reply → 学生实际发言；不把候选当成已发言&#10;保留时间与顺序，不按内容去重删减" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fffbea;strokeColor=#d6bd62;align=left;spacing=15;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="55" y="650" width="430" height="225" as="geometry" />
+        </mxCell>
+        <mxCell id="exceptions" value="兼容与异常规则&#10;没有 finished：结合当前活动课堂判定状态&#10;旧记录缺画像：提示未保存，不重新生成&#10;尾行截断或其他坏行：保留可恢复的对话&#10;未结束或记录不完整的提示只放详情内&#10;没有报告：显示实际状态，不自动生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="650" width="430" height="225" as="geometry" />
+        </mxCell>
+        <mxCell id="response" value="返回经过筛选的数据&#10;列表只返回四项展示字段及内部课堂编号&#10;详情画像、报告按需读取，对话分页加载&#10;完整原始日志通过下载接口直接传输" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="875" width="450" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="render" value="只读详情渲染器&#10;画像 / 完整对话 / 报告 / 导出日志按钮&#10;隔离实时事件，避免触发录音或报告生成" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="575" y="1050" width="450" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="request" target="validate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="validate" target="cache">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="cache" target="archive">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="否 / 过期 / 不兼容" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="cache" target="log">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="archive" target="normalize">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="log" target="normalize">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="normalize" target="response">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="response" target="render">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="p3" name="03 存档与实施顺序">
+    <mxGraphModel dx="1600" dy="1200" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1350" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="历史课堂 · 存档策略与落地顺序" style="text;html=0;whiteSpace=wrap;strokeColor=none;fillColor=none;align=left;fontSize=25;fontStyle=1;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="25" width="1480" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="以下均为拟新增能力。先让旧日志可查看，再为新课堂生成稳定存档；无需一开始引入数据库。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="50" y="85" width="1480" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="live" value="新课堂继续运行&#10;沿用现有事件日志逐条写入并刷新" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="620" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="checkpoint" value="关键节点更新课堂摘要 / 检查点&#10;课堂就绪、内容或状态变化（合并频繁写入）&#10;先写临时文件，再原子替换" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="340" width="620" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="end" value="课堂正常结束？" style="rhombus;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="220" y="505" width="330" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="final" value="是：写入完成存档&#10;课程信息、时间线、最终状态、截图引用&#10;保留完整日志用于诊断" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="690" width="330" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="interrupt" value="否：保留最后检查点和已有日志&#10;服务重启后识别遗留课堂&#10;标记“未正常结束”，保留可恢复内容" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fff3df;strokeColor=#c69a45;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="440" y="690" width="330" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="independent" value="报告与原始日志独立读取&#10;报告沿用现有缓存；查看历史不触发模型&#10;导出按钮直接下载原始 JSONL，不导出摘要冒充日志" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#f3f4f6;strokeColor=#9ca3af;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="895" width="690" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="① 数据层&#10;解析列表四项、历史学生画像和完整师生对话&#10;保留内部完整性标记，兼容旧记录和缺失画像" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="200" width="600" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="② 历史 API&#10;列表摘要、排序和分页；详情与完整对话分批读取&#10;增加原始日志下载接口，避免整份日志进入页面" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="365" width="600" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="③ 正式前端&#10;列表：主题 / 学段 / 学科 / 上课时间&#10;详情：学生画像 / 完整师生对话 / 报告 / 导出日志&#10;适配现有设计；保留 /debug 调试入口" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="530" width="600" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="step4" value="④ 新课堂存档&#10;增量摘要与检查点、结束存档和缓存更新&#10;旧日志按需转换，不要求一次性全量迁移" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#eaf2ff;strokeColor=#5b82c4;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="695" width="600" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="accept" value="⑤ 验收&#10;列表仅四项；画像属于当时课堂；对话完整且顺序正确&#10;报告缺失 / 画像缺失 / 断连 / 日志损坏 / 30 MB 以上日志&#10;分页不丢记录；下载原始日志；查看历史无模型请求" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#e8f5ed;strokeColor=#5c9c76;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="900" y="860" width="600" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="scope" value="存储边界&#10;历史范围取决于本机现存文件；不自动跨设备同步。&#10;本次只交付流程图，页面与后端均未改动。" style="rounded=1;whiteSpace=wrap;html=0;fillColor=#fffbea;strokeColor=#d6bd62;align=left;spacing=15;fontFamily=Helvetica;fontSize=15;spacing=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1120" width="1420" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="live" target="checkpoint">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="checkpoint" target="end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" value="是" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="end" target="final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" value="否 / 断连 / 服务退出" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="end" target="interrupt">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="step1" target="step2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="step2" target="step3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="step3" target="step4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=0;endArrow=block;endFill=1;strokeColor=#64748b;fontSize=13;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="step4" target="accept">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

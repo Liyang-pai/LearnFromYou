@@ -328,3 +328,28 @@ strong { font-weight: 650; }
 .review-record p { white-space: pre-wrap; }
 .review-original summary { cursor: pointer; }
 .review-original p { padding: 10px 12px; background: #f6f9fd; border-radius: 9px; margin-top: 8px; font-size: 15px; }
+
+/* 表单保持自然高度，超出部分滚动，避免字段挤在一起。 */
+.profile-form > .card-head { margin-bottom: 26px; }
+.profile-form .setup-scroll > .field,
+.profile-form .setup-scroll > .form-pair,
+.profile-form .setup-scroll > .segment-row { margin-bottom: 24px; }
+.profile-form .setup-scroll .field label { margin-bottom: 10px; }
+.profile-form .setup-scroll > .form-pair .field { margin-bottom: 0; }
+.profile-form .setup-scroll .segment-row { min-height: 50px; }
+.profile-form .setup-scroll textarea.input { height: 160px; min-height: 160px; line-height: 1.8; padding: 14px; resize: vertical; }
+
+.setup-more { margin: 20px 0; border: 1px solid #e2eaf5; border-radius: 13px; background: #fcfdff; }
+.setup-more summary { cursor: pointer; padding: 12px 14px; font-size: 17px; }
+.setup-more summary::marker { color: #8ca6c8; }
+.setup-more summary .hint { float: right; }
+.setup-more-content { padding: 6px 16px 18px; }
+.setup-more-content label { display: block; font-size: 17px; margin-bottom: 10px; }
+
+/* 左侧品牌图文比例试版：删除此段即可恢复原比例。 */
+.sidebar .brand-name { font-size: 28px; font-weight: 800; letter-spacing: 0; }
+.sidebar .brand-en { letter-spacing: .5px; }
+
+.profile-card textarea.profile-inline { display: block; flex: 1; width: 100%; min-height: 0; margin: 0; font: inherit; font-size: 18px; line-height: 1.9; color: var(--ink); resize: none; overflow-y: auto; }
+.profile-card textarea.profile-inline::placeholder { color: #8ca0bb; }
+.profile-card textarea.profile-inline:focus { outline: 2px solid #bdd6ff; outline-offset: 1px; }

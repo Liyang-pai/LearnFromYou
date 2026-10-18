@@ -72,7 +72,6 @@
     replyJob++;Object.assign(state.session,{active:false,mic:false});state.report='generating';const token=++reportJob;route('19');
     setTimeout(()=>{if(token!==reportJob)return;state.report=state.faultNext==='report'?'failed':'ready';state.faultNext=null;if(['19','21'].includes(app.screen))route(state.report==='ready'?'20':'21');},900);
   }
-  function showProfileEditor(){popup('编辑学生画像',`<textarea id="profileEditor" class="profile-manual" maxlength="3000" placeholder="填写学生已有知识、待学内容和可能的困难">${escape(state.lesson.profile)}</textarea>`,button('取消','close')+button('保存画像','save-profile',true));}
   function makeField(old,key,options){
     const field=d.createElement(options?'select':key==='points'?'textarea':'input');field.className=old.className.replace('placeholder','');field.dataset.field=key;
     if(options){for(const value of [...new Set([...options,state.lesson[key]])]){const option=d.createElement('option');option.value=value;option.textContent=value;field.append(option);}}
@@ -88,17 +87,35 @@
     generateButton.classList.remove('soft');
     generateButton.classList.add('profile-generate');
   }
+  function syncCreateButton(){
+    const create=[...d.querySelectorAll('button')].find(b=>b.textContent.includes('确认设定，创建试讲'));
+    if(create){create.disabled=!state.lesson.profile.trim()||state.profileBusy;create.classList.toggle('disabled',create.disabled);}
+  }
   function bindSetup(){
     const form=d.querySelector('.profile-form');if(!form)return;
     const fields=[['教学主题','topic'],['年级','grade'],['学科','subject'],['准备讲的知识点','points']];
     for(const el of form.querySelectorAll('.field')){const label=el.querySelector('label')?.textContent||'',key=fields.find(([t])=>label.startsWith(t))?.[1];const old=el.querySelector('.input');if(!key||!old)continue;
       makeField(old,key,key==='grade'?['由 AI 判断','小学 · 六年级','初中 · 七年级','初中 · 八年级','初中 · 九年级','高中 · 高一','大学 · 大一','成人零基础','自定义…']:key==='subject'?['由 AI 判断','语文','数学','英语','物理','化学','生物','历史','科学','信息科技','综合','自定义…']:null);
     }
+    const more=[...form.querySelectorAll('.input')].find(el=>el.textContent.includes('更多设置')||el.textContent.trim().startsWith('教材版本：'));
+    if(more){
+      const details=d.createElement('details');details.className='setup-more';details.open=Boolean(state.setupMoreOpen);
+      details.innerHTML='<summary>更多设置<span class="hint">教材版本等</span></summary><div class="setup-more-content"><label for="textbookInline">教材版本（选填）</label><input id="textbookInline" class="input" data-field="textbook" maxlength="200" placeholder="例如：人教版 · 八年级物理"></div>';
+      const textbook=details.querySelector('input');textbook.value=state.lesson.textbook||'';textbook.disabled=state.profileBusy;
+      details.addEventListener('toggle',()=>{state.setupMoreOpen=details.open;});
+      more.replaceWith(details);
+    }
     for(const row of form.querySelectorAll('.segment-row')){const key=row.querySelector('label').textContent==='学生水平'?'level':'type';for(const item of row.querySelectorAll('.segments span')){item.dataset.segment=key;item.classList.toggle('selected',item.textContent===state.lesson[key]);item.tabIndex=0;item.setAttribute('role','button');}}
-    const profile=d.querySelector('.profile-text');if(profile){profile.replaceChildren();for(const text of (state.lesson.profile||'尚未填写画像。').split('\n')){const p=d.createElement('p');p.className='profile-block';p.textContent=text;profile.append(p);}}
-    const heading=d.querySelector('.profile-card .card-head');if(heading&&!heading.querySelector('[data-action]'))heading.insertAdjacentHTML('beforeend',button(state.lesson.profile?'手动编辑':'手写画像','edit-profile'));
+    const previous=d.querySelector('.profile-card .profile-text,.profile-card .profile-empty');
+    if(previous){
+      const editor=d.createElement('textarea');editor.className='profile-text profile-inline';editor.dataset.field='profile';
+      editor.setAttribute('aria-label','学生画像');editor.maxLength=3000;editor.disabled=state.profileBusy;
+      editor.placeholder='在这里直接填写学生画像。也可以在左侧输入教学主题，建议同时选择学生水平与课型，再点击“生成学生画像”。';
+      editor.value=state.lesson.profile||'';previous.replaceWith(editor);
+    }
+    for(const edit of d.querySelectorAll('.profile-card .card-head button'))edit.remove();
     syncProfileGenerateButton();
-    const create=[...d.querySelectorAll('button')].find(b=>b.textContent.includes('确认设定，创建试讲'));if(create){create.disabled=!state.lesson.profile||state.profileBusy;create.classList.toggle('disabled',create.disabled);}
+    syncCreateButton();
   }
   function bindClass(){
     if(!classScreens.has(app.screen))return;
@@ -130,13 +147,10 @@
   }
   function act(action,el){
     if(action==='close'){close();return;}
-    if(action==='edit-profile'){showProfileEditor();return;}
-    if(action==='save-profile'){const value=d.getElementById('profileEditor').value.trim();if(!value)return toast('画像不能为空。');state.lesson.profile=value;state.popup=null;route('03');return;}
     if(action==='mic'){if(state.session.active)state.classControlFocus=action;toggleMic();return;}
     if(action==='toggle-sidebar'){state.session.sidebarCollapsed=!state.session.sidebarCollapsed;applyClassSidebar();return;}
     if(action==='toggle-student'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','仅本次模拟课堂');state.classControlFocus=action;route(classScreen());return;}
     if(action==='toggle-sound'){if(state.session.muted)return;state.session.tts=!state.session.tts;state.classControlFocus=action;route(app.screen,true);return;}
-    if(action==='save-textbook'){state.lesson.textbook=d.getElementById('textbookEditor').value.trim();state.popup=null;route('41');toast('教材版本已写入本次模拟设定。');return;}
     if(action==='save-custom-choice'){const value=d.getElementById('customChoice').value.trim();if(!value)return toast('请填写自定义内容。');state.lesson[state.customField]=value;state.popup=null;route(app.screen,true);return;}
     window.prototypeExtensions?.action(action,el);
   }
@@ -155,7 +169,6 @@
     else if(text.includes('生成学生画像')||text==='确认重新生成')generate(text==='确认重新生成');
     else if(text.includes('正在生成画像')||text.includes('正在处理画像'))toast('模拟画像正在生成，请稍候。');
     else if(text.includes('确认设定，创建试讲')||text==='创建试讲')startClass();
-    else if(['手写画像','编辑画像'].includes(text))showProfileEditor();
     else if(text==='发送')sendText(state.draftText);
     else if(text==='结束试讲'||text==='生成报告'||text==='报告'){state.returnScreen=classScreen();if(state.session.active)route('18');else if(state.report!=='idle')route(state.report==='ready'?'20':state.report==='failed'?'21':'19');else toast('请先创建一次试讲，再生成报告。');}
     else if(text==='结束并生成报告'||text==='结束并查看报告'||text==='重试生成报告')finish();
@@ -166,7 +179,6 @@
     else if(text==='保留当前画像')close();
     else if(text==='查看课堂详情'||text==='查看课堂记录')route('10');
     else if(text==='更换模型'||text==='检查设置')route('24');
-    else if(text.includes('更多设置')||text.startsWith('教材版本：'))popup('更多教学设置',`<label for="textbookEditor">教材版本（选填）</label><input id="textbookEditor" class="input" value="${escape(state.lesson.textbook)}" maxlength="200" placeholder="例如：人教版 · 八年级物理">`,button('取消','close')+button('保存','save-textbook',true));
     else if(text==='重试这一段'){state.session.phase='thinking';sendText(state.session.messages.filter(m=>m.role==='teacher').at(-1)?.text||'重新解释本次概念。');}
     else if(text==='使用文字讲授'){state.session.phase='ready';route('05');}
     else if(text==='重新尝试')toggleMic();
@@ -178,7 +190,7 @@
     d=frame.contentDocument;if(!d?.body)return;
     bindSetup();bindClass();syncToggles();
     window.prototypeExtensions?.hydrate(d);
-    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(field.value!=='自定义…')return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
+    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();if(key==='profile')syncCreateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(field.value!=='自定义…')return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
     d.addEventListener('click',click,true);
     d.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Enter'&&!e.shiftKey&&e.target.dataset.field==='draftText'){e.preventDefault();sendText(state.draftText);}if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.stopImmediatePropagation();e.target.dispatchEvent(new d.defaultView.MouseEvent('click',{bubbles:true,cancelable:true}));}},true);
     for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'){el.tabIndex=0;el.setAttribute('role','button');}}
