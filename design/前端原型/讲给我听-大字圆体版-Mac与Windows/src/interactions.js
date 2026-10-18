@@ -147,6 +147,7 @@
   }
   function act(action,el){
     if(action==='close'){close();return;}
+    if(action==='home-create'){newLesson();return;}
     if(action==='mic'){if(state.session.active)state.classControlFocus=action;toggleMic();return;}
     if(action==='toggle-sidebar'){state.session.sidebarCollapsed=!state.session.sidebarCollapsed;applyClassSidebar();return;}
     if(action==='toggle-student'){state.session.muted=!state.session.muted;addEvent(state.session.muted?'关闭学生发言':'恢复学生发言','仅本次模拟课堂');state.classControlFocus=action;route(classScreen());return;}

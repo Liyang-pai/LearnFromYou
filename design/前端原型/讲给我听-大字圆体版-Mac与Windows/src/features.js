@@ -140,6 +140,16 @@
     if(['19','20','21'].includes(app.screen)){const p=d.querySelector('.page-head p');if(p)p.textContent=(state.lesson.topic||'惯性的概念')+' / 示例报告 · 不是真实评价';}
   }
   function action(name,el){
+    if(name==='history-all'){
+      const cards=[...d.querySelectorAll('.recent-lesson')].map(card=>card.outerHTML).join('');
+      popup('试讲历史','<div class="history-list">'+cards+'</div>');return;
+    }
+    if(name==='history-preview'){
+      const records=[['惯性的概念','初中 · 物理','昨天 19:23'],['一次函数','初中 · 数学','10月14日'],['链表的基本操作','大学 · 数据结构','10月10日']];
+      const record=records[Number(el.dataset.history)];if(!record)return;
+      popup(record[0],'<p>'+escape(record[1])+'</p><p class="hint">讲解时间：'+escape(record[2])+'</p><p class="hint">静态原型示例记录。</p>');return;
+    }
+
     if(name.startsWith('fault-')){
       state.popup=null;const kind=name.slice(6);
       if(kind==='disconnect'){api.seedLesson();state.session.active=true;state.session.phase='disconnected';route('35',true);return;}
