@@ -1,0 +1,1013 @@
+{
+  "date": "2026-10-17T16:55:28.114Z",
+  "sceneCount": 40,
+  "errors": [],
+  "consoleErrors": [],
+  "externalRequests": [],
+  "horizontalOverflows": [],
+  "checks": [
+    {
+      "id": "10",
+      "name": "10-课堂详情-转写与教学片段",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "11",
+      "name": "11-课堂详情-认知与问题",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1018,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "12",
+      "name": "12-课堂详情-模型请求与结果",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1050,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "13",
+      "name": "13-课堂详情-处理过程",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "14",
+      "name": "14-教学截图-确认上传",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "确认上传",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "name": "15-教学截图-放大查看",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "关闭",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "16",
+      "name": "16-教学截图-上传失败",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "重新上传",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "17",
+      "name": "17-课堂偏好-快捷面板",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "完成",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "18",
+      "name": "18-结束试讲-确认",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "继续试讲",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "结束并查看报告",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "19",
+      "name": "19-教学报告-生成中",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "20",
+      "name": "20-教学报告-完整报告",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1125,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "21",
+      "name": "21-教学报告-失败重试",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "22",
+      "name": "22-设置-默认模型与API",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消更改",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存设置",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "23",
+      "name": "23-设置-编辑API密钥",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消更改",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存设置",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "24",
+      "name": "24-设置-语音与识别",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消更改",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存设置",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "25",
+      "name": "25-设置-模型下载中",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消更改",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存设置",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "26",
+      "name": "26-设置-独立ASR测试",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "29",
+      "name": "29-调试前端-课堂",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "30",
+      "name": "30-调试前端-模型与录音",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "31",
+      "name": "31-创建试讲-画像生成中",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "确认设定，创建试讲",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "32",
+      "name": "32-创建试讲-画像生成失败",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "确认设定，创建试讲",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "33",
+      "name": "33-重新生成画像-确认",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "保留当前画像",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "确认重新生成",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "34",
+      "name": "34-课堂异常-处理暂停",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "35",
+      "name": "35-课堂异常-连接中断",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "36",
+      "name": "36-课堂异常-麦克风权限",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "使用文字讲授",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "重新尝试",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "37",
+      "name": "37-设置-离开未保存",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "继续编辑",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存后离开",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "38",
+      "name": "38-语音模型-详情与修复",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "39",
+      "name": "39-课堂详情-模型返回与校验",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1084,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "40",
+      "name": "40-课堂详情-修订历史与复核",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "41",
+      "name": "41-创建试讲-更多教学设置",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "确认设定，创建试讲",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "42",
+      "name": "42-设置-连接测试结果",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "取消更改",
+          "visible": true,
+          "unobstructed": true
+        },
+        {
+          "label": "保存设置",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "01",
+      "name": "01-首页",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "02",
+      "name": "02-创建试讲-空白",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "确认设定，创建试讲",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "03",
+      "name": "03-创建试讲-画像就绪",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": [
+        {
+          "label": "确认设定，创建试讲",
+          "visible": true,
+          "unobstructed": true
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "name": "04-我的教室-空状态",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "05",
+      "name": "05-我的教室-准备开始",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "06",
+      "name": "06-我的教室-正在听课",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "07",
+      "name": "07-我的教室-学生思考",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "08",
+      "name": "08-我的教室-学生提问",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    },
+    {
+      "id": "09",
+      "name": "09-我的教室-学生暂不发言",
+      "font": [
+        {
+          "family": "ChillRound",
+          "status": "loaded"
+        }
+      ],
+      "bodyFont": 18,
+      "images": true,
+      "mainWidth": 1390,
+      "mainScrollWidth": 1390,
+      "bodyWidth": 1600,
+      "bodyScrollWidth": 1600,
+      "mainHeight": 1000,
+      "mainScrollHeight": 1000,
+      "hostOverflow": false,
+      "horizontalOverflow": false,
+      "primaryActions": []
+    }
+  ]
+}
