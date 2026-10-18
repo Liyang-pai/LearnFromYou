@@ -95,7 +95,7 @@
     const form=d.querySelector('.profile-form');if(!form)return;
     const fields=[['教学主题','topic'],['年级','grade'],['学科','subject'],['准备讲的知识点','points']];
     for(const el of form.querySelectorAll('.field')){const label=el.querySelector('label')?.textContent||'',key=fields.find(([t])=>label.startsWith(t))?.[1];const old=el.querySelector('.input');if(!key||!old)continue;
-      makeField(old,key,key==='grade'?['由 AI 判断','小学 · 六年级','初中 · 七年级','初中 · 八年级','初中 · 九年级','高中 · 高一','大学 · 大一','成人零基础','自定义…']:key==='subject'?['由 AI 判断','语文','数学','英语','物理','化学','生物','历史','科学','信息科技','综合','自定义…']:null);
+      makeField(old,key,key==='grade'?['由 AI 判断','小学 · 六年级','初中 · 七年级','初中 · 八年级','初中 · 九年级','高中 · 高一','大学 · 大一','成人零基础','自定义…']:key==='subject'?['由 AI 判断','语文','数学','英语','物理','化学','生物','历史','地理','道德与法治','科学','信息科技','其他（自定义）']:null);
     }
     const more=[...form.querySelectorAll('.input')].find(el=>el.textContent.includes('更多设置')||el.textContent.trim().startsWith('教材版本：'));
     if(more){
@@ -191,7 +191,7 @@
     d=frame.contentDocument;if(!d?.body)return;
     bindSetup();bindClass();syncToggles();
     window.prototypeExtensions?.hydrate(d);
-    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();if(key==='profile')syncCreateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(field.value!=='自定义…')return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
+    for(const field of d.querySelectorAll('[data-field]')){const key=field.dataset.field,previousValue=state.lesson[key];field.addEventListener('input',()=>{if(key==='draftText')state.draftText=field.value;else state.lesson[key]=field.value;if(key==='topic')syncProfileGenerateButton();if(key==='profile')syncCreateButton();});if(field.tagName==='SELECT')field.addEventListener('change',()=>{if(!['自定义…','其他（自定义）'].includes(field.value))return;state.customField=key;state.lesson[key]=previousValue;popup(key==='grade'?'自定义年级':'自定义学科','<input id="customChoice" class="input" maxlength="100" aria-label="自定义内容" placeholder="填写你的教学场景">',button('取消','close')+button('保存','save-custom-choice',true));});}
     d.addEventListener('click',click,true);
     d.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close();}if(e.key==='Enter'&&!e.shiftKey&&e.target.dataset.field==='draftText'){e.preventDefault();sendText(state.draftText);}if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.stopImmediatePropagation();e.target.dispatchEvent(new d.defaultView.MouseEvent('click',{bubbles:true,cancelable:true}));}},true);
     for(const el of d.querySelectorAll('.settings-tabs span,.detail-tabs span,[data-action],.thumb-actions span:not(:first-child),.dock-item')){if(el.tagName!=='BUTTON'){el.tabIndex=0;el.setAttribute('role','button');}}

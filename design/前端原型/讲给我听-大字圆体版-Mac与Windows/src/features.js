@@ -268,8 +268,18 @@
     if(text==='开始音频测试'||text==='停止上传'){toast('上传录音只在调试示意中保留，静态原型不读取或发送录音。');return true;}
     return false;
   }
+  const subjectIcons={'语文':'chinese','数学':'math','英语':'english','物理':'physics','化学':'chemistry','生物':'biology','历史':'history','地理':'geography','道德与法治':'civics','科学':'science','信息科技':'computing'};
+  function hydrateHistoryIcons(){
+    for(const card of d.querySelectorAll('.recent-lesson')){
+      const subject=card.dataset.subject||card.querySelector('.recent-copy > span')?.textContent.split('·').at(-1).trim()||'';
+      const key=subjectIcons[subject]||(['数据结构','计算机科学','计算机','编程','信息技术'].includes(subject)?'computing':'other');
+      const holder=card.querySelector('.recent-icon');if(!holder)continue;
+      const image=d.createElement('img');image.src='assets/subjects/'+key+'.svg';image.alt='';image.width=28;image.height=28;
+      holder.dataset.subjectIcon=key;holder.title=key==='other'?'其他（自定义）':subject;holder.replaceChildren(image);
+    }
+  }
   function hydrate(document){
-    d=document;setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
+    d=document;hydrateHistoryIcons();setSettingsFields();hydrateModels();hydrateAsr();hydrateImage();hydrateDetails();hydrateDebug();hydrateMaintenance();
     for(const avatar of d.querySelectorAll('.chat-row:not(.teacher) .chat-avatar')){avatar.replaceChildren();avatar.style.background='transparent';const image=d.createElement('img');image.src='assets/小纸-用户原图.png';image.alt='小纸';image.style.cssText='width:32px;height:32px;object-fit:contain';avatar.append(image);}
     if(app.screen==='35'&&state.session.phase==='disconnected'){const target=d.querySelector('.stage-center');if(target){const b=d.createElement('button');b.className='btn soft';b.textContent='恢复模拟连接';b.dataset.action='restore-connection';target.append(b);}}
     d.addEventListener('paste',e=>{if(app.screen!=='29'&&!e.target.closest('.chat-input'))return;const file=[...(e.clipboardData?.files||[])].find(f=>f.type.startsWith('image/'))||[...(e.clipboardData?.items||[])].find(item=>item.type.startsWith('image/'))?.getAsFile();if(file){e.preventDefault();addImage(file);}});
