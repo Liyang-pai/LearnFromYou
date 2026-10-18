@@ -192,7 +192,7 @@ class QuestionReleaseRequest(StrictModel):
 class Candidate(StrictModel):
     question_release_request: QuestionReleaseRequest | None = None
     response_request_ids: list[str] = Field(default_factory=list,
-        description='实际回应的教师请求 ID；question 仅关联 invite_questions；silence 填 []；发出前不算 answered')
+        description='实际回应的教师请求 ID；普通 question 可关联四类请求；暂缓疑问的例外申请仅关联有效 invite_questions；silence 填 []；发出前不算 answered')
     knowledge_ids: list[str] = Field(default_factory=list, max_length=16,
         description="实际用于推导答案的可用知识前提 ID；仅复述、描述障碍或对比冲突双方不算采用前提，这些条目不列入；无推理前提时填 []，来源仍填 sources")
     kind: Literal["silence", "answer", "question", "ack"] = "silence"
