@@ -256,3 +256,9 @@ strong { font-weight: 650; }
 
 .profile-card .footer > .setting-row { padding: 0 0 16px; margin-bottom: 16px; }
 .profile-card .footer > .setting-row p { font-size: 14px; line-height: 1.5; }
+
+/* 教学设置独立滚动，画像生成操作固定在卡片底部。 */
+.profile-form.card { height: calc(100vh - 255px); min-height: 0; display: flex; flex-direction: column; overflow: hidden; position: sticky; top: 0; align-self: start; }
+.profile-form > .card-head { flex-shrink: 0; }
+.profile-form > .setup-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: 8px; scrollbar-width: thin; scrollbar-color: #d9e5f4 transparent; }
+.profile-form > .setup-actions { flex-shrink: 0; padding-top: 18px; margin-top: 12px; border-top: 1px solid var(--line); background: #fff; }
