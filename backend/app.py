@@ -1,12 +1,15 @@
 import asyncio
 import json
 import anyio
+from collections import OrderedDict
 from contextlib import asynccontextmanager
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Query
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 from pydantic import ValidationError
 
 from asr.manager import ModelManager
@@ -21,11 +24,22 @@ from .runtime import RUNTIME
 from .teaching_report import ReportService, export_markdown
 from .classroom_images import MAX_IMAGE_BYTES, find_image
 from .history import HistoryService, classroom_path
+from .settings import SettingsUpdate, model_settings, public_settings, save_settings, test_connection
 
 models = ModelManager(config.MODELS_DIR, config.ASR_THREADS)
 active_session = None
+classroom_starting = False
 reports = ReportService()
 histories = HistoryService()
+
+
+def classroom_reserved():
+    return classroom_starting or bool(active_session and not active_session.closed)
+
+
+def require_asr_maintenance_available():
+    if classroom_reserved():
+        raise HTTPException(409, '请先结束正在创建或运行的试讲，再维护 ASR 模型')
 
 
 @asynccontextmanager
@@ -40,8 +54,15 @@ async def lifespan(app):
         await models.shutdown()
 
 
-app = FastAPI(title="讲给我听 · Learn From You（开发调试）", lifespan=lifespan)
+app = FastAPI(title="讲给我听 · Learn From You", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=config.ROOT / "frontend"), name="static")
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError):
+    if request.url.path == '/api/settings':
+        return JSONResponse({'detail': '设置格式无效，请检查密钥与开关选项'}, status_code=422)
+    return await request_validation_exception_handler(request, exc)
 
 
 def local_origin(origin):
@@ -61,19 +82,29 @@ async def protect_local_actions(request: Request, call_next):
             return JSONResponse({"detail": "仅允许本机页面执行模型操作"}, status_code=403)
     response = await call_next(request)
     # This frontend is a development UI: never mix scripts from different edits.
-    if request.url.path in ("/", "/models") or request.url.path.startswith(("/static/", "/history", "/api/history")):
+    if request.url.path.startswith(("/static/", "/api/")) or not request.url.path.startswith('/ws/'):
         response.headers["Cache-Control"] = "no-store"
     return response
 
 
 @app.get("/")
-async def index():
-    return FileResponse(config.ROOT / "frontend/index.html")
-
-
+@app.get('/create')
+@app.get('/classroom')
+@app.get('/classroom/details')
 @app.get('/history')
 @app.get('/history/{session_id}')
-async def history_page(session_id: str | None = None):
+@app.get('/report/{session_id}')
+@app.get('/settings')
+@app.get('/settings/asr')
+async def index(session_id: str | None = None):
+    return FileResponse(config.ROOT / "frontend/formal/index.html")
+
+
+@app.get('/debug')
+@app.get('/debug/models')
+@app.get('/debug/history')
+@app.get('/debug/history/{session_id}')
+async def debug_page(session_id: str | None = None):
     return FileResponse(config.ROOT / 'frontend/index.html')
 
 
@@ -111,7 +142,9 @@ async def history_log(session_id: str):
 @app.get("/api/health")
 async def health():
     state = await asyncio.to_thread(models.snapshot)
-    return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "audio_upload_available": True, "model_configured": bool(config.API_KEY),
+    settings = public_settings()
+    return {"asr_ready": state["asr_ready"], "asr_debug_available": True, "audio_upload_available": True, "model_configured": settings['model_configured'],
+            "classroom_active": bool(active_session and not active_session.closed),
             "runtime": RUNTIME,
             "image_upload_available": True, "image_model": config.IMAGE_MODEL,
             "student_model": config.MODEL, "asr_model": state["selected_id"],
@@ -121,7 +154,28 @@ async def health():
 
 @app.get("/models")
 async def models_page():
-    return FileResponse(config.ROOT / "frontend/index.html")
+    return RedirectResponse('/debug/models', status_code=307)
+
+
+@app.get('/api/settings')
+async def settings_get():
+    try:
+        return await asyncio.to_thread(public_settings)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@app.post('/api/settings')
+async def settings_save(update: SettingsUpdate):
+    try:
+        return await asyncio.to_thread(save_settings, update)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+
+
+@app.post('/api/settings/test')
+async def settings_test():
+    return await test_connection()
 
 
 @app.post('/api/student-profile', response_model=StudentProfileResult)
@@ -182,7 +236,7 @@ async def classroom_image(session_id: str, image_id: str, request: Request):
     if (origin and not local_origin(origin)) or request.headers.get('sec-fetch-site') == 'cross-site':
         raise HTTPException(403, '仅允许本机课堂页面读取截图')
     try:
-        path, mime = await asyncio.to_thread(find_image, config.ROOT, session_id, image_id)
+        path, mime = await asyncio.to_thread(find_image, config.data_root(), session_id, image_id)
     except (ValueError, FileNotFoundError):
         raise HTTPException(404, '未找到本次课堂的图片') from None
     return FileResponse(path, media_type=mime, headers={'Cache-Control': 'no-store',
@@ -232,10 +286,29 @@ async def download_teaching_report(session_id: str):
 
 @app.post("/api/asr/models/{model_id}/download")
 async def download_model(model_id: str):
+    require_asr_maintenance_available()
     try:
         return await models.download(model_id)
     except (ValueError, OSError) as exc:
         raise HTTPException(400, str(exc)) from None
+
+
+@app.post('/api/asr/models/{model_id}/verify')
+async def verify_model(model_id: str):
+    require_asr_maintenance_available()
+    try:
+        return await models.verify(model_id)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(409 if models.busy else 400, str(exc)) from None
+
+
+@app.post('/api/asr/models/{model_id}/prepare-vad')
+async def prepare_model_vad(model_id: str):
+    require_asr_maintenance_available()
+    try:
+        return await models.prepare_vad(model_id)
+    except (ValueError, OSError) as exc:
+        raise HTTPException(409 if models.busy else 400, str(exc)) from None
 
 
 @app.post("/api/asr/models/{model_id}/cancel")
@@ -248,6 +321,7 @@ async def cancel_download(model_id: str):
 
 @app.post("/api/asr/models/{model_id}/select")
 async def select_model(model_id: str):
+    require_asr_maintenance_available()
     try:
         return await asyncio.to_thread(models.select, model_id)
     except ValueError as exc:
@@ -306,6 +380,8 @@ async def asr_debug(ws: WebSocket):
             if event.get("type") == "start":
                 if debug:
                     raise ValueError("ASR 调试已经开始")
+                if classroom_reserved():
+                    raise ValueError('已有试讲正在创建或运行，请先结束原试讲')
                 rate = event.get("sample_rate")
                 if type(rate) is not int or not 8000 <= rate <= 96000:
                     raise ValueError("不支持的麦克风采样率")
@@ -351,7 +427,7 @@ async def asr_debug(ws: WebSocket):
 
 @app.websocket("/ws/session")
 async def websocket(ws: WebSocket):
-    global active_session
+    global active_session, classroom_starting
     origin = ws.headers.get("origin")
     if origin:
         if not local_origin(origin):
@@ -360,6 +436,8 @@ async def websocket(ws: WebSocket):
     await ws.accept()
     session = None
     owns_engine = False
+    owns_starting = False
+    accepted_inputs = OrderedDict()
     try:
         while True:
             message = await ws.receive()
@@ -375,23 +453,38 @@ async def websocket(ws: WebSocket):
                             session.upload.failed = True
                         await session.emit("error", {"message": str(exc), "code": "audio_failure"})
                 continue
+            event = {}
             try:
                 event = json.loads(message.get("text", "{}"))
+                if not isinstance(event, dict):
+                    event = {}
+                    raise ValueError('课堂消息格式无效，请发送 JSON 对象')
                 kind = event.get("type")
                 if kind == "start":
-                    if active_session and not active_session.closed:
+                    if classroom_reserved():
                         raise ValueError("已有试讲正在运行，请先结束原试讲")
                     lesson = Lesson.model_validate(event.get("lesson", {}))
-                    asr_review = event.get("asr_review", True)
-                    if type(asr_review) is not bool:
-                        raise ValueError("语音转文字审核选项必须为布尔值")
-                    await ws.send_json({"type": "status", "data": {"message": "正在加载本机 ASR 模型"}})
-                    engine, vad_path, model_id = await models.acquire()
-                    owns_engine = True
-                    session = Session(ws.send_json, engine, vad_path, model_id)
-                    active_session = session
-                    await session.start(lesson, bool(event.get("muted", False)), bool(event.get("tts", True)), asr_review)
-                    histories.schedule(session.id)
+                    defaults = public_settings()
+                    muted, tts, asr_review = (event.get('muted', False),
+                        event.get('tts', defaults['tts']), event.get('asr_review', defaults['asr_review']))
+                    for value, label in ((muted, '静音'), (tts, '语音播报'), (asr_review, '语音转文字审核')):
+                        if type(value) is not bool:
+                            raise ValueError(label + '选项必须为布尔值')
+                    # Claim synchronously and freeze configuration before sending
+                    # status or awaiting ASR. A second socket cannot take this slot.
+                    snapshot = model_settings()
+                    classroom_starting = owns_starting = True
+                    try:
+                        await ws.send_json({"type": "status", "data": {"message": "正在加载本机 ASR 模型"}})
+                        engine, vad_path, model_id = await models.acquire()
+                        owns_engine = True
+                        session = Session(ws.send_json, engine, vad_path, model_id, snapshot)
+                        active_session = session
+                        await session.start(lesson, muted, tts, asr_review)
+                        accepted_inputs.clear()
+                        histories.schedule(session.id)
+                    finally:
+                        classroom_starting = owns_starting = False
                 elif not session or not session.ready or session.closed:
                     raise ValueError("请先创建试讲")
                 elif kind == "audio_start":
@@ -404,8 +497,24 @@ async def websocket(ws: WebSocket):
                 elif kind == "text":
                     if session.upload:
                         raise ValueError("请先完成或停止音频上传，再发送文字")
-                    await session.add_transcript(str(event.get("text", "")))
+                    text = event.get('text')
+                    if not isinstance(text, str) or not text.strip():
+                        raise ValueError('请输入非空的讲授文字')
+                    message_id = event.get('client_message_id')
+                    if message_id is not None and (not isinstance(message_id, str) or not message_id or len(message_id) > 128):
+                        raise ValueError('输入消息编号格式无效')
+                    if message_id in accepted_inputs:
+                        if accepted_inputs[message_id] != text:
+                            raise ValueError('此输入消息编号已经用于其他讲授内容，请重新发送')
+                        await session.emit('teacher_input_accepted', {'client_message_id': message_id})
+                        continue
+                    await session.add_transcript(text)
                     await session.flush("text_test")
+                    if message_id:
+                        accepted_inputs[message_id] = text
+                        while len(accepted_inputs) > 512:
+                            accepted_inputs.popitem(last=False)
+                        await session.emit('teacher_input_accepted', {'client_message_id': message_id})
                 elif kind == "flush":
                     await session.flush("manual")
                 elif kind == "mute":
@@ -438,10 +547,16 @@ async def websocket(ws: WebSocket):
                                                     'data': {'session_id': session.id, 'message': str(exc)}})
                             except (WebSocketDisconnect, RuntimeError):
                                 pass
+                else:
+                    raise ValueError('不支持的课堂操作')
             except (ValueError, ValidationError, ModelError) as e:
                 message = PROFILE_REQUIRED if PROFILE_REQUIRED in str(e) else str(e)
+                if owns_engine and (session is None or session.closed):
+                    await models.release()
+                    owns_engine = False
                 if session and not session.closed:
-                    await session.emit("error", {"message": message, "retryable": bool(session.failed_batch)})
+                    await session.emit("error", {"message": message, "retryable": bool(session.failed_batch),
+                                                 **({'client_message_id': str(event['client_message_id'])[:128]} if event.get('client_message_id') else {})})
                     if not session.ready:
                         await session.close()
                         if owns_engine:
@@ -450,12 +565,15 @@ async def websocket(ws: WebSocket):
                         if active_session is session:
                             active_session = None
                 else:
-                    await ws.send_json({"type": "error", "data": {"message": message}})
+                    await ws.send_json({"type": "error", "data": {"message": message,
+                        **({'client_message_id': str(event['client_message_id'])[:128]} if event.get('client_message_id') else {})}})
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
         # A disconnect/server cancellation must finish releasing native workers.
         with anyio.CancelScope(shield=True):
+            if owns_starting:
+                classroom_starting = False
             if session:
                 await session.close()
                 histories.schedule(session.id)

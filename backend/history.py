@@ -9,17 +9,18 @@ import tempfile
 import threading
 
 from . import config
+from .dialogue import HistoryDialogue, StudentView, student_segments
 
-VERSION = 2
+VERSION = 3
 PAGE_SIZE = 50
 
 
 def classroom_path(session_id):
     if not re.fullmatch(r'[0-9a-f]{12}', session_id):
         raise ValueError('课堂编号无效')
-    path = config.ROOT / 'logs' / f'{session_id}.jsonl'
+    path = config.data_root() / 'logs' / f'{session_id}.jsonl'
     # Never follow a log symlink outside the classroom directory.
-    if path.resolve().parent != (config.ROOT / 'logs').resolve():
+    if path.resolve().parent != (config.data_root() / 'logs').resolve():
         raise ValueError('课堂记录路径无效')
     if not path.is_file():
         raise FileNotFoundError('未找到这次课堂记录')
@@ -35,93 +36,6 @@ def read_json(path):
     return json.loads(path.read_text(encoding='utf-8'))
 
 
-def student_segments(data):
-    """Read the current student input, never its conversation history or repairs."""
-    if data.get('phase') != 'student':
-        return []
-    for message in reversed(data.get('body', {}).get('messages', [])):
-        if message.get('role') != 'user':
-            continue
-        content = message.get('content')
-        parts = [content] if isinstance(content, str) else [
-            part.get('text') for part in content or [] if isinstance(part, dict) and part.get('type') == 'text']
-        for part in parts:
-            try:
-                payload = json.loads(part)
-            except (ValueError, TypeError):
-                continue
-            if not isinstance(payload, dict) or 'new_teacher_segments' not in payload:
-                continue
-            segments = payload['new_teacher_segments']
-            if not isinstance(segments, list) or any(
-                not isinstance(segment, dict) or not isinstance(segment.get('id'), str)
-                or not segment['id'] or not isinstance(segment.get('text'), str) for segment in segments
-            ) or len({segment['id'] for segment in segments}) != len(segments):
-                raise ValueError('Invalid teacher batch')
-            return segments
-    return []
-
-
-class HistoryDialogue:
-    """Keep request order and exact submitted wording; transcripts are provenance."""
-    def __init__(self):
-        self.rows, self.sources, self.batches = [], {}, {}
-        self.submitted = set()
-        self.active = None
-
-    def transcript(self, event):
-        data = event['data']
-        text, source_id = data['text'], data['id']
-        if not isinstance(text, str) or not isinstance(source_id, str) or source_id in self.sources:
-            raise ValueError('Invalid transcript')
-        row = {'role': 'teacher', 'text': text, 'raw_text': text, 'source_ids': [source_id],
-               'time': event.get('time'), 'elapsed': event.get('elapsed'),
-               'processing_status': 'unconfirmed', 'request_count': 0}
-        self.sources[source_id] = row
-        self.rows.append(row)
-
-    def request(self, event):
-        segments = student_segments(event['data'])
-        if not segments:
-            return
-        signature = tuple((segment['id'], segment['text']) for segment in segments)
-        row = self.batches.get(signature)
-        if row is None:
-            originals = []
-            for segment in segments:
-                source = self.sources.get(segment['id'], {})
-                originals.append({'source_id': segment['id'], 'text': segment['text'],
-                                  'raw_text': source.get('raw_text'), 'time': source.get('time'),
-                                  'elapsed': source.get('elapsed', segment.get('at'))})
-            row = {'role': 'teacher', 'text': '\n'.join(segment['text'] for segment in segments),
-                   'source_ids': [segment['id'] for segment in segments], 'segments': originals,
-                   'time': event.get('time'), 'elapsed': event.get('elapsed'), 'request_count': 0}
-            self.batches[signature] = row
-            self.rows.append(row)
-        row['request_count'] += 1
-        row['processing_status'] = 'submitted'
-        self.submitted.update(row['source_ids'])
-        self.active = row
-
-    def processed(self, data):
-        if self.active is not None and set(self.active['source_ids']) == set(data.get('processed_sources', [])):
-            self.active['processing_status'] = 'processed'
-            self.active = None
-
-    def failed(self, data):
-        if data.get('code') != 'model_failure' or self.active is None:
-            return
-        if data.get('sources') is not None and set(data['sources']) != set(self.active['source_ids']):
-            return
-        self.active.update(processing_status='failed', had_failure=True)
-
-    def finish(self):
-        # Only covered transcript placeholders disappear. Unconfirmed fragments
-        # retain their original event position, even between student responses.
-        return [row for row in self.rows if row.get('request_count', 0) or row['role'] != 'teacher'
-                or row['source_ids'][0] not in self.submitted]
-
-
 class HistoryService:
     def __init__(self):
         self.jobs = {}
@@ -133,7 +47,7 @@ class HistoryService:
     def location(self, session_id):
         path = classroom_path(session_id)
         stamp = source_stamp(path)
-        return path, stamp, config.ROOT / 'logs' / '.history' / session_id / stamp
+        return path, stamp, config.data_root() / 'logs' / '.history' / session_id / stamp
 
     def cached(self, session_id):
         with self.cache_lock:
@@ -163,7 +77,7 @@ class HistoryService:
 
     def build(self, session_id):
         path, stamp, directory = self.location(session_id)
-        lesson, dialogue = {}, HistoryDialogue()
+        lesson, dialogue, view = {}, HistoryDialogue(session_id), StudentView()
         started_at = None
         finished, damaged = False, 0
         with path.open(encoding='utf-8-sig', errors='replace') as stream:
@@ -208,6 +122,7 @@ class HistoryService:
                         if isinstance(data.get('text'), str) and data['text'].strip():
                             dialogue.rows.append({'role': 'student', 'text': data['text'],
                                                   'time': event.get('time'), 'elapsed': event.get('elapsed')})
+                    view.consume(kind, data)
                 except (ValueError, KeyError, TypeError, AttributeError):
                     damaged += 1
         turns = dialogue.finish()
@@ -228,7 +143,8 @@ class HistoryService:
                 'topic': lesson.get('topic') or '未记录', 'grade': lesson.get('grade') or '未记录',
                 'subject': lesson.get('subject') or '未记录', 'started_at': started_at,
                 'student_profile': lesson.get('student_profile') or '',
-                'turn_count': len(turns), 'warnings': warnings, 'report_unavailable': reason}
+                'turn_count': len(turns), 'warnings': warnings, 'report_unavailable': reason,
+                'review': view.value()}
         directory.parent.mkdir(parents=True, exist_ok=True)
         temporary = Path(tempfile.mkdtemp(prefix='building-', dir=directory.parent))
         try:
@@ -272,7 +188,7 @@ class HistoryService:
     async def listing(self, offset=0, limit=20):
         def collect():
             rows, missing = [], []
-            for path in (config.ROOT / 'logs').glob('*.jsonl'):
+            for path in (config.data_root() / 'logs').glob('*.jsonl'):
                 if not re.fullmatch(r'[0-9a-f]{12}', path.stem):
                     continue
                 try:

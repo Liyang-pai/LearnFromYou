@@ -5,15 +5,19 @@
   <title>讲给我听 · Learn From You · 开发调试</title>
   <script>
     // Opening this file directly cannot reach the API or load the recording worklet.
-    if (location.protocol === 'file:') location.replace('http://127.0.0.1:8765/models');
+    if (location.protocol === 'file:') location.replace('http://127.0.0.1:8765/debug/models');
   </script>
   <link rel="stylesheet" href="/static/style.css?v=20261004-asr-debug-3">
+  <link rel="stylesheet" href="/static/formal/reference.css">
+  <link rel="stylesheet" href="/static/formal/theme.css">
+  <link rel="stylesheet" href="/static/formal/style.css">
+  <link rel="stylesheet" href="/static/debug-layout.css">
 </head>
 <body>
-  <header><a class="brand" href="/">讲给我听<span>Learn From You</span></a><span id="health" class="pill">正在连接本机服务</span></header>
+  <header><a class="brand" href="/debug">讲给我听<span>Learn From You</span></a><a href="/" target="_blank" rel="noopener">正式前端 ↗</a><span id="health" class="pill">正在连接本机服务</span></header>
   <p id="runtimeVersion" class="hint" role="status"></p>
   <main>
-    <aside class="development-note"><strong>开发调试界面</strong><span>当前页面用于验证 ASR 和试讲链路。面向用户的正式前端将另行开发。</span></aside>
+    <aside class="development-note"><strong>开发调试界面</strong><span>当前页面保留模型请求、处理记录与 ASR 调试。与正式前端独立操作，共用一堂课堂与识别资源。</span></aside>
     <nav class="page-nav" aria-label="功能页面"><button id="classroomTab" class="selected" aria-current="page">试讲课堂</button><button id="modelsTab">ASR 模型</button><button id="historyTab">历史课堂</button></nav>
     <div id="lessonPage">
     <section class="intro"><div><div class="eyebrow">一个正在学习的学生</div><h1>从你的讲解里，慢慢听懂。</h1><p>先告诉学生准备学什么，再开始讲课。没讲过的知识，不默认知道。</p></div><div class="local-note"><i></i> 本机识别语音<br><span>课堂文本交给 DeepSeek 理解</span></div></section>
@@ -166,5 +170,6 @@
   <script src="/static/history.js?v=20261018" defer></script>
   <script src="/static/pcm-recorder.js?v=20261004-asr-debug-3" defer></script>
   <script src="/static/asr-debug.js?v=20261004-asr-debug-3" defer></script>
+  <script type="module" src="/static/debug-layout.js"></script>
 </body>
 </html>

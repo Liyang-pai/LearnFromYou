@@ -1,0 +1,18 @@
+<!doctype html>
+<!-- 正式前端独立入口；课堂生命周期由业务模块持有，切换页面不重建连接。 -->
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light"><title>讲给我听 · Learn From You</title>
+  <link rel="stylesheet" href="/static/formal/reference.css">
+  <link rel="stylesheet" href="/static/formal/theme.css">
+  <link rel="stylesheet" href="/static/formal/style.css">
+  <script type="module" src="/static/formal/app.js"></script>
+</head>
+<body>
+  <div id="view"><p role="status">正在连接本机服务……</p></div>
+  <input id="image-picker" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+  <dialog id="image-preview" aria-label="教学截图预览"><button id="close-preview" aria-label="关闭预览">×</button><img alt="教学截图放大预览"></dialog>
+  <dialog id="action-confirm" aria-labelledby="confirm-title"><h2 id="confirm-title"></h2><p id="confirm-message"></p><form method="dialog" class="row-actions"><button class="btn" value="cancel">取消</button><button id="confirm-accept" class="btn primary" value="confirm">确认</button></form></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body></html>

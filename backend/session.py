@@ -17,17 +17,20 @@ from .schemas import Lesson, StudentResult, StudentState, KnowledgeReviewResult,
 from .speech import Speaker
 from .runtime import RUNTIME, fingerprint
 from .classroom_images import save_image
+from .dialogue import HistoryDialogue, StudentView
 
 CURRENT_IMAGE = object()
 
 
 class Session:
-    def __init__(self, send, recognizer, vad_path=None, asr_model=None):
+    def __init__(self, send, recognizer, vad_path=None, asr_model=None, model_snapshot=None):
         self.send = send
         self.recognizer = recognizer
         self.vad_path = vad_path
         self.asr_model = asr_model
         self.id = uuid.uuid4().hex[:12]
+        self.dialogue = HistoryDialogue(self.id)
+        self.student_view = StudentView()
         self.state = StudentState()
         self.sources = {}
         self.images = {}
@@ -84,7 +87,7 @@ class Session:
         self._close_task = None
         self.started = time.monotonic()
         self.log = None
-        self.llm = ModelClient(self.emit)
+        self.llm = ModelClient(self.emit, snapshot=model_snapshot) if model_snapshot is not None else ModelClient(self.emit)
 
     async def emit(self, kind, data):
         if kind in ('ready', 'llm_request'):
@@ -92,8 +95,9 @@ class Session:
         event = {"type": kind, "time": datetime.now(timezone.utc).isoformat(),
                  "elapsed": round(time.monotonic() - self.started, 3), "data": data}
         serialized = json.dumps(event, ensure_ascii=False)
-        if config.API_KEY:
-            serialized = serialized.replace(config.API_KEY, "[REDACTED]")
+        for secret in (config.API_KEY, getattr(self.llm, 'api_key', None)):
+            if secret:
+                serialized = serialized.replace(json.dumps(secret, ensure_ascii=False)[1:-1], "[REDACTED]")
         event = json.loads(serialized)
         if self.log:
             self.log.write(serialized + "\n")
@@ -101,6 +105,25 @@ class Session:
         if not self.closed:
             with contextlib.suppress(Exception):
                 await self.send(event)
+        # Project the same original debug events used to rebuild archive history.
+        # Derived events never count as a request or introduce a candidate reply.
+        batch = None
+        try:
+            if kind == 'transcript':
+                self.dialogue.transcript(event)
+            elif kind == 'llm_request':
+                batch = self.dialogue.request(event)
+            elif kind == 'state':
+                batch = self.dialogue.processed(event['data'])
+            elif kind == 'error':
+                batch = self.dialogue.failed(event['data'])
+        except (ValueError, KeyError, TypeError, AttributeError):
+            pass  # Invalid audit input must not interrupt the learning state machine.
+        if batch is not None:
+            await self.emit('teacher_batch', {key: value for key, value in batch.items() if key != 'role'})
+        view = self.student_view.consume(kind, event['data'])
+        if view is not None:
+            await self.emit('student_view', view)
 
     async def release_event(self, status, candidate, reason='', attempt=None):
         release = candidate.question_release_request
@@ -140,7 +163,7 @@ class Session:
         self.student_prompt_fingerprint = fingerprint(self.student_system)
         self.muted, self.tts_enabled = muted, tts
         self.asr_review = asr_review
-        logs = config.ROOT / "logs"
+        logs = config.data_root() / "logs"
         logs.mkdir(exist_ok=True)
         self.log = (logs / (self.id + ".jsonl")).open("a", encoding="utf-8")
         await self.emit("status", {"message": "正在分析本节课范围，尚未开始听课", "session_id": self.id})
@@ -189,7 +212,7 @@ class Session:
         async with self.image_lock:
             if not self.ready or self.finishing or self.closed:
                 raise ValueError('请在进行中的课堂上传截图')
-            image = await asyncio.to_thread(save_image, config.ROOT, self.id, data)
+            image = await asyncio.to_thread(save_image, config.data_root(), self.id, data)
             if self.finishing or self.closed:
                 raise ValueError('课堂已结束，截图未切换')
             if self.current_image == image.id:

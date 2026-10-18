@@ -29,7 +29,7 @@
       for (const item of data.items) {
         const button = document.createElement('button'); button.className = 'history-card';
         button.append(text('strong', item.topic), text('span', `${item.grade} · ${item.subject}`), text('time', date(item.started_at)));
-        button.onclick = () => navigate(`/history/${item.session_id}`);
+        button.onclick = () => navigate(`/debug/history/${item.session_id}`);
         el('historyCards').append(button);
       }
       offset += data.items.length;
@@ -82,7 +82,7 @@
     } catch (error) { if (token === generation) el('historyNotice').textContent = error.message; }
     finally { if (token === generation) { loading = false; el('earlierHistory').disabled = false; } }
   }
-  async function report(token, method = 'GET', auto = true) {
+  async function report(token, method = 'GET', auto = false) {
     if (reporting) return;
     reporting = true; el('retryHistoryReport').disabled = true;
     try {
@@ -116,7 +116,7 @@
   }
   function open() {
     leave(); const token = generation;
-    sid = /^\/history\/([0-9a-f]{12})$/.exec(location.pathname)?.[1] || '';
+    sid = /^\/debug\/history\/([0-9a-f]{12})$/.exec(location.pathname)?.[1] || '';
     loading = reporting = false; before = null; revision = ''; offset = 0;
     el('historyListView').classList.toggle('hidden', Boolean(sid));
     el('historyDetail').classList.toggle('hidden', !sid);
@@ -128,11 +128,11 @@
     el('downloadHistory').removeAttribute('href');
     if (sid) void detail(token); else void list(token);
   }
-  el('backHistory').onclick = () => navigate('/history');
+  el('backHistory').onclick = () => navigate('/debug/history');
   el('refreshHistory').onclick = open;
   el('moreHistory').onclick = () => list(generation, true);
   el('earlierHistory').onclick = () => dialogue(generation, true);
   el('retryHistoryReport').onclick = () => report(generation, 'POST', false);
   window.classroomHistory = {open, leave};
-  if (location.pathname.startsWith('/history')) open();
+  if (location.pathname.startsWith('/debug/history')) open();
 })();

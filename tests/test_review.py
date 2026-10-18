@@ -22,7 +22,7 @@ async def until(predicate):
 
 
 class ReviewModel:
-    def __init__(self, emit=None):
+    def __init__(self, emit=None, snapshot=None):
         self.calls = []
         self.review_gate = None
         self.student_gate = None

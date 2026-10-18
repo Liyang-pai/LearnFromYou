@@ -420,10 +420,10 @@ function showPage(page, updateURL = true) {
     $(id).classList.toggle('selected', active);
     if (active) $(id).setAttribute('aria-current', 'page'); else $(id).removeAttribute('aria-current');
   }
-  if (updateURL) history.pushState(null, '', historyVisible ? '/history' : page === 'models' ? '/models' : '/');
+  if (updateURL) history.pushState(null, '', historyVisible ? '/debug/history' : page === 'models' ? '/debug/models' : '/debug');
   if (historyVisible) window.classroomHistory?.open(); else window.classroomHistory?.leave();
 }
-function pageFromURL() { return location.pathname.startsWith('/history') ? 'history' : location.pathname === '/models' ? 'models' : 'classroom'; }
+function pageFromURL() { return location.pathname.startsWith('/debug/history') ? 'history' : location.pathname === '/debug/models' ? 'models' : 'classroom'; }
 $('modelsTab').onclick = () => showPage('models');
 $('classroomTab').onclick = () => showPage('classroom');
 $('historyTab').onclick = () => showPage('history');

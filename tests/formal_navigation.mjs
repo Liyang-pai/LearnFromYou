@@ -1,0 +1,38 @@
+// 隔离 DOM 与网络的业务竞态测试：快速导航和双击不能串课堂、报告或加载状态。
+import {readFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+const business=await readFile(new URL('../frontend/formal/service.js',import.meta.url),'utf8');
+const {state}=await import('data:text/javascript;base64,'+Buffer.from(business).toString('base64'));
+let source=await readFile(new URL('../frontend/formal/app.js',import.meta.url),'utf8');
+source=source.replace(/^import .*;$/gm,'').replace('void boot();','');
+const pending=[];
+const node={addEventListener(){},querySelectorAll:()=>[],querySelector:()=>node,innerHTML:'',focus(){},reportValidity:()=>true};
+const location={pathname:'/',protocol:'http:',host:'localhost',href:'http://localhost/'};
+const context=vm.createContext({state,api(url){return new Promise((resolve,reject)=>pending.push({url,resolve,reject}));},
+  Microphone:class{},render:()=>'',document:{querySelector:()=>node,querySelectorAll:()=>[],addEventListener(){},activeElement:null},
+  location,history:{pushState(_,__,path){location.pathname=path;}},window:{addEventListener(){},scrollTo(){}},clearTimeout,setTimeout,console});
+vm.runInContext(source+'\nthis.testApi={navigate,loadReport,createClass,startTest};',context);
+const app=context.testApi;
+const first=app.navigate('/'),second=app.navigate('/history');
+assert.equal(pending.length,2,'新路由不能被旧路由的 loading 阻止');
+pending[0].resolve({items:[{topic:'旧结果'}],total:1,indexing:false});await first;
+pending[1].resolve({items:[{topic:'当前历史'}],total:1,indexing:false});await second;
+assert.equal(state.history.items[0].topic,'当前历史');assert.equal(state.history.loading,false);
+pending.length=0;
+state.report={session_id:'old',status:'ready',report:{overview:{text:'旧课堂'}}};
+const reportA=app.navigate('/report/aaaaaaaaaaaa');
+assert.equal(state.report.session_id,'aaaaaaaaaaaa');assert.equal(state.report.report,undefined);
+const reportB=app.navigate('/report/bbbbbbbbbbbb');
+pending[1].resolve({session_id:'bbbbbbbbbbbb',status:'ready',report:{overview:{text:'当前课堂'}}});await reportB;
+pending[0].reject(new Error('已离开的课堂读取失败'));await reportA;
+assert.equal(state.report.session_id,'bbbbbbbbbbbb');assert.equal(state.report.status,'ready');
+pending.length=0;state.setup.topic='主题';state.setup.student_profile='画像';
+const createA=app.createClass(),createB=app.createClass();await createB;
+assert.equal(pending.length,1,'双击创建只能发起一个健康检查');
+pending[0].reject(new Error('测试到此停止'));await assert.rejects(createA);
+pending.length=0;
+const testA=app.startTest(),testB=app.startTest();await testB;
+assert.equal(pending.length,1,'双击识别测试只能发起一个健康检查');
+pending[0].reject(new Error('测试到此停止'));await assert.rejects(testA);
+console.log('formal navigation: stale history/report isolation and double-start locks passed');

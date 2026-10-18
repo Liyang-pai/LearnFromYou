@@ -118,6 +118,10 @@ def test_history_routes_download_and_same_origin(tmp_path, monkeypatch):
         assert client.get('/api/history?offset=-1').status_code == 422
         assert client.get('/api/history', headers={'sec-fetch-site': 'cross-site'}).status_code == 403
         assert client.get(f'/api/history/{SID}/log', headers={'origin': 'https://evil.test'}).status_code == 403
+
+
+def test_history_rejects_external_symlink(tmp_path, monkeypatch):
+    monkeypatch.setattr(config, 'ROOT', tmp_path); seed(tmp_path)
     outside = tmp_path / 'outside.jsonl'; outside.write_text('{}', encoding='utf-8')
     (tmp_path / 'logs' / 'ffffffffffff.jsonl').symlink_to(outside)
     with pytest.raises(ValueError): classroom_path('ffffffffffff')
@@ -313,7 +317,7 @@ def test_cache_version_upgrade_rebuilds_without_touching_log_or_report(tmp_path,
     async def run():
         service = HistoryService(); assert (await service.detail(SID))['status'] == 'indexing'
         await service.jobs[SID]
-        assert module.VERSION == 2 and not old.exists()
+        assert module.VERSION == 3 and not old.exists()
         assert (await service.dialogue(SID))['items'][0]['text'] == '实际提交'
         assert path.read_bytes() == raw and report.read_text(encoding='utf-8') == '报告原样保留'
     asyncio.run(run())

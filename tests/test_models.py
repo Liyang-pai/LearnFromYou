@@ -608,7 +608,7 @@ def test_websocket_locks_model_and_releases_on_end_disconnect_and_failure(manage
 
     class FakeLLM:
         fail = False
-        def __init__(self, emit): pass
+        def __init__(self, emit, snapshot=None): pass
         async def generate(self, *args):
             if self.fail:
                 raise ModelError('模拟课前失败')
@@ -633,7 +633,7 @@ def test_websocket_locks_model_and_releases_on_end_disconnect_and_failure(manage
             assert receive(ws, 'ready')['asr_model'] == 'first'
             assert client.get('/api/health').json()['engine_state'] == 'loaded'
             assert client.post('/api/asr/models/second/select').status_code == 409
-            assert client.post('/api/asr/models/second/download').status_code == 400
+            assert client.post('/api/asr/models/second/download').status_code == 409
             ws.send_json({'type': 'end'})
             receive(ws, 'finished')
         assert engines[0].closed and not manager.busy and manager.engine is None
