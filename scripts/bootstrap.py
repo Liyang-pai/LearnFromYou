@@ -1,5 +1,5 @@
 """Prepare the local environment; this entry point initially needs only stdlib."""
-import argparse
+import argparse # python标准库，用于解析命令行参数
 import codecs
 from datetime import datetime
 from importlib import metadata
@@ -274,4 +274,4 @@ def main():
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main()) # 当我们直接执行此文件时，Python 会执行 main()，然后将其返回值传给 sys.exit()，作为进程的退出状态。
