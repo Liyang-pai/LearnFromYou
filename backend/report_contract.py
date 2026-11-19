@@ -106,6 +106,132 @@ class AnalysisNotes(StrictModel):
     notes: list[Note] = Field(min_length=1, max_length=20)
 
 
+class ReflectionEvidence(StrictModel):
+    source_id: Source
+    actor: Literal['teacher', 'ai']
+    quote: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+
+
+class ReflectionObservation(StrictModel):
+    text: Text
+    evidence: list[ReflectionEvidence] = Field(min_length=1, max_length=3)
+
+
+class ReflectionFinding(StrictModel):
+    kind: Literal['重点改进', '可选提升']
+    dimension: Literal['goals', 'accuracy', 'clarity', 'coherence', 'interaction', 'understanding_check']
+    title: Text
+    fact: Text
+    action: Text
+    evidence: list[ReflectionEvidence] = Field(min_length=1, max_length=3)
+
+    @model_validator(mode='after')
+    def distinguish_design_from_learning_outcome(self):
+        # A simulated response cannot establish that a check was necessary or failed.
+        if self.dimension == 'understanding_check':
+            self.kind = '可选提升'
+        return self
+
+
+class ReflectionExpression(ReflectionObservation):
+    action: Text
+
+
+class ReflectionPractice(StrictModel):
+    minutes: int = Field(ge=1, le=3)
+    task: Text
+    example: Text
+    criterion: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1,
+                                                max_length=240, pattern=r'^教师能')]
+
+    @model_validator(mode='after')
+    def require_teacher_action(self):
+        if re.search(r'让(?:学生|小纸|全班).{0,12}(?:答|说出|学会|理解|掌握|听懂)', self.criterion):
+            raise ValueError('完成标准须是教师能独立完成的动作，例如教师能提出路径问题并准备一条纠错话术')
+        return self
+
+
+class ReflectionReport(StrictModel):
+    overview: ReflectionObservation
+    keep: ReflectionObservation | None
+    findings: list[ReflectionFinding] = Field(max_length=3)
+    expression: ReflectionExpression | None
+    practice: ReflectionPractice | None
+
+    @model_validator(mode='after')
+    def check_findings(self):
+        titles, anchors = set(), set()
+        optional_seen = False
+        for finding in self.findings:
+            if optional_seen and finding.kind == '重点改进':
+                raise ValueError('请先列重点改进，再列可选提升')
+            optional_seen |= finding.kind == '可选提升'
+            title = re.sub(r'[\W_]+', '', finding.title.casefold())
+            anchor = frozenset((item.source_id, item.quote) for item in finding.evidence)
+            if title in titles or anchor in anchors:
+                raise ValueError('发现重复，请合并为一条')
+            titles.add(title)
+            anchors.add(anchor)
+        if self.findings and not self.practice:
+            raise ValueError('有改进建议时请提供对应第一项的下次练习')
+        return self
+
+
+def evidence_turns(classroom):
+    metadata = classroom.get('evidence', {})
+    return [{**turn, **metadata.get(turn['id'], {})} for turn in classroom['turns']]
+
+
+def validate_reflection(report, allowed, turns):
+    by_id = {turn['id']: turn for turn in turns}
+    worked = set(worked_example_sources(turns))
+    areas = [report.overview, *report.findings]
+    if report.keep:
+        areas.append(report.keep)
+    if report.expression:
+        areas.append(report.expression)
+    for area in areas:
+        teachers = []
+        for item in area.evidence:
+            row = by_id.get(item.source_id)
+            if not row or row['role'] != item.actor:
+                raise ValueError('证据须引用实际发言，并标明正确角色')
+            if item.quote not in row['text']:
+                raise ValueError('证据须逐字来自指定课堂片段')
+            if item.actor == 'teacher':
+                if item.source_id not in allowed:
+                    raise ValueError('证据须引用当前阶段可用的教师片段')
+                teachers.append(row)
+        if not teachers:
+            raise ValueError('每项评价须有对应的教师行为依据')
+        if area is report.expression and any(
+                item.actor != 'teacher' or by_id[item.source_id].get('mode') != 'microphone' for item in area.evidence):
+            raise ValueError('表达观察只能使用教师语音转写')
+
+        text = area.title + '。' + area.fact if isinstance(area, ReflectionFinding) else area.text
+        if re.search(r'(?:学生|小纸|全班)(?:已经|已|都|完全|真正)(?:掌握|理解|学会|听懂)', text):
+            raise ValueError('只能描述本轮模拟作答，不能推断掌握')
+        if re.search(r'(?:学生|小纸|全班).{0,8}被动接收', text):
+            raise ValueError('课堂证据只支持具体发言和教学动作，不能推断学生是否被动')
+        for clause in re.split(r'[，。；;]', text):
+            if (re.search(r'^(?:教师|老师|你).{0,18}(?:演示|示范|演算)', clause)
+                    and not re.search(r'未|没有|可|建议|下次|要求', clause)):
+                has_work = any(item.actor == 'teacher' and (
+                    item.source_id in worked or
+                    re.search(r'我(?:现在|刚才|已经)(?:点击|选中|打开|输入|执行|运行|写出|展示)|(?:运行|执行)后(?:出现|得到|返回)',
+                              item.quote)
+                ) for item in area.evidence)
+                if not has_work:
+                    raise ValueError('声称教师演示需要可核对的操作或演算依据，请按实际行为描述')
+        if isinstance(area, ReflectionFinding) and area.kind == '重点改进':
+            if area.dimension in ('accuracy', 'clarity') and all(
+                    row.get('mode') == 'microphone' and row.get('review_status') != 'reviewed' for row in teachers):
+                raise ValueError('仅有未经确认的语音转写，不能断定知识或表达错误')
+            if (re.search(r'未|没有|一直没', area.fact)
+                    and any(by_id[e.source_id].get('question_status') == 'resolved' for e in area.evidence)):
+                raise ValueError('引用的疑问已有后续教师解释，请核对已处理的证据')
+
+
 DIMENSION_NAMES = [('accuracy', '内容准确'), ('clarity', '讲解清楚'),
                    ('coherence', '结构连贯'), ('checking', '师生互动')]
 
@@ -251,5 +377,7 @@ def source_bound(schema, allowed, turns=None):
             validate_sources(self, allowed)
             if turns is not None and isinstance(self, TeachingReport):
                 validate_grounding(self, turns)
+            elif turns is not None and isinstance(self, ReflectionReport):
+                validate_reflection(self, allowed, turns)
             return self
     return Bound

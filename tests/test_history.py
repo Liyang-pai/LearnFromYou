@@ -57,12 +57,12 @@ def test_history_complete_pagination_and_raw_review(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
-@pytest.mark.parametrize('finished,count,reason', [(False, 1, '未正常结束'), (True, 0, '没有教师')])
+@pytest.mark.parametrize('finished,count,reason', [(False, 1, '课堂未正常结束，暂不能生成报告。'), (True, 0, '')])
 def test_history_report_eligibility(tmp_path, monkeypatch, finished, count, reason):
     monkeypatch.setattr(config, 'ROOT', tmp_path); seed(tmp_path, finished=finished, count=count)
     async def run():
         result = await indexed(HistoryService())
-        assert reason in result['report_unavailable']
+        assert reason == result['report_unavailable']
     asyncio.run(run())
 
 
@@ -123,7 +123,12 @@ def test_history_routes_download_and_same_origin(tmp_path, monkeypatch):
 def test_history_rejects_external_symlink(tmp_path, monkeypatch):
     monkeypatch.setattr(config, 'ROOT', tmp_path); seed(tmp_path)
     outside = tmp_path / 'outside.jsonl'; outside.write_text('{}', encoding='utf-8')
-    (tmp_path / 'logs' / 'ffffffffffff.jsonl').symlink_to(outside)
+    try:
+        (tmp_path / 'logs' / 'ffffffffffff.jsonl').symlink_to(outside)
+    except OSError as exc:
+        if getattr(exc, 'winerror', None) != 1314:
+            raise
+        pytest.skip('Windows 当前账户没有创建符号链接的权限')
     with pytest.raises(ValueError): classroom_path('ffffffffffff')
 
 
@@ -137,7 +142,7 @@ def test_report_material_memo_and_source_prompt_invalidation(tmp_path, monkeypat
     service.get(SID); service.get(SID); assert len(scans) == 1
     with path.open('a', encoding='utf-8') as stream: stream.write('\n')
     service.get(SID); assert len(scans) == 2
-    monkeypatch.setattr(module, 'TEACHING_REPORT', module.TEACHING_REPORT + '更新')
+    monkeypatch.setattr(module, 'REFLECTION_REPORT', module.REFLECTION_REPORT + '更新')
     service.get(SID); assert len(scans) == 3
 
 
@@ -317,7 +322,7 @@ def test_cache_version_upgrade_rebuilds_without_touching_log_or_report(tmp_path,
     async def run():
         service = HistoryService(); assert (await service.detail(SID))['status'] == 'indexing'
         await service.jobs[SID]
-        assert module.VERSION == 3 and not old.exists()
+        assert module.VERSION == 4 and not old.exists()
         assert (await service.dialogue(SID))['items'][0]['text'] == '实际提交'
         assert path.read_bytes() == raw and report.read_text(encoding='utf-8') == '报告原样保留'
     asyncio.run(run())

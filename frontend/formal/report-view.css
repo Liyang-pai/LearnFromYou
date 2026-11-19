@@ -1,0 +1,132 @@
+/* 教学报告局部样式，沿用正式前端的组件和颜色。 */
+.report-review { display: flex; flex-direction: column; overflow: hidden; }
+.report-review > .page-head { flex: none; }
+.report-review .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+.report-review .eyebrow { color: #6f86a5; }
+.report-review-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.16fr); flex: 1; min-height: 0; }
+.report-review-panel.card { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; }
+.report-review-head { display: flex; align-items: flex-start; gap: 12px; padding: 19px 20px 16px; border-bottom: 1px solid var(--line); }
+.report-review-head h2 { font-size: 23px; }
+.report-review-head p { font-size: 15px; color: var(--muted); margin-top: 3px; }
+.report-symbol { display: inline-grid; place-items: center; flex: 0 0 37px; height: 37px; border-radius: 12px; background: var(--soft); color: var(--blue); }
+.report-symbol .icon { width: 21px; height: 21px; }
+.report-scroll { overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: #d5e4f6 transparent; min-height: 0; }
+.report-transcript { flex: 1; padding: 5px 17px 15px; }
+.report-transcript > .report-stat-note { padding: 12px 8px; }
+.report-turn { padding: 11px 9px 13px; border-bottom: 1px solid var(--line); border-left: 3px solid transparent; }
+.report-turn.is-linked { border-left-color: #e5b04c; border-bottom-color: transparent; background: #fff8e8; border-radius: 9px; }
+.report-turn mark { color: inherit; background: #ffebad; border-radius: 3px; }
+.report-turn-head { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; margin-bottom: 5px; }
+.report-turn-head time { color: #647c9b; font-size: 14px; font-variant-numeric: tabular-nums; }
+.report-turn-head .badge { font-size: 13px; padding: 2px 7px; }
+.report-turn p { color: var(--ink); font-size: 17px; line-height: 1.72; overflow-wrap: anywhere; white-space: pre-wrap; }
+.report-original { margin-top: 5px; color: #486e9f; font-size: 14px; }
+.report-original summary { cursor: pointer; }
+.report-analysis { padding: 15px 17px 19px; container-type: inline-size; }
+.report-overview.report-highlight { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin: 0 0 13px; padding: 13px 14px; }
+.report-overview h3, .report-stat h3, .report-issues h3, .report-strengths .report-summary strong, .report-practice h3 { font-size: 18px; line-height: 1.45; }
+.report-overview p { margin: 5px 0 0; color: var(--ink); font-size: 16px; line-height: 1.7; }
+.report-overview img { width: 71px; height: 76px; object-fit: contain; flex: none; }
+.report-stat-grid { display: grid; grid-template-columns: minmax(146px, .76fr) minmax(0, 1.48fr); gap: 11px; margin-bottom: 13px; }
+.report-stat { padding: 12px; border: 1px solid var(--line); border-radius: 15px; min-width: 0; }
+.report-stat h3 { margin: 0 0 7px; }
+.report-stat-note { font-size: 14px; color: #597390; }
+.report-word { display: grid; grid-template-columns: 3em minmax(10px, 1fr) auto; gap: 6px; align-items: center; font-size: 14px; padding: 5px 0; overflow-wrap: anywhere; }
+.report-word > :last-child { color: #6780a0; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.report-bar { height: 6px; border-radius: 6px; background: var(--soft); }
+.report-bar i { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
+.report-expression { margin-top: 8px; color: #486e9f; font-size: 14px; overflow-wrap: anywhere; }
+.report-expression summary { cursor: pointer; }
+.report-expression[open] p { margin-block: 5px; }
+.report-score-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+.report-score-head > span { font-size: 13px; color: #667f9f; white-space: nowrap; }
+.report-radar { position: relative; width: min(100%, 360px); aspect-ratio: 370 / 250; margin: 4px auto 0; container-type: inline-size; }
+.report-radar > svg { display: block; width: 100%; height: 100%; }
+.report-radar-grid { fill: none; stroke: #dbe8f8; stroke-width: 1.2; }
+.report-radar-shape, .report-radar-partial-fill { fill: #528df231; }
+.report-radar-shape, .report-radar-partial-line { stroke: var(--blue); stroke-width: 2.3; stroke-linejoin: round; }
+.report-radar-partial-line { fill: none; }
+.report-radar-dot { fill: var(--blue); stroke: #fff; stroke-width: 1.5; }
+.report-axis { position: absolute; top: var(--axis-y); left: var(--axis-x); transform: translate(-50%, -50%); }
+.report-axis > button { display: flex; flex-direction: column; align-items: center; border: 0; border-radius: 7px; padding: 3px 4px; background: transparent; color: var(--ink); font-size: clamp(12px, 4.15cqi, 15px); line-height: 1.28; white-space: nowrap; }
+.report-axis .report-score { font-weight: 700; color: #366ab1; font-variant-numeric: tabular-nums; }
+.report-score-pending { color: #587192; font-size: .85em; }
+.report-axis > button:hover, .report-axis > button:focus-visible { background: var(--soft); cursor: help; }
+.report-axis-tip { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: min(220px, 92cqi); max-height: 174px; overflow: auto; padding: 8px 10px; visibility: hidden; color: var(--ink); background: #fff; border: 1px solid #dfe9f7; border-radius: 10px; box-shadow: 0 5px 20px #355c8b20; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.report-axis-left .report-axis-tip { top: 0; left: 100%; transform: none; }
+.report-axis-right .report-axis-tip { top: 0; left: auto; right: 100%; transform: none; }
+.report-axis-lower .report-axis-tip { top: auto; bottom: 100%; }
+.report-axis-lower.report-axis-left .report-axis-tip { left: 0; }
+.report-axis-lower.report-axis-right .report-axis-tip { right: 0; }
+.report-axis:hover { z-index: 2; }
+.report-axis:focus-within { z-index: 1; }
+.report-axis:is(:hover, :focus-within):not([data-tooltip-dismissed]) .report-axis-tip { visibility: visible; }
+.report-strengths { border-radius: 15px; background: #eaf7f0; color: #386e5c; margin-bottom: 13px; }
+.report-strengths ul { margin: 0; padding: 1px 20px 13px 33px; font-size: 16px; }
+.report-strengths > p { padding: 0 13px 11px; }
+.report-strength-evidence { font-size: 14px; }
+.report-strength-evidence > summary { cursor: pointer; }
+.report-summary { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 11px 13px; list-style: none; line-height: 1.45; }
+.report-summary::-webkit-details-marker { display: none; }
+.report-summary:focus-visible, .report-scroll:focus-visible, .report-turn:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.report-summary .report-chevron { width: 16px; height: 16px; margin-left: auto; flex: none; }
+details[open] > .report-summary .report-chevron { transform: rotate(180deg); }
+.report-summary .badge { font-size: 12px; padding: 2px 7px; }
+.report-issues > h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px 2px; }
+.report-issues > h3 .badge { font-size: 12px; padding: 2px 8px; }
+.report-issue { border: 1px solid #e6edf7; border-radius: 13px; margin-bottom: 7px; }
+.report-issue[open] { background: #f7faff; }
+.report-issue .report-summary > strong { flex: 1; font-size: 16px; }
+.report-issue .badge { background: #e9f3ff; color: #356fb8; }
+.report-issue-content { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; padding: 0 11px 11px; font-size: 15px; line-height: 1.7; }
+.report-issue-content p { margin: 4px 0 0; }
+.report-evidence-list { display: grid; gap: 5px; margin: 4px 0; }
+.report-evidence { display: block; width: 100%; text-align: left; background: #fff; color: var(--ink); border: 1px solid #e4ecf7; border-radius: 11px; padding: 9px 10px; min-width: 0; }
+button.report-evidence:hover { background: #ecf4ff; border-color: #cddff6; }
+.report-evidence > span { display: flex; gap: 6px; align-items: baseline; color: #386bb0; flex-wrap: wrap; }
+.report-evidence time { font-size: 13px; white-space: nowrap; }
+.report-evidence q { display: block; margin-top: 4px; quotes: "“" "”"; overflow-wrap: anywhere; }
+.report-suggestion { background: #edf5ff; border-radius: 11px; padding: 9px 10px; }
+.report-suggestion strong { color: #386bb0; }
+.report-practice { margin-top: 15px; padding: 13px; border: 1px solid var(--line); border-radius: 15px; }
+.report-practice ul { margin: 6px 0; padding-inline-start: 1.25em; font-size: 16px; list-style: disc; }
+.report-practice li + li { margin-top: 6px; }
+.report-practice li::marker { font-size: .7em; }
+.report-practice .btn { margin-top: 8px; }
+@container (max-width: 520px) {
+  .report-stat-grid { grid-template-columns: minmax(116px, .7fr) minmax(0, 1.45fr); gap: 8px; }
+}
+@container (max-width: 420px) {
+  .report-stat-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@container (max-width: 375px) {
+  .report-issue-content { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 1280px) {
+  .report-review-grid { gap: 14px; }
+  .report-review { padding-inline: 21px; }
+  .report-review-head { padding-inline: 14px; gap: 8px; }
+  .report-review-head h2 { font-size: 21px; }
+}
+@media (max-width: 1050px), (max-height: 640px) {
+  .report-review { display: block; overflow-y: auto; }
+  .report-review-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-review-panel:first-child { height: clamp(250px, 55dvh, 560px); }
+  .report-analysis { overflow: visible; }
+  .report-review .page-head { align-items: flex-start; flex-direction: column; }
+  .report-review .row-actions { justify-content: flex-start; }
+  .app:has(.report-review) { min-height: 0; }
+}
+@media (max-width: 640px) {
+  .app:has(.report-review) .sidebar { display: none; }
+  .report-review { left: 0; padding: 15px 12px 24px; }
+  .report-review h1 { font-size: 31px; }
+  .report-review .page-head p { font-size: 15px; }
+  .report-review .row-actions { gap: 7px; }
+  .report-review .row-actions .btn { padding-inline: 10px; font-size: 14px; }
+  .report-review-head .report-symbol { display: none; }
+  .report-review-head h2 { font-size: 20px; }
+  .report-overview img { width: 55px; height: 65px; }
+  .report-turn { padding-inline: 5px; }
+  .report-turn p { font-size: 16px; }
+}

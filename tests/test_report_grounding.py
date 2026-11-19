@@ -120,12 +120,13 @@ def test_reading_invalid_grounding_cache_never_calls_model(tmp_path, monkeypatch
     service=ReportService(lambda emit: pytest.fail('read must not instantiate a model'))
     obj=fixture['model_output']()
     obj['dimensions']['checking']['reason']='没有学生回应'
-    saved={'schema_version':2,'session_id':fixture['SID'],'source_hash':source_hash(classroom),
+    saved={'schema_version':2,'session_id':fixture['SID'],'source_hash':source_hash(classroom, legacy=True),
            'status':'ready','progress':'完成','report':obj,'error':''}
-    service.save(saved)
-    original=service.path(fixture['SID']).read_bytes()
+    legacy=tmp_path / 'logs' / f"{fixture['SID']}.teaching-report-v2.json"
+    legacy.write_text(json.dumps(saved, ensure_ascii=False), encoding='utf-8')
+    original=legacy.read_bytes()
     assert service.get(fixture['SID'])['status']=='failed'
-    assert service.path(fixture['SID']).read_bytes()==original
+    assert legacy.read_bytes()==original and not service.path(fixture['SID']).exists()
 
 
 def test_advice_about_existing_demonstration_is_not_a_new_teacher_claim():

@@ -6,6 +6,7 @@ import {render} from './views.js';
 import {updateClassroomView} from './classroom-view.js';
 import {confirmation} from './prototype.js';
 import {time as clockText} from './records-view.js';
+import {jumpToReportEvidence} from './report-view.js';
 
 const waveform=new MicrophoneWaveform();
 const view=document.querySelector('#view'), mic=new Microphone({onLevel:(level,active)=>waveform.input(level,active)}), testMic=new Microphone();
@@ -32,7 +33,7 @@ function refresh() {
   }
   const focus=id ? document.getElementById(id) : name ? [...view.querySelectorAll('[name]')].find(el=>el.name===name) : null;
   if(focus && !focus.disabled) { focus.focus({preventScroll:true}); if(selection && focus.setSelectionRange && !['number','checkbox'].includes(focus.type)) focus.setSelectionRange(...selection); }
-  document.querySelectorAll('.sidebar a.nav-item').forEach(a=>a.classList.toggle('active',a.pathname==='/' ? path()==='/' || path()==='/history' : path().startsWith(a.pathname)));
+  document.querySelectorAll('.sidebar a.nav-item').forEach(a=>a.classList.toggle('active',a.pathname==='/' ? path()==='/' || path()==='/history' : path().startsWith(a.pathname) || a.pathname==='/classroom' && path().startsWith('/report/')));
 }
 function notice(message) { state.notice=message; refresh(); const node=document.querySelector('#toast'); node.textContent=message; node.hidden=false; clearTimeout(notice.timer); notice.timer=setTimeout(()=>node.hidden=true,6000); }
 async function confirmAction(title,message,label='确认') {
@@ -338,6 +339,19 @@ view.addEventListener('submit',event=>{
   if(event.target.id==='setup-form')void action(createClass);
   if(event.target.id==='settings-form')void action(saveSettings);
 });
+function restoreScoreDetails(event) {
+  const axis = event.target.closest('.report-axis');
+  if (axis && !axis.contains(event.relatedTarget)) axis.removeAttribute('data-tooltip-dismissed');
+}
+view.addEventListener('pointerover', restoreScoreDetails);
+view.addEventListener('focusin', restoreScoreDetails);
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || event.defaultPrevented) return;
+  for (const axis of view.querySelectorAll('.report-axis:is(:hover, :focus-within)')) {
+    if (axis.contains(document.activeElement)) axis.querySelector(':scope > button').focus({preventScroll: true});
+    axis.setAttribute('data-tooltip-dismissed', '');
+  }
+});
 view.addEventListener('click',event=>{
   const button=event.target.closest('[data-action]');if(!button || button.disabled || button.getAttribute('aria-disabled')==='true')return;
   const a=button.dataset.action,id=button.dataset.id,s=state.session;
@@ -352,6 +366,7 @@ view.addEventListener('click',event=>{
     else if(a==='back-class')await navigate('/classroom');
     else if(a==='back-create')await navigate('/create');
     else if(a==='report-back')await navigate(`/history/${id}`);
+    else if(a==='report-jump')jumpToReportEvidence(view,id,button.dataset.quote);
     else if(a==='home-create')await navigate(state.session.active?'/classroom':'/create');
     else if(a==='open-settings')await navigate('/settings');
     else if(a==='history-all')await navigate('/history');

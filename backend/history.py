@@ -11,7 +11,7 @@ import threading
 from . import config
 from .dialogue import HistoryDialogue, StudentView, student_segments
 
-VERSION = 3
+VERSION = 4
 PAGE_SIZE = 50
 
 
@@ -133,8 +133,6 @@ class HistoryService:
             warnings.append(f'{damaged} 条记录无法完整读取，以下仅展示可读取内容。')
         if not finished:
             reason = '课堂未正常结束，暂不能生成报告。'
-        elif not dialogue.sources:
-            reason = '本次没有教师讲授内容，无法生成报告。'
         elif damaged:
             reason = '课堂记录不完整，暂不能生成报告。'
         else:

@@ -9,12 +9,13 @@ from pydantic import ValidationError
 
 from backend import config
 from backend.llm import ModelError
-from backend.report_contract import TeachingReport
+from backend.report_contract import ReflectionReport, TeachingReport
 from backend import report_pipeline as pipeline
 from backend.teaching_report import ReportService, read_classroom, export_markdown
 
 fixtures = runpy.run_path(str(Path(__file__).with_name('test_teaching_report.py')))
 SID, save_classroom, model_output = (fixtures[k] for k in ('SID', 'save_classroom', 'model_output'))
+reflection_output = fixtures['reflection_output']
 
 
 def long_class(root, length=68000):
@@ -57,7 +58,12 @@ class NotesModel:
                     if key not in seen:
                         notes.append(note); seen.add(key)
             return schema.model_validate({'notes': notes})
-        return schema.model_validate(model_output())
+        if 'groups' in payload:
+            last = payload['groups'][-1]['notes'][-1]
+            teacher = {'id': last['source_ids'][0], 'text': last['text']}
+        else:
+            teacher = next(turn for turn in reversed(payload['turns']) if turn['role'] == 'teacher')
+        return schema.model_validate(reflection_output(teacher))
 
     async def close(self):
         self.closed = True
@@ -107,7 +113,7 @@ def test_long_class_all_stages_feed_final_with_cross_chunk_correction(tmp_path, 
         assert [group['range'] for group in groups] == [[i, i] for i in range(count)]
         texts = str(groups)
         assert '暂说尾节点' in texts and '纠正开头' in texts and '下节' in texts
-        assert result['report']['finding']['kind'] == '可选提升'
+        assert result['report']['findings'][0]['kind'] == '可选提升'
     asyncio.run(run())
 
 
@@ -199,7 +205,7 @@ def test_recursive_merge_keeps_last_correction_and_coverage(tmp_path, monkeypatc
     calls = []
     async def run():
         report = await pipeline.ReportPipeline(NotesModel(calls), tmp_path, SID, 'recursive', lambda _: None).generate(classroom)
-        assert isinstance(report, TeachingReport)
+        assert isinstance(report, ReflectionReport)
         assert any(c[0] == 'teaching_report_merge' for c in calls)
         groups = calls[-1][1]['groups']
         assert groups[0]['range'][0] == 0

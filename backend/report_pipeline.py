@@ -5,13 +5,18 @@ import re
 from pathlib import Path
 
 from .llm import ModelError
-from .report_contract import AnalysisNotes, TeachingReport, source_bound, interaction_facts
-from .report_prompt import ANALYZE_CHUNK, MERGE_NOTES, TEACHING_REPORT
+from .report_contract import AnalysisNotes, ReflectionReport, evidence_turns, source_bound, interaction_facts
+from .report_prompt import ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES
+from .report_scoring import RUBRIC_PROMPT, RubricAssessment
 
 SHORT_LIMIT = 24000
 CHUNK_LIMIT = 12000
 # Short, dense Q/A turns can exceed the notes budget long before the text limit.
 CHUNK_TEACHER_LIMIT = 8
+
+
+class ScoredReflectionReport(ReflectionReport):
+    assessment: RubricAssessment
 
 
 def encode(value):
@@ -25,8 +30,9 @@ def compact(classroom):
     if any(turn.get('image_id') for turn in classroom['turns']):
         lesson['has_visual_material'] = True
     return {'lesson': lesson, 'interaction_facts': interaction_facts(classroom['turns']), 'turns': [
-        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id') if key in turn}
-        for turn in classroom['turns']]}
+        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id', 'review_status',
+                                  'question_status', 'resolution_sources') if key in turn}
+        for turn in evidence_turns(classroom)]}
 
 
 def split_text(text, limit=2000):
@@ -80,7 +86,7 @@ def batches(groups):
         yield current
 
 
-def notes_input(payload, allowed):
+def notes_input(payload, allowed, *, reflection=False):
     """Keep AI speech and its order, but expose teacher anchors as citable IDs."""
     result = {**payload, 'allowed_teacher_source_ids': sorted(allowed)}
     if 'turns' in payload:
@@ -92,6 +98,8 @@ def notes_input(payload, allowed):
             else:
                 turns.append({**{k: v for k, v in turn.items() if k != 'id'},
                               'teacher_source_ids': list(previous)})
+                if reflection:
+                    turns[-1]['reply_id'] = turn['id']
         result['turns'] = turns
     return result
 
@@ -105,9 +113,9 @@ class ReportPipeline:
         self.directory = root / 'logs' / f'{sid}.report-v2-stages' / digest[:16]
         self.directory.mkdir(parents=True, exist_ok=True)
 
-    async def stage(self, phase, prompt, payload, schema, allowed):
+    async def stage(self, phase, prompt, payload, schema, allowed, *, reflection=False):
         if phase in ('teaching_report_chunk', 'teaching_report_merge'):
-            payload = notes_input(payload, allowed)
+            payload = notes_input(payload, allowed, reflection=reflection)
         if self.has_visual_material:
             prompt += ('\n本课堂包含实际展示的截图，但本次报告没有收到图片内容。'
                        '不能将没有口述图中内容判为漏讲，也不能臆测图里的知识错误、解释或答案。'
@@ -140,18 +148,33 @@ class ReportPipeline:
 
     async def generate(self, classroom):
         payload = compact(classroom)
-        self.turns = classroom['turns']
+        self.turns = evidence_turns(classroom)
         self.has_visual_material = payload['lesson'].get('has_visual_material', False)
         teachers = {s['id'] for s in classroom['teacher_segments']}
+        final_prompt = REFLECTION_REPORT.replace('页面不列六项评分。', '') + (
+            '\n最终JSON必须包含assessment对象（每个条件只填证据，数值由程序出）。'
+            'overview始终是含text和evidence的对象。若某项缺乏依据，其assessment维度返回空对象。'
+            '已有例题、实际小纸已经给出正确理由、教师随后补充规则时，'
+            '把“先后怎么安排”“换题前多说一句”“由教师再演示”等建议标为可选提升。'
+            '尚未看到更完整的讲法，不能证明已有讲解妨碍理解。'
+        ) + RUBRIC_PROMPT
+        if not any(t.get('mode') == 'microphone' for t in self.turns):
+            final_prompt += '\n本次只有打字讲授，expression字段（表达观察正文）必须是null。'
+        elif all(t.get('mode') == 'microphone' and t.get('review_status') != 'reviewed'
+                 for t in self.turns if t['role'] == 'teacher'):
+            final_prompt += ('\n教师内容全部来自未经确认的语音转写。不要把疑似识别错误写作教师知识或表达错误。'
+                             '如果只能依据疑似错转的一句，findings为[]、expression为null、practice为null，概览只陈述录得的主题。')
         if len(encode(payload)) <= SHORT_LIMIT:
             self.progress('正在分析讲授内容与改进建议……')
-            return await self.stage('teaching_report', TEACHING_REPORT, payload, TeachingReport, teachers)
+            return await self.stage('teaching_report', final_prompt,
+                                    payload, ScoredReflectionReport, teachers)
         parts = list(chunks(payload))
         groups = []
         for i, part in enumerate(parts):
             self.progress(f'正在分析长课内容 {i + 1}/{len(parts)}……')
             allowed = {t['id'] for t in part['turns'] if t['role'] == 'teacher'}
-            notes = await self.stage('teaching_report_chunk', ANALYZE_CHUNK, part, AnalysisNotes, allowed)
+            notes = await self.stage('teaching_report_chunk', ANALYZE_CHUNK + REFLECTION_NOTES,
+                                     part, AnalysisNotes, allowed, reflection=True)
             groups.append({'range': [i, i], **notes.model_dump()})
         # Coverage is tracked by the program, rather than trusting a model's claim.
         level = 0
@@ -162,7 +185,7 @@ class ReportPipeline:
             for i, batch in enumerate(batches(groups)):
                 self.progress(f'正在整理全课前后关系（第{level}轮）……')
                 merge_payload = {'groups': batch}
-                notes = await self.stage('teaching_report_merge', MERGE_NOTES, merge_payload,
+                notes = await self.stage('teaching_report_merge', MERGE_NOTES + REFLECTION_NOTES, merge_payload,
                                          AnalysisNotes, note_sources(merge_payload))
                 merged.append({'range': [batch[0]['range'][0], batch[-1]['range'][1]], **notes.model_dump()})
             if len(encode(merged)) >= len(encode(groups)):
@@ -172,5 +195,6 @@ class ReportPipeline:
         self.progress('正在核对全课解释、更正与优先改进……')
         final_payload = {'lesson': payload['lesson'], 'groups': groups,
                          'interaction_facts': payload['interaction_facts']}
-        return await self.stage('teaching_report', TEACHING_REPORT, final_payload, TeachingReport,
+        return await self.stage('teaching_report', final_prompt,
+                                final_payload, ScoredReflectionReport,
                                 note_sources(final_payload))

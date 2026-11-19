@@ -109,6 +109,20 @@ def model_output():
                      'criterion': '教师能明确说出起点、每步更新和结束条件，空链表演示不访问节点。', 'source_ids': ['t2', 't3']}}
 
 
+def reflection_output(teacher):
+    sid = teacher['id']
+    evidence = [{'source_id': sid, 'actor': 'teacher', 'quote': teacher['text'][:80]}]
+    return {'assessment': {}, 'overview': {'text': '本次说明链表遍历的步骤。', 'evidence': evidence},
+            'keep': {'text': '保留按访问顺序讲解的做法。', 'evidence': evidence},
+            'findings': [{'kind': '可选提升', 'dimension': 'clarity', 'title': '对照空链表',
+                          'fact': '你讲了节点访问和结束条件。', 'action': '补一句：头指针为空时，直接结束。',
+                          'evidence': evidence}],
+            'expression': None,
+            'practice': {'minutes': 2, 'task': '分别用空链表和两个节点讲遍历。',
+                         'example': '若头指针为空，还需要访问节点吗？',
+                         'criterion': '教师能明确说出起点和结束条件。'}}
+
+
 class FakeModel:
     def __init__(self, emit, calls, *, error=None, output=None, gate=None):
         self.calls, self.error, self.output, self.gate = calls, error, output, gate
@@ -120,6 +134,9 @@ class FakeModel:
             await self.gate.wait()
         if self.error:
             raise self.error
+        if 'findings' in output_type.model_fields:
+            teacher = next(turn for turn in reversed(payload['turns']) if turn['role'] == 'teacher')
+            return output_type.model_validate(self.output or reflection_output(teacher))
         return output_type.model_validate(self.output or model_output())
 
     async def close(self):
@@ -148,10 +165,10 @@ def test_report_needs_only_one_analysis_and_survives_restart(tmp_path, monkeypat
         assert all(t['role'] == 'teacher' for t in calls[0][1]['turns'])
         restored = ReportService(factory).get(SID)
         assert restored['status'] == 'ready'
-        assert restored['schema_version'] == 2
-        assert set(restored['report']['dimensions']) == {'accuracy', 'clarity', 'coherence', 'checking'}
+        assert restored['schema_version'] == 3
+        assert restored['report']['findings'][0]['kind'] == '可选提升'
         markdown = export_markdown(restored)
-        assert '师生互动' in markdown and '提问检查' not in markdown
+        assert '课堂依据' in markdown and '下次试试' in markdown
         assert '空链表' in markdown
         assert '课堂统计' not in markdown and '教师讲授 3 段' not in markdown
         assert '未记录到 AI 学生回答' not in markdown
@@ -160,7 +177,7 @@ def test_report_needs_only_one_analysis_and_survives_restart(tmp_path, monkeypat
     asyncio.run(run())
 
 
-@pytest.mark.parametrize('phase', ['TEACHING_REPORT', 'ANALYZE_CHUNK', 'MERGE_NOTES'])
+@pytest.mark.parametrize('phase', ['REFLECTION_REPORT', 'REFLECTION_NOTES', 'ANALYZE_CHUNK', 'MERGE_NOTES'])
 def test_changed_prompt_invalidates_cache_without_paid_read_or_rewriting_old_result(tmp_path, monkeypatch, phase):
     from backend import teaching_report, report_prompt
     path = save_classroom(tmp_path)
@@ -170,7 +187,7 @@ def test_changed_prompt_invalidates_cache_without_paid_read_or_rewriting_old_res
         service = teaching_report.ReportService(lambda emit: FakeModel(emit, calls))
         await service.start(SID)
         await service.tasks[SID]
-        cache = tmp_path / 'logs' / f'{SID}.teaching-report-v2.json'
+        cache = service.path(SID)
         saved, original = cache.read_bytes(), path.read_bytes()
         monkeypatch.setattr(teaching_report, phase, getattr(report_prompt, phase) + '\n新的互动评价规则')
         assert service.get(SID)['status'] == 'idle'
@@ -199,8 +216,8 @@ def test_invalid_reference_is_failed_and_cannot_be_exported(tmp_path, monkeypatc
     from backend.teaching_report import ReportService, export_markdown
     save_classroom(tmp_path)
     monkeypatch.setattr(config, 'ROOT', tmp_path)
-    output = model_output()
-    output['finding']['source_ids'] = ['t999']
+    output = reflection_output({'id': 't3', 'text': '最后一个节点指向空。'})
+    output['overview']['evidence'][0]['source_id'] = 't999'
     async def run():
         service = ReportService(lambda emit: FakeModel(emit, [], output=output))
         await service.start(SID)
@@ -345,7 +362,7 @@ def test_contradictory_cached_report_is_not_exported_or_repaired_by_read(tmp_pat
         await service.tasks[SID]
         path = service.path(SID)
         saved = json.loads(path.read_text(encoding='utf-8'))
-        saved['report']['finding'].update(kind='材料不足', text='缺少学生回答，无法评价整次讲解。')
+        saved['report']['overview']['text'] = '学生已经掌握链表遍历。'
         path.write_text(json.dumps(saved, ensure_ascii=False), encoding='utf-8')
         original = path.read_bytes()
         result = service.get(SID)
@@ -436,12 +453,12 @@ def test_prompt_change_does_not_reuse_old_report(tmp_path, monkeypatch):
         service = module.ReportService(lambda emit: FakeModel(emit, []))
         await service.start(SID)
         await service.tasks[SID]
-        monkeypatch.setattr(module, 'TEACHING_REPORT', module.TEACHING_REPORT + '\n简化措辞。')
+        monkeypatch.setattr(module, 'REFLECTION_REPORT', module.REFLECTION_REPORT + '\n简化措辞。')
         assert service.get(SID)['status'] == 'idle'
     asyncio.run(run())
 
 
-def test_v2_keeps_old_reports_and_uses_a_separate_cache(tmp_path, monkeypatch):
+def test_old_report_is_preserved_and_reflection_uses_a_separate_cache(tmp_path, monkeypatch):
     from backend import teaching_report as module
     save_classroom(tmp_path)
     monkeypatch.setattr(config, 'ROOT', tmp_path)
@@ -453,29 +470,28 @@ def test_v2_keeps_old_reports_and_uses_a_separate_cache(tmp_path, monkeypatch):
         assert service.get(SID)['status'] == 'idle'
         await service.start(SID)
         await service.tasks[SID]
-        assert service.get(SID)['schema_version'] == 2
+        assert service.get(SID)['schema_version'] == 3
         assert old.read_text(encoding='utf-8') == 'old report'
         assert len(calls) == 1
     asyncio.run(run())
 
 
 def test_reading_cached_report_removes_redundant_label_without_request_or_rewrite(tmp_path, monkeypatch):
-    from backend.teaching_report import ReportService
+    from backend.teaching_report import ReportService, source_hash
     save_classroom(tmp_path)
     monkeypatch.setattr(config, 'ROOT', tmp_path)
     calls = []
-    async def run():
-        service = ReportService(lambda emit: FakeModel(emit, calls))
-        await service.start(SID)
-        await service.tasks[SID]
-        path = service.path(SID)
-        saved = json.loads(path.read_text(encoding='utf-8'))
-        original = saved['report']['finding']['text']
-        saved['report']['finding']['text'] = saved['report']['finding']['kind'] + '：' + original
-        path.write_text(json.dumps(saved, ensure_ascii=False), encoding='utf-8')
-        before = path.read_bytes()
-        restored = ReportService(lambda emit: FakeModel(emit, calls)).get(SID)
-        assert restored['status'] == 'ready'
-        assert restored['report']['finding']['text'] == original
-        assert len(calls) == 1 and path.read_bytes() == before
-    asyncio.run(run())
+    path = tmp_path / 'logs' / f'{SID}.teaching-report-v2.json'
+    result = model_output()
+    original = result['finding']['text']
+    result['finding']['text'] = result['finding']['kind'] + '：' + original
+    path.write_text(json.dumps({
+        'schema_version': 2, 'status': 'ready', 'report': result,
+        'source_hash': source_hash(read_classroom(tmp_path, SID), legacy=True),
+    }, ensure_ascii=False), encoding='utf-8')
+    before = path.read_bytes()
+    service = ReportService(lambda emit: FakeModel(emit, calls))
+    restored = asyncio.run(service.start(SID))
+    assert restored['schema_version'] == 2 and restored['status'] == 'ready'
+    assert restored['report']['finding']['text'] == original
+    assert not calls and path.read_bytes() == before and not service.path(SID).exists()

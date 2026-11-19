@@ -54,6 +54,17 @@ CASES = [
                       '链表遍历沿next逐个访问节点，访问后移动到next，判断当前指针是否为空。' * 900,
                       '纠正开头说法：尾节点指向空，不存在可访问的下一节点。先检查指针为空则结束，否则访问后移动。',
                       '练习用两个节点画出访问顺序。复杂优化合理安排到下一课，不在本次目标内。']),
+    ('广义表诊断', [
+        ('teacher', '今天学习广义表的深度。((()))深度是多少？'),
+        ('ai', '深度是3。空表深度是1，外面再套两层，所以是3。'),
+        ('teacher', '好，接下来做另一道练习。'),
+        ('teacher', '补充文字材料。同一层有多个子表时，取最大子表深度再加1。'),
+    ]),
+    ('SQL Server操作入口', [
+        ('teacher', '这节课只介绍操作入口。打开表设计后，右键菜单可以找到索引/键。'),
+        ('teacher', '唯一性约束可以在索引/键设置里找到。详细配置下一节再练。'),
+        ('ai', '我知道入口在表设计的索引/键里。'),
+    ]),
 ]
 
 
@@ -78,6 +89,25 @@ def write_case(root, sid, name, texts):
 
 
 def content_checks(name, report):
+    if 'findings' in report:
+        primary = [item for item in report['findings'] if item['kind'] == '重点改进']
+        text = str(report)
+        checks = {'不把模拟回应写成真实掌握': not any(s in text for s in ('学生已经掌握', '学生都学会')),
+                  '改进时有教师可完成的练习': (not report['findings'] or
+                                             bool(report['practice'] and report['practice']['criterion'].startswith('教师能')))}
+        if name in ('正确讲解', '合理延期', '先错后纠正', '模拟误解已澄清', '长课跨段纠正',
+                    '缺少互动材料', '教师自问自答', '广义表诊断', 'SQL Server操作入口'):
+            checks['没有虚构需整改问题'] = not primary
+        if name in ('明确概念错误', '模拟误解未处理', '明确疑惑未回应'):
+            checks['重点诊断抓住元组的相关障碍'] = bool(primary and '元组' in str(primary[0]))
+        if name == '材料不足':
+            checks['材料不足时不虚构优势和问题'] = not report['keep'] and not report['findings']
+        if name == '广义表诊断':
+            checks['区分出题与计算解释'] = any(word in text for word in ('设问', '提问', '出题', '例题')) and '小纸' in text
+            checks['没有否定后续通用规则'] = not any(s in text for s in ('只靠小纸', '没有给出通用规则', '未讲通用规则'))
+        if name == 'SQL Server操作入口':
+            checks['没有把入口说明误作演示'] = '入口' in text and '亲手演示' not in text
+        return checks
     finding = report['finding']
     checks = {}
     if name in ('正确讲解', '合理延期', '先错后纠正'):

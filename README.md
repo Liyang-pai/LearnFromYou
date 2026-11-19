@@ -191,4 +191,12 @@ Windows 使用 System.Speech 的已安装语音，通过本机默认音频设备
 
 ## 教学报告增量分支
 
+新生成的报告采用教学复盘布局，展示本次状态、值得保留的做法、最多三条有课堂依据的改进，以及有证据时的表达观察和下一次练习。六维用于分析全课。理解检查设计评价教师设问和后续处理，小纸的作答记录为当轮模拟表现。
+
+关键引文按原句和角色核验。报告页面和 Markdown 只展示教师需要的短评与简短依据。新版结果写入独立的 `*.teaching-report-reflection.json`。有效的 V2 历史报告按原格式读取和导出。
+
+离线测试使用 `python -m pytest -q tests/test_report_reflection.py tests/test_teaching_report.py tests/test_report_pipeline.py`。浏览器验收使用 `node tests/teaching_report_browser.cjs`（需要 Playwright 和 Chromium）。实体课堂评价质量与长课的真实模型耗时仍需实际试讲确认。
+
+### V2 历史报告
+
 本分支从 main 增加独立教学报告。正常结束试讲后先释放课堂资源，再由后台自动分析。报告约250–350字，正文最多400字符：实际讲授概括、四维短评、一个优先发现与保留做法、一个具体改法、1–3分钟独立练习。理解相关判断融入现有评价；报告不展示统计、原文清单或证据编号，不包含独立课后理解测试。长课按顺序分段，失败可复用已成功阶段；刷新只读取，不重新调用模型。范围、API与验证见 [简明教学报告](docs/报告/teaching-report-first.md)。

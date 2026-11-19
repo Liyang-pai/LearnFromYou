@@ -33,6 +33,10 @@
     body.replaceChildren();
     if (data.status === 'ready' && data.report) {
       const report = data.report;
+      if (Array.isArray(report.findings)) {
+        body.append(window.renderReportReflection(report));
+        return;
+      }
       body.append(node('h3', '总体概括'), node('p', report.overview.text));
       const dimensions = document.createElement('ul');
       dimensions.className = 'report-dimensions';
