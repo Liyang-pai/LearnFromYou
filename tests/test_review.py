@@ -1,5 +1,6 @@
 import asyncio
 from copy import deepcopy
+from datetime import datetime
 import json
 from types import SimpleNamespace
 
@@ -118,7 +119,7 @@ def test_default_glossary_and_mixed_segment_isolate_student_inputs(tmp_path, mon
             assert record['sources'] == ['t1', 't2', 't3']
         finally:
             await session.close()
-        saved = [json.loads(line) for line in (tmp_path / 'logs' / (session.id + '.jsonl')).read_text(encoding="utf-8").splitlines()]
+        saved = [json.loads(line) for line in (tmp_path / session.log_file).read_text(encoding="utf-8").splitlines()]
         assert any(e['type'] == 'review_completed' and e['data']['segments'][0]['raw_text'] !=
                    e['data']['segments'][0]['corrected_text'] for e in saved)
     asyncio.run(run())
@@ -339,7 +340,13 @@ def test_context_is_last_eight_finalized_teacher_sources(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
-def test_finish_drains_audio_tail_and_review_queue(tmp_path, monkeypatch):
+@pytest.mark.parametrize('started_at,stamp', [
+    (datetime(2026, 11, 19, 11, 16, 1), '2026-11-19_111601'),
+    (datetime(2026, 11, 20, 9, 5, 7), '2026-11-20_090507'),
+])
+def test_finish_drains_audio_tail_and_review_queue(tmp_path, monkeypatch, started_at, stamp):
+    monkeypatch.setattr('backend.session.datetime', SimpleNamespace(
+        now=lambda tz=None: started_at.replace(tzinfo=tz)))
     async def run():
         session, model, events = await make_session(tmp_path, monkeypatch)
         session.audio = SimpleNamespace(finish=lambda: [np.zeros(1600, dtype=np.float32)])
@@ -350,6 +357,9 @@ def test_finish_drains_audio_tail_and_review_queue(tmp_path, monkeypatch):
         assert session.sources['t1']['text'] == '末尾链表'
         finished = next(e['data'] for e in events if e['type'] == 'finished')
         assert finished['unprocessed_sources'] == []
+        assert finished['log_file'] == f'logs/{stamp}_{session.id}.jsonl'
+        assert events[0]['data']['log_file'] == finished['log_file']
+        assert (tmp_path / finished['log_file']).is_file()
         assert all(t.done() for t in session.tasks)
     asyncio.run(run())
 

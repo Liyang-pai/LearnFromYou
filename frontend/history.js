@@ -108,7 +108,6 @@
       el('historyWarning').textContent = data.warnings.join(' ');
       el('historyProfile').textContent = data.student_profile || '这堂课未保存学生画像。';
       el('downloadHistory').href = `/api/history/${sid}/log`;
-      el('downloadHistory').download = `classroom-${sid}.jsonl`;
       void dialogue(token);
       if (data.report_unavailable) el('historyReportStatus').textContent = data.report_unavailable;
       else void report(token);

@@ -10,6 +10,7 @@ import math
 from pathlib import Path
 import re
 from . import config
+from .history import classroom_path, source_stamp
 from .llm import ModelClient, ModelError
 from .report_accuracy import SCORE_CAPS, score_accuracy, statement_key
 from .report_prompt import TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES
@@ -37,13 +38,11 @@ def sound_check(text):
 
 
 def read_classroom(root: Path, session_id: str):
-    if not re.fullmatch(r'[0-9a-f]{12}', session_id):
-        raise ValueError('课堂编号无效')
     teachers, replies, lesson, finished, timeline = {}, [], {}, None, []
     metadata, reply_questions = {}, {}
     timing, originals, finish_time = {}, {}, {}
     started = microphone_enabled = audio_received = capture_error = False
-    with (root / 'logs' / f'{session_id}.jsonl').open(encoding='utf-8-sig') as stream:
+    with classroom_path(session_id, logs=root / 'logs').open(encoding='utf-8-sig') as stream:
         for line in stream:
             if not line.strip():
                 continue
@@ -302,7 +301,6 @@ class ReportService:
     def material(self, session_id):
         # Source and prompt changes invalidate material/hash together. Polling never
         # rereads an unchanged raw log; cap memory retained across historical classes.
-        from .history import classroom_path, source_stamp
         path = classroom_path(session_id)
         key = (str(path), source_stamp(path), source_hash({}))
         with self.material_lock:

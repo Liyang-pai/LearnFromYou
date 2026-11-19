@@ -93,7 +93,7 @@ async def run(args):
     finally:
         await session.close()
         result = {'runtime': RUNTIME, 'session_id': session.id, 'checks': checks, 'snapshots': snapshots,
-                  'requests': len([e for e in events if e['type'] == 'llm_request']), 'log': f'logs/{session.id}.jsonl'}
+                  'requests': len([e for e in events if e['type'] == 'llm_request']), 'log': session.log_file}
         (args.output / 'acceptance.json').write_text(json.dumps(result, ensure_ascii=False, indent=2))
         print('RESULT', args.output / 'acceptance.json', flush=True)
 

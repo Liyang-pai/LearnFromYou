@@ -81,7 +81,7 @@ async def run(output, prior=()):
         await session.close()
         usage = [e['data'].get('usage', {}) for e in events if e['type'] == 'llm_output']
         summary = {'runtime': RUNTIME, 'session_id': session.id, 'checks': checks, 'budget': budget,
-                   'usage': usage, 'log': str(output / 'logs' / f'{session.id}.jsonl')}
+                   'usage': usage, 'log': str(output / session.log_file) if session.log_file else None}
         (output / 'acceptance.json').write_text(json.dumps(summary, ensure_ascii=False, indent=2), encoding='utf-8')
         print('RESULT', output / 'acceptance.json', flush=True)
 

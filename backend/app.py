@@ -135,7 +135,8 @@ async def history_log(session_id: str):
         path = await asyncio.to_thread(classroom_path, session_id)
     except (ValueError, OSError) as exc:
         raise report_error(exc) from None
-    return FileResponse(path, media_type='application/x-ndjson', filename=f'classroom-{session_id}.jsonl',
+    filename = f'classroom-{path.name}' if path.stem == session_id else path.name
+    return FileResponse(path, media_type='application/x-ndjson', filename=filename,
                         headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
 
 

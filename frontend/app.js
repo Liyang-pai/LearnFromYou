@@ -5,7 +5,7 @@ let context, stream, source, worklet, processor, silentGain, flushed, fallbackTi
 let sentAudioFrames = 0;
 let micStarting = false, micStopping = false;
 let replySoundContext, replySoundBuffer, replySoundLoading;
-let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '';
+let records = [], transcriptCount = 0, segmentCount = 0, sessionId = '', logName = '';
 let glossaryBusy = false, reviewBusy = false, studentBusy = false, studentFailed = false;
 const phaseLabels = {preparation:'课前范围分析', review_glossary:'课前术语准备', asr_review:'语音转文字审核', student:'学生认知更新', student_resume:'解除静音后的回应判断', knowledge_review:'知识依赖复核'};
 const reviewLabels = {reviewed:'已审核', fallback:'审核失败 · 使用原文', bypassed:'文字输入 · 无需审核', disabled:'审核已关闭'};
@@ -167,6 +167,7 @@ function showActivity() {
 }
 function handle(event) {
   records.push(event); const d = event.data || {}, stamp = event.elapsed === undefined ? '' : `${event.elapsed.toFixed(1)}s`;
+  if (d.log_file) logName = d.log_file.split('/').pop();
   window.lessonUpload?.handle(event);
   window.classroomImages?.handle(event);
   switch (event.type) {
@@ -295,7 +296,7 @@ $('lessonForm').addEventListener('submit',async e => {
   e.preventDefault(); if(starting || running || ending || window.studentProfile?.busy || !asrReady || asrBusy || asrDownloading || window.asrDebug?.busy) return;
   const lesson = window.studentProfile.readLesson(); if(!lesson) return;
   void prepareReplySound();
-  starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = '';
+  starting = true; ending = false; records = []; transcriptCount = 0; segmentCount = 0; sessionId = ''; logName = '';
   window.teachingReport?.reset();
   glossaryBusy = reviewBusy = studentBusy = studentFailed = false;
   $('transcriptCount').textContent = '0'; $('segmentCount').textContent = '0'; $('llmTime').textContent = '—'; $('reviewTime').textContent = '—';
@@ -378,7 +379,7 @@ $('retry').onclick = () => { send({type:'retry'}); $('error').classList.add('hid
 $('dismiss').onclick = () => $('error').classList.add('hidden');
 $('export').onclick = () => {
   const blob = new Blob([records.map(e => JSON.stringify(e)).join('\n')],{type:'application/x-ndjson'});
-  const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = `classroom-${sessionId || 'debug'}.jsonl`; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
+  const url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = logName || `classroom-${sessionId || 'debug'}.jsonl`; a.click(); setTimeout(() => URL.revokeObjectURL(url),1000);
 };
 for(const tab of document.querySelectorAll('[data-tab]')) tab.onclick = () => {
   for(const t of document.querySelectorAll('[data-tab]')) { const active = t === tab; t.classList.toggle('selected',active); t.setAttribute('aria-selected',String(active)); $('pane-' + t.dataset.tab).classList.toggle('hidden',!active); }

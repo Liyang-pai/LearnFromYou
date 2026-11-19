@@ -58,7 +58,7 @@ async def main(args):
                     await asyncio.sleep(.5)
         meta = await archive(sid); assert meta['student_profile'] == lesson['student_profile']
         rows = (await client.get(f'{base}/api/history/{sid}/dialogue')).json()['items']
-        log = args.data / 'logs' / f'{sid}.jsonl'
+        log = args.data / finished['log_file']
         events = [json.loads(line) for line in log.read_text().splitlines()]
         expected = [e for e in events if e['type'] in ('transcript','reply')]
         assert len(rows) == len(expected)
@@ -74,7 +74,7 @@ async def main(args):
         assert (await client.get(f'{base}/api/teaching-report/{copy_sid}')).json()['status'] == 'idle'
         # Fail before the HTTP call; no paid API attempt is wasted on failure injection.
         (args.data / 'fail-next-report').write_text('1')
-        evidence = {'session_id': sid, 'copy_session_id': copy_sid, 'student_reply': reply['text'],
+        evidence = {'session_id': sid, 'log_file': finished['log_file'], 'copy_session_id': copy_sid, 'student_reply': reply['text'],
                     'dialogue_count': len(rows), 'profile_matches': True, 'dialogue_matches_log': True,
                     'log_sha256': hashlib.sha256(downloaded.content).hexdigest(),
                     'primary_report_status': primary['status'], 'runtime': health['runtime']}

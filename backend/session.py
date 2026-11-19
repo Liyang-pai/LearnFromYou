@@ -87,6 +87,7 @@ class Session:
         self._close_task = None
         self.started = time.monotonic()
         self.log = None
+        self.log_file = None
         self.llm = ModelClient(self.emit, snapshot=model_snapshot) if model_snapshot is not None else ModelClient(self.emit)
 
     async def emit(self, kind, data):
@@ -165,8 +166,12 @@ class Session:
         self.asr_review = asr_review
         logs = config.data_root() / "logs"
         logs.mkdir(exist_ok=True)
-        self.log = (logs / (self.id + ".jsonl")).open("a", encoding="utf-8")
-        await self.emit("status", {"message": "正在分析本节课范围，尚未开始听课", "session_id": self.id})
+        started_at = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+        filename = f'{started_at}_{self.id}.jsonl'
+        self.log = (logs / filename).open("a", encoding="utf-8")
+        self.log_file = f'logs/{filename}'
+        await self.emit("status", {"message": "正在分析本节课范围，尚未开始听课",
+                                  "session_id": self.id, "log_file": self.log_file})
         preparation_type = profile_preparation(lesson.student_profile)
         result = await self.llm.generate("preparation", prompts.PREPARE, lesson.model_dump(), preparation_type)
         self.preparation = preparation_type.model_validate(result.model_dump())
@@ -797,7 +802,7 @@ class Session:
         remaining = [s for s in self.sources if s.startswith("t") and s not in self.processed_ids]
         await self.emit("finished", {"state": self.state.model_dump(), "unprocessed_sources": remaining,
                                      "unreviewed_knowledge": [r.model_dump() for r in self.state.pending_reviews],
-                                     "session_id": self.id, "lesson": self.lesson.model_dump(), "log_file": f"logs/{self.id}.jsonl"})
+                                     "session_id": self.id, "lesson": self.lesson.model_dump(), "log_file": self.log_file})
         await self.close()
 
     async def close(self):

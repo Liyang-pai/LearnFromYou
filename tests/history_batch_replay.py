@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend import config
-from backend.history import HistoryService
+from backend.history import HistoryService, classroom_path
 
 
 def expected_from_log(path):
@@ -47,8 +47,7 @@ def expected_from_log(path):
 async def main(args):
     results = []
     for sid in args.sessions:
-        source = args.source_dir / f'{sid}.jsonl'
-        if not source.is_file(): raise FileNotFoundError(f'需要已有真实课堂日志：{source}')
+        source = classroom_path(sid, logs=args.source_dir)
         digest = hashlib.sha256(source.read_bytes()).hexdigest()
         expected, originals, replies = expected_from_log(source)
         with tempfile.TemporaryDirectory(prefix='lfy-batch-replay-') as folder:

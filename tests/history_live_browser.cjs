@@ -35,7 +35,8 @@ if(!data) throw Error('HISTORY_TEST_DATA is required');
     await page.screenshot({path:path.join(data,'live-history-list.png'),fullPage:true});
     // Make a second missing-report copy: opening two pages must create one real job.
     const parallelSid='123456abcddd';
-    fs.writeFileSync(path.join(data,`logs/${parallelSid}.jsonl`),fs.readFileSync(path.join(data,`logs/${evidence.session_id}.jsonl`),'utf8').replaceAll(evidence.session_id,parallelSid));
+    const primaryLog=evidence.log_file || `logs/${evidence.session_id}.jsonl`;
+    fs.writeFileSync(path.join(data,`logs/${parallelSid}.jsonl`),fs.readFileSync(path.join(data,primaryLog),'utf8').replaceAll(evidence.session_id,parallelSid));
     const second=await browser.newPage();
     await Promise.all([page.goto(base+'/history/'+parallelSid),second.goto(base+'/history/'+parallelSid)]);
     await Promise.all([page.getByText('教学报告已生成。',{exact:true}).waitFor({timeout:310000}),second.getByText('教学报告已生成。',{exact:true}).waitFor({timeout:310000})]);

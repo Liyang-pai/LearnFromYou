@@ -13,14 +13,27 @@ from .dialogue import HistoryDialogue, StudentView, student_segments
 
 VERSION = 4
 PAGE_SIZE = 50
+CLASSROOM_LOG = re.compile(
+    r'(?:[0-9]{4}-[0-9]{2}-[0-9]{2}_(?:[0-9]{6}|[0-9]{2}-[0-9]{2}-[0-9]{2})_)?([0-9a-f]{12})\.jsonl'
+)
 
 
-def classroom_path(session_id):
+def classroom_path(session_id, *, logs=None):
     if not re.fullmatch(r'[0-9a-f]{12}', session_id):
         raise ValueError('课堂编号无效')
-    path = config.data_root() / 'logs' / f'{session_id}.jsonl'
+    logs = config.data_root() / 'logs' if logs is None else logs
+    legacy = logs / f'{session_id}.jsonl'
+    if legacy.exists() or legacy.is_symlink():
+        return checked_log(legacy)
+    for path in sorted(logs.glob(f'*_{session_id}.jsonl')):
+        if CLASSROOM_LOG.fullmatch(path.name):
+            return checked_log(path)
+    raise FileNotFoundError('未找到这次课堂记录')
+
+
+def checked_log(path):
     # Never follow a log symlink outside the classroom directory.
-    if path.resolve().parent != (config.data_root() / 'logs').resolve():
+    if path.resolve().parent != path.parent.resolve():
         raise ValueError('课堂记录路径无效')
     if not path.is_file():
         raise FileNotFoundError('未找到这次课堂记录')
@@ -44,17 +57,17 @@ class HistoryService:
         self.summaries = OrderedDict()
         self.cache_lock = threading.RLock()
 
-    def location(self, session_id):
-        path = classroom_path(session_id)
+    def location(self, session_id, path=None):
+        path = classroom_path(session_id) if path is None else checked_log(path)
         stamp = source_stamp(path)
         return path, stamp, config.data_root() / 'logs' / '.history' / session_id / stamp
 
-    def cached(self, session_id):
+    def cached(self, session_id, path=None):
         with self.cache_lock:
-            return self._cached(session_id)
+            return self._cached(session_id, path)
 
-    def _cached(self, session_id):
-        path, stamp, directory = self.location(session_id)
+    def _cached(self, session_id, path):
+        path, stamp, directory = self.location(session_id, path)
         key = (str(path), stamp)
         meta = self.summaries.get(key)
         if meta is not None:
@@ -186,15 +199,23 @@ class HistoryService:
     async def listing(self, offset=0, limit=20):
         def collect():
             rows, missing = [], []
-            for path in (config.data_root() / 'logs').glob('*.jsonl'):
-                if not re.fullmatch(r'[0-9a-f]{12}', path.stem):
+            paths = {}
+            for path in sorted((config.data_root() / 'logs').glob('*.jsonl')):
+                match = CLASSROOM_LOG.fullmatch(path.name)
+                if not match:
                     continue
+                session_id = match[1]
+                if path.stem == session_id:
+                    paths[session_id] = path
+                else:
+                    paths.setdefault(session_id, path)
+            for session_id, path in paths.items():
                 try:
-                    meta, _ = self.cached(path.stem)
+                    meta, _ = self.cached(session_id, path)
                 except (OSError, ValueError):
                     continue
                 if meta is None:
-                    missing.append(path.stem)
+                    missing.append(session_id)
                 else:
                     rows.append({key: meta[key] for key in ('session_id', 'topic', 'grade', 'subject', 'started_at')})
             rows.sort(key=lambda row: (row['started_at'] or '', row['session_id']), reverse=True)

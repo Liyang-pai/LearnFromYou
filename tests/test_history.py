@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from backend import config
 from backend.history import HistoryService, classroom_path
-from backend.teaching_report import ReportService
+from backend.teaching_report import ReportService, read_classroom
 from tests.test_teaching_report import save_classroom, SID, FakeModel
 
 
@@ -106,13 +106,29 @@ def test_history_duplicate_indexing_job(tmp_path, monkeypatch):
     asyncio.run(run())
 
 
-def test_history_routes_download_and_same_origin(tmp_path, monkeypatch):
+@pytest.mark.parametrize('stamp', ['2026-11-19_111601', '2026-11-19_11-16-01'])
+def test_history_routes_download_and_same_origin(tmp_path, monkeypatch, stamp):
     import backend.app as module
     monkeypatch.setattr(config, 'ROOT', tmp_path); path = seed(tmp_path)
+    dated_sid = '987654fedcba'
+    new_log = seed(tmp_path, dated_sid, count=1)
+    dated = new_log.rename(new_log.with_name(f'{stamp}_{dated_sid}.jsonl'))
     monkeypatch.setattr(module, 'histories', HistoryService())
     with TestClient(module.app) as client:
         response = client.get('/api/history'); assert response.status_code == 200
         assert client.get(f'/api/history/{SID}/log').content == path.read_bytes()
+        download = client.get(f'/api/history/{dated_sid}/log')
+        assert download.content == dated.read_bytes()
+        assert download.headers['content-disposition'] == f'attachment; filename="{dated.name}"'
+        for _ in range(100):
+            result = client.get('/api/history').json()
+            if not result['indexing']:
+                break
+            time.sleep(.01)
+        assert {item['session_id'] for item in result['items']} == {SID, dated_sid}
+        assert client.get(f'/api/history/{dated_sid}').json()['topic'] == '惯性的概念'
+        assert client.get(f'/api/history/{dated_sid}/dialogue').json()['total'] == 2
+        assert read_classroom(tmp_path, dated_sid)['facts']['teacher_segments'] == 1
         assert client.get('/api/history/invalid/log').status_code == 400
         assert client.get('/api/history/ffffffffffff').status_code == 404
         assert client.get('/api/history?offset=-1').status_code == 422
@@ -120,11 +136,12 @@ def test_history_routes_download_and_same_origin(tmp_path, monkeypatch):
         assert client.get(f'/api/history/{SID}/log', headers={'origin': 'https://evil.test'}).status_code == 403
 
 
-def test_history_rejects_external_symlink(tmp_path, monkeypatch):
+@pytest.mark.parametrize('prefix', ['', '2026-11-19_111601_', '2026-11-19_11-16-01_'])
+def test_history_rejects_external_symlink(tmp_path, monkeypatch, prefix):
     monkeypatch.setattr(config, 'ROOT', tmp_path); seed(tmp_path)
     outside = tmp_path / 'outside.jsonl'; outside.write_text('{}', encoding='utf-8')
     try:
-        (tmp_path / 'logs' / 'ffffffffffff.jsonl').symlink_to(outside)
+        (tmp_path / 'logs' / f'{prefix}ffffffffffff.jsonl').symlink_to(outside)
     except OSError as exc:
         if getattr(exc, 'winerror', None) != 1314:
             raise
