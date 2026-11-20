@@ -10,6 +10,7 @@ import httpx
 from fastapi.testclient import TestClient
 
 from backend import app as service, config
+from backend.dialogue import teacher_batch
 from backend.llm import ModelClient
 from backend.schemas import Lesson, Preparation, StudentResult
 from backend.session import Session
@@ -89,7 +90,7 @@ def test_question_keeps_its_image_when_upload_changes_during_request(tmp_path, m
                 if phase == 'preparation': return Preparation(scope=['课堂'], boundary_note='待学')
                 calls.append((payload, kwargs['images']))
                 started.set(); await release.wait()
-                sid = payload['new_teacher_segments'][-1]['id']
+                sid = payload['new_teacher_segment_ids'][-1]
                 return StudentResult(addressed=True, candidate={'kind': 'answer', 'text': '看到第一张图。', 'sources': [sid]})
             async def close(self): pass
         session, events = await make_session(tmp_path, monkeypatch, HeldModel())
@@ -102,7 +103,7 @@ def test_question_keeps_its_image_when_upload_changes_during_request(tmp_path, m
             newer = await session.set_image(second.getvalue())
             release.set(); await until(lambda: session.state.version == 1)
             assert first['id'] != newer['id']
-            assert calls[0][0]['new_teacher_segments'][0]['image_id'] == first['id']
+            assert teacher_batch(calls[0][0])[0]['image_id'] == first['id']
             assert len(calls[0][1]) == 1 and calls[0][1][0].id == first['id']
             assert session.current_image == newer['id']
             await session.try_speak(10)
@@ -124,8 +125,8 @@ def test_image_wire_is_multimodal_and_debug_does_not_log_base64(tmp_path, monkey
         model = ModelClient(emit); await model.http.aclose()
         model.http = httpx.AsyncClient(transport=httpx.MockTransport(respond))
         try:
-            await model.generate('student', '学生规则', {'new_teacher_segments': []}, StudentResult, images=[image])
-            await model.generate('student', '学生规则', {'new_teacher_segments': []}, StudentResult)
+            await model.generate('student', '学生规则', {'new_teacher_segment_ids': [], 'teacher_sources': []}, StudentResult, images=[image])
+            await model.generate('student', '学生规则', {'new_teacher_segment_ids': [], 'teacher_sources': []}, StudentResult)
         finally: await model.close()
     asyncio.run(run())
     parts = requests[0]['messages'][-1]['content']
@@ -314,7 +315,7 @@ def test_audio_worker_uses_segment_start_when_two_vad_transitions_share_frame(tm
             await session.accept_audio(np.zeros(8000, dtype='<f4').tobytes())
             await until(lambda: bool(session.pending))
             await session.flush(); await until(lambda: session.state.version == 1)
-            assert calls[0][0]['new_teacher_segments'][0]['image_id'] == first['id']
+            assert teacher_batch(calls[0][0])[0]['image_id'] == first['id']
             assert calls[0][1][0].id == first['id']
         finally: await session.close()
     asyncio.run(run())

@@ -72,7 +72,7 @@ def test_resume_binds_task_image_and_discards_changed_snapshot(tmp_path, monkeyp
             await job
             phase, payload, images = calls[0]
             assert phase == 'student_resume'
-            assert payload['new_teacher_segments'] == []
+            assert payload['new_teacher_segment_ids'] == []
             if material == 'missing':
                 assert not images and 'teaching_images' not in payload
             else:

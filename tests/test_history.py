@@ -178,9 +178,15 @@ def event(kind, data, second=0):
     return {'type': kind, 'data': data, 'time': f'2026-10-18T01:00:{second:02d}+00:00', 'elapsed': second}
 
 
-def student_request(segments, second=10, *, multimodal=False, phase='student', attempt=1):
-    payload = json.dumps({'new_teacher_segments': segments, 'current_state': {'note': '状态不是新讲授'},
-                          'teacher_sources': [{'id': 'old', 'text': '旧上下文不应出现'}]}, ensure_ascii=False)
+def student_request(segments, second=10, *, multimodal=False, phase='student', attempt=1, by_id=False):
+    fields = {'current_state': {'note': '状态不是新讲授'},
+              'teacher_sources': [{'id': 'old', 'text': '旧上下文不应出现'}]}
+    if by_id:
+        fields['new_teacher_segment_ids'] = [s['id'] for s in segments]
+        fields['teacher_sources'] += list(reversed(segments))
+    else:
+        fields['new_teacher_segments'] = segments
+    payload = json.dumps(fields, ensure_ascii=False)
     content = [{'type': 'text', 'text': payload}, {'type': 'image_url', 'image_url': {'url': '[图片二进制已省略]'}}] if multimodal else payload
     return event('llm_request', {'phase': phase, 'attempt': attempt, 'body': {'messages': [
         {'role': 'system', 'content': '系统提示词不应出现'},
@@ -205,14 +211,15 @@ async def all_dialogue(service):
 
 
 @pytest.mark.parametrize('multimodal', [False, True])
-def test_actual_batches_use_submitted_text_and_request_order(tmp_path, monkeypatch, multimodal):
+@pytest.mark.parametrize('by_id', [False, True])
+def test_actual_batches_use_submitted_text_and_request_order(tmp_path, monkeypatch, multimodal, by_id):
     monkeypatch.setattr(config, 'ROOT', tmp_path)
     first = [{'id': 't1', 'text': '第一段实际提交的校正文本。'}, {'id': 't2', 'text': '第二段实际提交的文本。'}]
     write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '第一段原始转写'}, 1),
         event('transcript', {'id': 't2', 'text': '第二段原始转写'}, 2),
         event('segment', {'sources': ['t1'], 'text': '队列片段不等于请求批次'}, 3),
         event('segment', {'sources': ['t2'], 'text': '另一个队列片段'}, 4),
-        student_request(first, 5, multimodal=multimodal),
+        student_request(first, 5, multimodal=multimodal, by_id=by_id),
         event('transcript', {'id': 't3', 'text': '先于学生回复收到的下一段'}, 6),
         event('state', {'processed_sources': ['t2', 't1']}, 7),
         event('reply', {'kind': 'answer', 'text': '真实学生回复'}, 8),
@@ -232,15 +239,16 @@ def test_actual_batches_use_submitted_text_and_request_order(tmp_path, monkeypat
     asyncio.run(run())
 
 
-def test_automatic_and_manual_retry_collapse_at_first_request(tmp_path, monkeypatch):
+@pytest.mark.parametrize('by_id', [False, True])
+def test_automatic_and_manual_retry_collapse_at_first_request(tmp_path, monkeypatch, by_id):
     monkeypatch.setattr(config, 'ROOT', tmp_path)
     segments = [{'id': 't1', 'text': '实际讲授'}]
-    repair = student_request(segments, 3, attempt=2)
+    repair = student_request(segments, 3, attempt=2, by_id=by_id)
     repair['data']['body']['messages'].append({'role': 'user', 'content': '请修复结构，此句不是老师讲授'})
     write_events(tmp_path, [event('transcript', {'id': 't1', 'text': '原始讲授'}, 1),
-        student_request(segments, 2), event('student_validation_error', {'attempt': 1}, 3), repair,
+        student_request(segments, 2, by_id=by_id), event('student_validation_error', {'attempt': 1}, 3), repair,
         event('error', {'code': 'model_failure', 'sources': ['t1']}, 4),
-        student_request(segments, 5), event('state', {'processed_sources': ['t1']}, 6),
+        student_request(segments, 5, by_id=by_id), event('state', {'processed_sources': ['t1']}, 6),
         event('reply', {'kind': 'ack', 'text': '收到'}, 7)])
     async def run():
         rows = await all_dialogue(HistoryService()); assert len(rows) == 2

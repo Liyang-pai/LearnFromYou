@@ -5,6 +5,35 @@ import json
 from .schemas import StudentState
 
 
+def teacher_batch(payload):
+    """从新旧学生输入格式中还原本轮片段，按请求中的批次顺序返回。"""
+    if not isinstance(payload, dict):
+        return None
+
+    def index(segments):
+        if not isinstance(segments, list) or any(
+            not isinstance(segment, dict) or not isinstance(segment.get('id'), str)
+            or not segment['id'] or not isinstance(segment.get('text'), str) for segment in segments
+        ):
+            raise ValueError('Invalid teacher batch')
+        by_id = {segment['id']: segment for segment in segments}
+        if len(by_id) != len(segments):
+            raise ValueError('Invalid teacher batch')
+        return by_id
+
+    if 'new_teacher_segment_ids' in payload:
+        ids = payload['new_teacher_segment_ids']
+        if not isinstance(ids, list) or any(not isinstance(sid, str) or not sid for sid in ids):
+            raise ValueError('Invalid teacher batch')
+        sources = index(payload.get('teacher_sources'))
+        if len(set(ids)) != len(ids) or any(sid not in sources for sid in ids):
+            raise ValueError('Invalid teacher batch')
+        return [sources[sid] for sid in ids]
+    if 'new_teacher_segments' in payload:
+        return list(index(payload['new_teacher_segments']).values())
+    return None
+
+
 def student_segments(data):
     """Read only the current student input, including multimodal/repair requests."""
     if data.get('phase') != 'student':
@@ -20,15 +49,9 @@ def student_segments(data):
                 payload = json.loads(part)
             except (ValueError, TypeError):
                 continue
-            if not isinstance(payload, dict) or 'new_teacher_segments' not in payload:
-                continue
-            segments = payload['new_teacher_segments']
-            if not isinstance(segments, list) or any(
-                not isinstance(segment, dict) or not isinstance(segment.get('id'), str)
-                or not segment['id'] or not isinstance(segment.get('text'), str) for segment in segments
-            ) or len({segment['id'] for segment in segments}) != len(segments):
-                raise ValueError('Invalid teacher batch')
-            return segments
+            segments = teacher_batch(payload)
+            if segments is not None:
+                return segments
     return []
 
 

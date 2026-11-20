@@ -5,6 +5,7 @@ import httpx
 from pydantic import ValidationError
 from .runtime import RUNTIME, fingerprint
 from .settings import model_settings
+from .student_prompt import STUDENT_PHASES, compact_json, remove_schema_titles
 
 REPORT_REQUEST_TIMEOUT = 60
 # Independent of the concise report budget. Thinking and JSON share output
@@ -50,13 +51,18 @@ class ModelClient:
             raise ModelError("未找到 Deepseek_API 或 DEEPSEEK_API_KEY，请检查项目 .env")
         if images and phase not in ('student', 'student_resume'):
             raise ValueError('图片仅用于本次课堂学生请求')
-        content = json.dumps(payload, ensure_ascii=False)
+        student_phase = phase in STUDENT_PHASES
+        schema = output_type.model_json_schema()
+        if student_phase:
+            remove_schema_titles(schema)
+        content = compact_json(payload) if student_phase else json.dumps(payload, ensure_ascii=False)
+        schema_json = compact_json(schema) if student_phase else json.dumps(schema, ensure_ascii=False)
         if images:
             urls = await asyncio.to_thread(lambda: [image.data_url() for image in images])
             content = [{'type': 'text', 'text': content}, *[
                 {'type': 'image_url', 'image_url': {'url': url, 'detail': 'original'}} for url in urls]]
         messages = [
-            {"role": "system", "content": system + "\nJSON schema:\n" + json.dumps(output_type.model_json_schema(), ensure_ascii=False)},
+            {"role": "system", "content": system + "\nJSON schema:\n" + schema_json},
             # 只有课堂调用使用实际师生历史；生成画像、转写审核与报告不混用。
             *([dict(turn) for turn in history] if phase in ('student', 'student_resume') else []),
             {"role": "user", "content": content},
@@ -64,8 +70,8 @@ class ModelClient:
         student_tokens = STUDENT_OUTPUT_TOKENS
         remaining_tokens = STUDENT_TOTAL_OUTPUT_TOKENS
         for attempt in range(2):
-            max_tokens = min(student_tokens, remaining_tokens) if phase in ('student', 'student_resume', 'knowledge_review') else 3500
-            if phase in ('student', 'student_resume', 'knowledge_review'):
+            max_tokens = min(student_tokens, remaining_tokens) if student_phase else 3500
+            if student_phase:
                 remaining_tokens -= max_tokens
             body = {"model": self.image_model if images else self.model, "messages": messages, "response_format": {"type": "json_object"},
                     "temperature": 0.25, "max_tokens": max_tokens}
@@ -106,7 +112,7 @@ class ModelClient:
                         await self.emit('question_release', {**release, 'status': 'requested', 'attempt': attempt + 1})
                 except (ValueError, TypeError, AttributeError):
                     pass
-            if finish_reason == 'length' and (report_phase or phase in ('student', 'student_resume', 'knowledge_review')):
+            if finish_reason == 'length' and (report_phase or student_phase):
                 await self.emit('report_validation_error' if report_phase else 'student_validation_error',
                     {'attempt': attempt + 1, 'kind': 'truncated',
                      'errors': [{'field': 'response', 'error': '输出达到长度限制，不能作为完整结果提交'}]})
@@ -135,7 +141,7 @@ class ModelClient:
                             else 'content' if any(not e['loc'] for e in details) else 'schema')
                 else:
                     kind = 'content'
-                if phase in ('student', 'student_resume', 'knowledge_review'):
+                if student_phase:
                     await self.emit('student_validation_error', {'attempt': attempt + 1, 'kind': kind, 'errors': errors})
                     if getattr(exc, 'question_id', None) is not None and '例外申请' in str(exc):
                         await self.emit('question_release', {'status': 'rejected', 'question_id': exc.question_id,
@@ -150,7 +156,8 @@ class ModelClient:
                         raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
                 correction = "刚才输出未通过结构或关联校验。修正指出的错误，保留其他有效内容，返回完整 JSON 对象。"
-                correction += '\n具体错误：' + json.dumps(errors, ensure_ascii=False)[:2000]
+                errors_json = compact_json(errors) if student_phase else json.dumps(errors, ensure_ascii=False)
+                correction += '\n具体错误：' + errors_json[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},
                              {"role": "user", "content": correction}]
 

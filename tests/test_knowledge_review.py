@@ -20,7 +20,7 @@ class ReviewModel:
     async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
         if phase == 'preparation': return Preparation(scope=[], boundary_note='')
         if phase == 'student':
-            sid = payload['new_teacher_segments'][-1]['id']
+            sid = payload['new_teacher_segment_ids'][-1]
             return StudentResult(knowledge_updates=[k('fresh', sources=[sid], reason='新的独立讲授')])
         assert phase == 'knowledge_review'
         self.calls.append(payload['review_targets'])

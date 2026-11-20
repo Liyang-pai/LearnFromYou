@@ -19,7 +19,7 @@ class FakeModel:
     async def generate(self,phase,system,payload,output_type, *, history=(), result_validator=None):
         if phase=='preparation':
             return Preparation(scope=['课堂主题'],boundary_note='待学范围不是已知知识')
-        ids=[s['id'] for s in payload['new_teacher_segments']]
+        ids=payload['new_teacher_segment_ids']
         self.batches.append(ids)
         if self.fail_once:
             self.fail_once=False

@@ -124,7 +124,7 @@ def test_truncation_commits_state_only_after_full_valid_recovery(tmp_path, monke
         await session.llm.http.aclose()
         async def respond(request):
             body = json.loads(request.content)
-            if 'new_teacher_segments' not in str(body['messages']):
+            if 'new_teacher_segment_ids' not in str(body['messages']):
                 return httpx.Response(200, json=envelope('{"scope":["根式"],"boundary_note":"待学"}'))
             calls.append(body)
             assert session.state.version == 0

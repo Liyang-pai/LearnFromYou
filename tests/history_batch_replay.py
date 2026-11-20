@@ -12,6 +12,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend import config
+from backend.dialogue import student_segments
 from backend.history import HistoryService, classroom_path
 
 
@@ -25,21 +26,13 @@ def expected_from_log(path):
             elif item.get('type') == 'reply' and data.get('kind') in ('question', 'answer', 'ack') and data.get('text', '').strip():
                 replies.append(data['text'])
             elif item.get('type') == 'llm_request' and data.get('phase') == 'student':
-                for message in reversed(data.get('body', {}).get('messages', [])):
-                    if message.get('role') != 'user': continue
-                    content = message.get('content')
-                    if isinstance(content, list): content = next((part.get('text') for part in content if part.get('type') == 'text'), '')
-                    try: payload = json.loads(content)
-                    except (ValueError, TypeError): continue
-                    if not isinstance(payload, dict) or 'new_teacher_segments' not in payload: continue
-                    segments = payload['new_teacher_segments']
-                    if segments:
-                        signature = tuple((source['id'], source['text']) for source in segments)
-                        if signature not in seen:
-                            seen.add(signature)
-                            batches.append({'source_ids': [source['id'] for source in segments],
-                                'text': '\n'.join(source['text'] for source in segments), 'time': item.get('time')})
-                    break
+                segments = student_segments(data)
+                if segments:
+                    signature = tuple((source['id'], source['text']) for source in segments)
+                    if signature not in seen:
+                        seen.add(signature)
+                        batches.append({'source_ids': [source['id'] for source in segments],
+                            'text': '\n'.join(source['text'] for source in segments), 'time': item.get('time')})
         except (ValueError, KeyError, TypeError): continue
     return batches, originals, replies
 

@@ -146,7 +146,7 @@ def test_classroom_upload_enters_review_learning_and_logs(tmp_path, monkeypatch,
                        if s['id'].startswith('t'))
             assert session.sources['t1']['review_status'] == ('fallback' if fallback else 'reviewed' if enabled else 'disabled')
             assert bool(model.payloads('asr_review')) == enabled
-            assert [s['id'] for p in model.payloads('student') for s in p['new_teacher_segments']] == ['t1', 't2']
+            assert [sid for p in model.payloads('student') for sid in p['new_teacher_segment_ids']] == ['t1', 't2']
             finished = next(e['data'] for e in events if e['type'] == 'upload_finished')
             assert finished['cancelled'] and session.audio is None
             # Switching back cannot attach the previous file's metadata to microphone segments.

@@ -18,6 +18,7 @@ def main():
     args = parser.parse_args()
     args.data.mkdir(parents=True, exist_ok=True)
     from backend import config
+    from backend.dialogue import teacher_batch
     config.PORT, config.DATA_ROOT, config.SETTINGS_PATH = args.port, args.data, args.data / 'settings.local.json'
     config.API_KEY = 'offline-fixture-key'
     from backend import app as service, session, student_profile
@@ -60,7 +61,7 @@ def main():
             if phase == 'review_glossary': return output_type(terms=[])
             if phase == 'student_profile': return output_type(grade=payload.get('grade') or '初中八年级', subject=payload.get('subject') or '物理',
                 points=payload.get('points') or '惯性概念', student_profile='知道物体可以运动和静止，尚未学习惯性。')
-            sources = payload.get('new_teacher_segments', [])
+            sources = teacher_batch(payload) or []
             return output_type(addressed=True, candidate={'kind': 'answer', 'text': '我收到了这次完整讲授。', 'sources': [s['id'] for s in sources]})
     session.ModelClient = student_profile.ModelClient = ClassroomModel
 

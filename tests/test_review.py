@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend import config
+from backend.dialogue import teacher_batch
 from backend.llm import ModelClient, ModelError
 from backend.review import TranscriptReviewer
 from backend.schemas import Lesson
@@ -57,7 +58,7 @@ class ReviewModel:
             if self.fail_student:
                 self.fail_student = False
                 raise ModelError('模拟学生失败')
-            ids = [s['id'] for s in payload['new_teacher_segments']]
+            ids = payload['new_teacher_segment_ids']
             result = {'knowledge_updates': [{'id': 'k' + ids[-1], 'text': '暂定理解',
                 'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': ids}], 'addressed': True,
                 'candidate': {'kind': 'answer', 'text': '我大概理解了。', 'sources': ids}}
@@ -104,7 +105,7 @@ def test_default_glossary_and_mixed_segment_isolate_student_inputs(tmp_path, mon
                 serialized = json.dumps(payload, ensure_ascii=False)
                 assert '未讲授的专用词' not in serialized
                 assert not any(field in serialized for field in ('raw_text', 'corrected_text', 'review_status', 'review_seconds'))
-            sources = model.payloads('student')[0]['new_teacher_segments']
+            sources = teacher_batch(model.payloads('student')[0])
             assert [s['text'] for s in sources] == ['呃，这个链表，然后这个链表。', '文字练表保持原样', '链表还有节点。']
             assert session.sources['t1']['raw_text'] == '呃，这个练表，然后这个练表。'
             assert session.sources['t1']['corrected_text'] == sources[0]['text']
@@ -165,7 +166,7 @@ def test_slow_review_keeps_order_and_preserves_each_semantic_segment(tmp_path, m
             model.review_gate.set()
             await until(lambda: len(session.processed_ids) == 3)
             assert [[s['id'] for s in p['new_asr_segments']] for p in model.payloads('asr_review')] == [['t1'], ['t3']]
-            assert [s['id'] for p in model.payloads('student') for s in p['new_teacher_segments']] == ['t1', 't2', 't3']
+            assert [sid for p in model.payloads('student') for sid in p['new_teacher_segment_ids']] == ['t1', 't2', 't3']
             assert [s['id'] for s in model.payloads('asr_review')[1]['previous_teacher_sources']] == ['t1', 't2']
         finally:
             await session.close()
@@ -214,7 +215,7 @@ def test_invalid_review_falls_back_atomically(tmp_path, monkeypatch, output):
             await until(lambda: len(session.processed_ids) == 2)
             assert all(session.sources[k]['review_status'] == 'fallback' for k in ['t1', 't2'])
             assert all(session.sources[k]['corrected_text'] is None for k in ['t1', 't2'])
-            assert [s['text'] for s in model.payloads('student')[0]['new_teacher_segments']] == ['第一段练表', '第二段练表']
+            assert [s['text'] for s in teacher_batch(model.payloads('student')[0])] == ['第一段练表', '第二段练表']
             assert any(e['type'] == 'warning' for e in events)
             assert not any(e['type'] == 'error' for e in events)
         finally:

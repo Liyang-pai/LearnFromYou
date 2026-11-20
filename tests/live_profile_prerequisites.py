@@ -1,6 +1,7 @@
 """显式 API 抽样：画像的跨学科前置覆盖、原文提取和课堂冲突。"""
 import argparse
 import asyncio
+from collections import deque
 import json
 from pathlib import Path
 import subprocess
@@ -13,6 +14,7 @@ from backend.llm import ModelClient, ModelError
 from backend.schemas import TeachingSettings, Lesson, StudentState, StudentResult, StudentProfileResult, profile_preparation
 from backend.cognition import seed_prerequisites
 from backend.policy import apply_result, student_result_validator
+from backend.student_prompt import compact_json, compact_learning_context, student_history, student_teacher_source
 
 
 async def main(resume=None):
@@ -91,31 +93,32 @@ async def main(resume=None):
         sources = {f'p{i}': {'id': f'p{i}', 'text': text, 'kind': 'prerequisite'}
                    for i, text in enumerate(record['preparation']['initial_prerequisites'], 1)}
         seed_prerequisites(state, list(sources.values()))
-        system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + json.dumps({'student_profile': lesson.student_profile, 'teaching_scope_only': {'topic': lesson.topic, 'points': lesson.points}}, ensure_ascii=False)
+        system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + compact_json({'student_profile': lesson.student_profile, 'teaching_scope_only': {'topic': lesson.topic, 'points': lesson.points}})
         record_out = {'test': label, 'profile': record['name'], 'initial_state': state.model_dump(), 'turns': []}
         summary['classrooms'].append(record_out)
-        history, utterances = [], []
+        history, utterances = deque(maxlen=16), []
         model = ModelClient(emit)
         try:
             for revision, text in enumerate(teacher_turns, 1):
                 sid = f't{revision}'
                 source = {'id': sid, 'text': text, 'mode': 'text', 'revision': revision, 'at': revision}
                 sources[sid] = source
-                context = state.learning_context()
+                context = compact_learning_context(state.learning_context())
                 payload = {'interaction_context': {'muted': False, 'trigger': 'teacher_input', 'input_revision': revision},
                            'lesson_scope': record['preparation']['scope'], 'student_level': lesson.student_level,
-                           'explicit_prerequisites': [k for k in context['knowledge'] if k['id'].startswith('p')],
-                           'current_state': context, 'new_teacher_segments': [source],
-                           'teacher_sources': [v for k, v in sources.items() if k.startswith('t')],
-                           'previous_student_utterances_not_knowledge_sources': utterances[-8:]}
+                           'explicit_prerequisite_ids': [k['id'] for k in context['knowledge'] if k['id'].startswith('p')],
+                           'current_state': context, 'new_teacher_segment_ids': [sid],
+                           'teacher_sources': [student_teacher_source(v) for k, v in sources.items() if k.startswith('t')]}
                 recovery = []
-                result = await model.generate('student', system, payload, StudentResult, history=history,
+                result = await model.generate('student', system, payload, StudentResult,
+                    history=student_history(history, utterances),
                     result_validator=student_result_validator(state, sources, {sid}, recovery, input_revision=revision, require_response=True))
                 state, candidate = apply_result(state, result, sources, {sid}, input_revision=revision)
-                history.append({'role': 'user', 'content': json.dumps({'teacher_segments': [source]}, ensure_ascii=False)})
+                history.append({'role': 'user', 'content': compact_json({'teacher_segments': [student_teacher_source(source)]})})
                 if candidate.kind != 'silence':
-                    history.append({'role': 'assistant', 'content': candidate.text})
-                    utterances.append({'text': candidate.text, 'kind': candidate.kind, 'sources': candidate.sources})
+                    utterance = {'text': candidate.text, 'kind': candidate.kind, 'sources': candidate.sources}
+                    utterances.append(utterance)
+                    history.append({'role': 'assistant', 'content': utterance})
                     # 模拟实际发出：使用生产代码登记教师请求与问题生命周期。
                     from backend.policy import mark_delivered
                     mark_delivered(state, candidate)

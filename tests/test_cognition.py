@@ -136,13 +136,21 @@ def test_classroom_payload_keeps_revision_sources_and_filters_current_knowledge(
                               lesson=SimpleNamespace(student_level='normal'), prerequisites=[], history=[], images={})
     before = state.model_dump()
     payload = Session.payload(session, [sources['t12']])
-    assert payload['current_state']['knowledge'] == [rule(revision=2).model_dump()]
+    k = payload['current_state']['knowledge'][0]
+    assert Knowledge.model_validate(k) == rule(revision=2)
+    assert k['correction_sources'] == ['t2'] and k['revision'] == 2
+    assert not {'conditions', 'dependencies', 'independent_sources', 'supersedes'} & k.keys()
     assert payload['current_state']['inactive_knowledge'][0]['id'] == 'k_missing'
-    assert payload['current_state']['knowledge_history'][0]['previous'] == old.model_dump()
+    previous = payload['current_state']['knowledge_history'][0]['previous']
+    assert Knowledge.model_validate(previous) == old
+    assert 'correction_sources' not in previous
     assert payload['current_state']['open_questions'][0]['status'] == 'resolved'
     assert 't1' in {s['id'] for s in payload['teacher_sources']}
-    assert payload['new_teacher_segments'][0]['id'] == 't12'
-    assert all('raw_text' not in s for s in payload['teacher_sources'] + payload['new_teacher_segments'])
+    assert payload['new_teacher_segment_ids'] == ['t12']
+    assert payload['interaction_context']['input_revision'] == 12
+    assert 'new_teacher_segments' not in payload
+    assert sources['t12']['at'] == sources['t12']['revision'] == 12
+    assert all(not {'raw_text', 'revision', 'at'} & s.keys() for s in payload['teacher_sources'])
     assert state.model_dump() == before
 
 
@@ -165,13 +173,13 @@ def test_classroom_protocol_preserves_corrections_answers_and_finish(manager, mo
             if phase == 'review_glossary':
                 return ReviewGlossary(terms=['星星运算'])
             assert phase == 'student'
-            source_id = payload['new_teacher_segments'][-1]['id']
+            source_id = payload['new_teacher_segment_ids'][-1]
             if source_id == 't1':
                 return StudentResult(knowledge_updates=[rule(text=SOURCES['t1']['text'], sources=['t1'])])
             if source_id == 't2':
                 return StudentResult(knowledge_updates=[rule()], addressed=True,
                     candidate={'kind': 'answer', 'text': '3加3再减1，得到5。', 'sources': ['t2']})
-            assert payload['current_state']['knowledge'] == [rule(revision=2).model_dump()]
+            assert [Knowledge.model_validate(k) for k in payload['current_state']['knowledge']] == [rule(revision=2)]
             assert payload['current_state']['knowledge_history'][0]['previous']['sources'] == ['t1']
             return StudentResult(event_updates=[ClassroomEvent(
                 id='e_end', kind='lesson_end', text='今天学习结束。', sources=[source_id])])

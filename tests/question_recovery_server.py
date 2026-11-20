@@ -27,7 +27,7 @@ class OfflineModel(ModelClient):
             # 修复请求的末尾是自然语言反馈，从前面的结构化请求读取批次。
             payload = next(json.loads(m['content']) for m in reversed(body['messages'])
                            if m['role'] == 'user' and m['content'].startswith('{'))
-            sid = payload['new_teacher_segments'][-1]['id']
+            sid = payload['new_teacher_segment_ids'][-1]
             result = {'knowledge_updates': [{'id': 'k_' + sid, 'text': '教师讲授的方程变形。',
                       'status': 'tentative', 'reason': '教师省略中间步骤，已有基础支持暂定推断', 'sources': [sid]}]}
             if sid == 't1':

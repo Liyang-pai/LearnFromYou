@@ -18,6 +18,7 @@ from .speech import Speaker
 from .runtime import RUNTIME, fingerprint
 from .classroom_images import save_image
 from .dialogue import HistoryDialogue, StudentView
+from .student_prompt import compact_json, compact_learning_context, student_history, student_teacher_source
 
 CURRENT_IMAGE = object()
 
@@ -158,9 +159,9 @@ class Session:
     async def start(self, lesson: Lesson, muted=False, tts=True, asr_review=True):
         # 再次校验并复制，防止直接调用绕过接口或外部修改课堂内固定的画像。
         self.lesson = lesson = Lesson.model_validate(lesson.model_dump())
-        self.student_system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + json.dumps(
+        self.student_system = prompts.STUDENT + '\n原始确认画像（初始记录，知识修订以 current_state 为准）：\n' + compact_json(
             {'student_profile': lesson.student_profile, 'teaching_scope_only': {
-                'topic': lesson.topic, 'points': lesson.points}}, ensure_ascii=False)
+                'topic': lesson.topic, 'points': lesson.points}})
         self.student_prompt_fingerprint = fingerprint(self.student_system)
         self.muted, self.tts_enabled = muted, tts
         self.asr_review = asr_review
@@ -437,15 +438,18 @@ class Session:
         relevant |= {s for c in self.state.conflicts for s in c.sources + c.resolution_sources}
         relevant |= {s for r in self.state.pending_reviews for s in r.trigger_sources}
         relevant |= {s for r in self.state.response_requests for s in r.sources + r.resolution_sources}
-        teacher = [s for s in self.sources.values() if s["id"] in self.processed_ids or s in batch]
+        current = {s["id"]: s for s in batch}
+        teacher = [current.get(sid, s) for sid, s in self.sources.items()
+                   if sid in self.processed_ids or sid in current]
+        teacher.extend(s for sid, s in current.items() if sid not in self.sources)
         relevant |= {s["id"] for s in teacher[-8:] + batch}
         input_revision = batch[-1]['revision'] if batch else self.revision
+        context = compact_learning_context(self.state.learning_context())
         result = {"interaction_context": {"muted": getattr(self, 'muted', False), "trigger": trigger, "input_revision": input_revision},
                 "lesson_scope": self.preparation.scope, "student_level": self.lesson.student_level,
-                "explicit_prerequisites": [k for k in self.state.learning_context()['knowledge'] if k['id'].startswith('p')],
-                "current_state": self.state.learning_context(), "new_teacher_segments": [teacher_source(s) for s in batch],
-                "teacher_sources": [teacher_source(s) for s in teacher if s["id"] in relevant],
-                "previous_student_utterances_not_knowledge_sources": self.history[-8:]}
+                "explicit_prerequisite_ids": [k['id'] for k in context['knowledge'] if k['id'].startswith('p')],
+                "current_state": context, "new_teacher_segment_ids": list(current),
+                "teacher_sources": [student_teacher_source(s) for s in teacher if s["id"] in relevant]}
         visual = batch if visual_sources is None else visual_sources
         image_ids = list(dict.fromkeys(s['image_id'] for s in visual if s.get('image_id') in self.images))
         if image_ids:
@@ -477,7 +481,7 @@ class Session:
                     images = [self.images[image_id] for image_id in image_ids]
                     control_revision = self.control_revision
                     result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
-                        history=list(self.conversation),
+                        history=student_history(self.conversation, self.history),
                         result_validator=student_result_validator(self.state, allowed, ids, recovery, input_revision=target_revision, require_response=not self.muted),
                         **({'images': images} if images else {}))
                     next_state, candidate = apply_result(self.state, result, allowed, ids, input_revision=target_revision)
@@ -485,8 +489,8 @@ class Session:
                     expire_invitations(self.state, self.revision)
                     self.processed_ids |= ids
                     # 只记录已成功处理的教师批次；失败重试不会重复插入历史。
-                    self.conversation.append({'role': 'user', 'content': json.dumps(
-                        {'teacher_segments': [teacher_source(s) for s in batch]}, ensure_ascii=False)})
+                    self.conversation.append({'role': 'user', 'content': compact_json(
+                        {'teacher_segments': [student_teacher_source(s) for s in batch]})})
                     addressed = result.addressed or bool(candidate.response_request_ids) or invited("\n".join(s["text"] for s in batch))
                     # 切换静音不丢学习进度，但旧控制状态生成的发言不再有效。
                     if not self.muted and control_revision == self.control_revision:
@@ -568,7 +572,7 @@ class Session:
         try:
             await self.emit('resume_response', {'status': 'running', 'message': '正在判断是否需要回应'})
             result = await self.llm.generate('student_resume', self.student_system + '\n' + prompts.RESUME,
-                payload, ResumeResult, history=list(self.conversation), result_validator=validate,
+                payload, ResumeResult, history=student_history(self.conversation, self.history), result_validator=validate,
                 **({'images': images} if images else {}))
             if stale():
                 self.resume_pending = not (self.muted or self.finishing or self.closed)
@@ -631,6 +635,7 @@ class Session:
                 input_revision, state_version = self.revision, self.state.version
                 payload = self.payload([])
                 payload['review_targets'] = targets
+                payload['previous_student_utterances_not_knowledge_sources'] = self.history[-8:]
                 evidence = {s for kid in targets for s in pending[kid].trigger_sources}
                 allowed = {k: v for k, v in self.sources.items() if k.startswith('p') or k in self.processed_ids}
 
@@ -737,8 +742,9 @@ class Session:
         self.candidate = None
         reply = c["reply"]
         mark_delivered(self.state, reply)
-        self.history.append({"text": reply.text, "kind": reply.kind, "sources": reply.sources})
-        self.conversation.append({'role': 'assistant', 'content': reply.text})
+        utterance = {"text": reply.text, "kind": reply.kind, "sources": reply.sources}
+        self.history.append(utterance)
+        self.conversation.append({'role': 'assistant', 'content': utterance})
         await self.emit("reply", {**reply.model_dump(), "state": self.state.model_dump()})
         await self.release_event("delivered", reply, "实际回复已发出，累计次数加一；本次邀请已使用")
         if self.tts_enabled:

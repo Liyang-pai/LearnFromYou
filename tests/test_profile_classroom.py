@@ -72,7 +72,7 @@ def test_profile_snapshot_sources_and_delivered_history(monkeypatch, tmp_path):
             if phase == 'preparation':
                 return output_type(scope=['星星运算'], boundary_note='待学范围',
                                    initial_prerequisites=['知道整数加法。'])
-            sid = payload['new_teacher_segments'][-1]['id']
+            sid = payload['new_teacher_segment_ids'][-1]
             return StudentResult(addressed=True, candidate={
                 'kind': 'answer', 'text': '请讲解星星运算的规则。', 'sources': [sid]})
         async def close(self): pass
@@ -105,7 +105,10 @@ def test_profile_snapshot_sources_and_delivered_history(monkeypatch, tmp_path):
             student_calls = [c for c in calls if c[0] == 'student']
             assert all(PROFILE in c[1].replace('\\n', '\n') for c in student_calls)
             assert [turn['role'] for turn in student_calls[-1][3]] == ['user', 'user', 'assistant']
-            assert '尚未学会' not in str(student_calls[-1][2]['explicit_prerequisites'])
+            payload = student_calls[-1][2]
+            assert payload['explicit_prerequisite_ids'] == ['p1']
+            assert all('尚未学会' not in k['text'] for k in payload['current_state']['knowledge']
+                       if k['id'] in payload['explicit_prerequisite_ids'])
             await session.finish()
             classroom = read_classroom(tmp_path, session.id)
             assert classroom['lesson']['student_profile'] == PROFILE
@@ -128,7 +131,7 @@ def test_model_wire_roles_and_generation_context_isolation(monkeypatch):
         model.http = httpx.AsyncClient(transport=httpx.MockTransport(respond))
         history = [{'role': 'user', 'content': '实际讲授'}, {'role': 'assistant', 'content': '实际回复'}]
         try:
-            await model.generate('student', '核心规则', {'new_teacher_segments': []}, Preparation, history=history)
+            await model.generate('student', '核心规则', {'new_teacher_segment_ids': [], 'teacher_sources': []}, Preparation, history=history)
             await model.generate('student_profile', '生成规则', {'topic': '主题'}, Preparation, history=history)
         finally: await model.close()
     asyncio.run(run())

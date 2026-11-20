@@ -10,6 +10,7 @@ import uvicorn
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from backend import config, prompts
+from backend.dialogue import teacher_batch
 from backend.llm import ModelClient
 from question_recovery_server import OfflineModels
 
@@ -30,7 +31,7 @@ class OfflineModel(ModelClient):
             if context['trigger'] == 'unmuted':
                 sid = 't6'
             else:
-                sid = payload['new_teacher_segments'][-1]['id']
+                sid = payload['new_teacher_segment_ids'][-1]
             data = {}
             if sid in ('t1', 't2'):
                 data = {'question_updates': [{'id': 'q1', 'topic': '折光含义', 'text': '折光是什么？',
@@ -41,7 +42,7 @@ class OfflineModel(ModelClient):
                 if context['trigger'] != 'unmuted':
                     data['response_request_updates'] = [{'id': rid, 'kind': 'invite_questions', 'text': '说明疑问',
                         'sources': [sid], 'invitation_source_id': sid,
-                        'invitation_quote': payload['new_teacher_segments'][-1]['text']}]
+                        'invitation_quote': teacher_batch(payload)[-1]['text']}]
                 if not context['muted']:
                     data['candidate'] = {'kind': 'question', 'question_id': 'q1', 'text': '我仍想问，折光是什么？',
                         'sources': [sid], 'response_request_ids': [rid], 'question_release_request': {

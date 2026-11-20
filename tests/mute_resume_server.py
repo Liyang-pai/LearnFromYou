@@ -30,7 +30,7 @@ class OfflineModel(ModelClient):
                 result = {'candidate': {'kind': 'ack', 'text': '老师，第二个问题我还没想明白，我会继续听。',
                     'sources': ['t2'], 'response_request_ids': ['r2']}}
             else:
-                sid = payload['new_teacher_segments'][-1]['id']
+                sid = payload['new_teacher_segment_ids'][-1]
                 updates = {'t1': {'response_request_updates': [
                     {'id': 'r1', 'text': '教师第一个提问', 'sources': ['t1']}]},
                     't2': {'response_request_updates': [

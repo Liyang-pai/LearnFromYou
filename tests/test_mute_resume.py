@@ -160,7 +160,7 @@ def test_muted_learning_then_fresh_merged_response_without_input(tmp_path, monke
             await until(lambda: len(replies(events)) == 1)
             assert model.calls[1][0] == 'student_resume'
             assert model.calls[1][1]['interaction_context'] == {'muted': False, 'trigger': 'unmuted', 'input_revision': 1}
-            assert model.calls[1][1]['new_teacher_segments'] == []
+            assert model.calls[1][1]['new_teacher_segment_ids'] == []
             assert replies(events)[0]['data']['text'] == '根据最新内容重新回应。'
             assert all(r.status == 'answered' for r in session.state.response_requests)
             assert session.state.knowledge == cognition
