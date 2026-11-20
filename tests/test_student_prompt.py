@@ -63,11 +63,23 @@ def test_history_keeps_identical_replies_as_distinct_events_across_window_rollov
     conversation.append({'role': 'user', 'content': 't10'})
     conversation.append({'role': 'user', 'content': 't11'})
 
-    history = student_history(conversation, utterances)
+    history, metadata = student_history(conversation, utterances)
     assert len(history) == 17
-    assert json.loads(history[0]['content']) == utterances[2]
-    assert [json.loads(turn['content']) for turn in history if turn['role'] == 'assistant'] == utterances[-8:]
+    assert history[0] == {'role': 'assistant', 'content': '听得到。'}
+    assert [turn['content'] for turn in history if turn['role'] == 'assistant'] == ['听得到。'] * 8
     assert [turn['content'] for turn in history if turn['role'] == 'user'] == [f't{i}' for i in range(3, 12)]
+    assert metadata == [
+        {'reply_number': i, 'reply_kind': 'ack', 'teacher_source_ids': [f't{i + 1}']}
+        for i in range(1, 9)]
+
+
+def test_metadata_numbers_follow_all_assistant_messages_when_older_ones_remain():
+    utterances = [{'text': f'发言 {i}', 'kind': 'answer', 'sources': ['t1']} for i in range(9)]
+    history, metadata = student_history(
+        [{'role': 'assistant', 'content': reply} for reply in utterances], utterances)
+
+    assert [turn['content'] for turn in history] == [reply['text'] for reply in utterances]
+    assert [item['reply_number'] for item in metadata] == list(range(2, 10))
 
 
 def test_nonempty_knowledge_fields_and_non_knowledge_empty_fields_remain():

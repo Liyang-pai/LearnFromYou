@@ -480,8 +480,10 @@ class Session:
                     image_ids = list(dict.fromkeys(s['image_id'] for s in batch if s.get('image_id')))
                     images = [self.images[image_id] for image_id in image_ids]
                     control_revision = self.control_revision
-                    result = await self.llm.generate("student", self.student_system, self.payload(batch), StudentResult,
-                        history=student_history(self.conversation, self.history),
+                    payload = self.payload(batch)
+                    history, payload['history_reply_metadata'] = student_history(self.conversation, self.history)
+                    result = await self.llm.generate("student", self.student_system, payload, StudentResult,
+                        history=history,
                         result_validator=student_result_validator(self.state, allowed, ids, recovery, input_revision=target_revision, require_response=not self.muted),
                         **({'images': images} if images else {}))
                     next_state, candidate = apply_result(self.state, result, allowed, ids, input_revision=target_revision)
@@ -558,6 +560,7 @@ class Session:
             source_ids = questions[-1].sources if questions else []
         visual_sources = [allowed[sid] for sid in source_ids if sid in allowed and sid in self.processed_ids]
         payload = self.payload([], 'unmuted', visual_sources=visual_sources)
+        history, payload['history_reply_metadata'] = student_history(self.conversation, self.history)
         image_ids = [item['id'] for item in payload.get('teaching_images', [])]
         images = [self.images[image_id] for image_id in image_ids]
 
@@ -572,7 +575,7 @@ class Session:
         try:
             await self.emit('resume_response', {'status': 'running', 'message': '正在判断是否需要回应'})
             result = await self.llm.generate('student_resume', self.student_system + '\n' + prompts.RESUME,
-                payload, ResumeResult, history=student_history(self.conversation, self.history), result_validator=validate,
+                payload, ResumeResult, history=history, result_validator=validate,
                 **({'images': images} if images else {}))
             if stale():
                 self.resume_pending = not (self.muted or self.finishing or self.closed)

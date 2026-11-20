@@ -8,7 +8,7 @@ import pytest
 
 from backend import config, report_contract
 from backend.llm import ModelClient, ModelError
-from backend.schemas import StudentResult
+from backend.schemas import ResumeResult, StudentResult
 
 
 async def client(monkeypatch, responses):
@@ -72,6 +72,32 @@ def test_json_error_does_not_increase_student_budget(monkeypatch):
             assert [d['kind'] for k,d in events if k=='student_validation_error']==['json']
         finally:
             await model.close()
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('phase,result_type', [('student', StudentResult), ('student_resume', ResumeResult)])
+def test_misplaced_candidate_fields_get_targeted_retry_and_existing_validation(monkeypatch, phase, result_type):
+    flat = '{"kind":"answer","text":"回复","sources":["t1"],"question_updates":[]}'
+    nested = '{"candidate":{"kind":"answer","text":"回复","sources":["t1"]},"question_updates":[]}'
+
+    async def run():
+        model, calls, events = await client(monkeypatch, [envelope(flat), envelope(nested)])
+        validated = []
+
+        def validate(value, retry):
+            validated.append((value.candidate.text, retry))
+            return value
+
+        try:
+            result = await model.generate(phase, '学生规则', {}, result_type, result_validator=validate)
+            assert result.candidate.text == '回复' and validated == [('回复', True)]
+            assert len(calls) == 2 and calls[0]['max_tokens'] == calls[1]['max_tokens']
+            retry_text = calls[1]['messages'][-1]['content']
+            assert 'kind、text、sources 移入 candidate' in retry_text and '更新字段仍放在顶层' in retry_text
+            assert [d['kind'] for k, d in events if k == 'student_validation_error'] == ['schema']
+        finally:
+            await model.close()
+
     asyncio.run(run())
 
 

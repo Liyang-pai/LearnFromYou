@@ -106,6 +106,10 @@ def test_profile_snapshot_sources_and_delivered_history(monkeypatch, tmp_path):
             assert all(PROFILE in c[1].replace('\\n', '\n') for c in student_calls)
             assert [turn['role'] for turn in student_calls[-1][3]] == ['user', 'user', 'assistant']
             payload = student_calls[-1][2]
+            assert student_calls[-1][3][-1]['content'] == '请讲解星星运算的规则。'
+            assert payload['history_reply_metadata'] == [
+                {'reply_number': 1, 'reply_kind': 'answer', 'teacher_source_ids': ['t2']}]
+            assert '请讲解星星运算的规则。' not in str(payload)
             assert payload['explicit_prerequisite_ids'] == ['p1']
             assert all('尚未学会' not in k['text'] for k in payload['current_state']['knowledge']
                        if k['id'] in payload['explicit_prerequisite_ids'])

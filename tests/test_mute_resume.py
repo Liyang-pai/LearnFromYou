@@ -39,7 +39,7 @@ class ScriptModel:
     async def generate(self, phase, system, payload, output_type, *, history=(), result_validator=None):
         if phase == 'preparation':
             return Preparation(scope=['课堂主题'], boundary_note='范围不是知识')
-        self.calls.append((phase, deepcopy(payload)))
+        self.calls.append((phase, deepcopy(payload), deepcopy(history)))
         if not self.script:
             raise AssertionError('发生未计划的模型调用：' + phase)
         item = self.script.pop(0)
@@ -181,6 +181,36 @@ def test_no_pending_work_does_not_call_model(tmp_path, monkeypatch):
             await session.set_muted(False)
             await until(lambda: resume_events(events, 'skipped'))
             assert not model.calls and not replies(events)
+        finally:
+            await session.close()
+    asyncio.run(run())
+
+
+def test_resume_sends_only_delivered_history_with_separate_metadata(tmp_path, monkeypatch):
+    async def run():
+        script = [
+            {'response_request_updates': [request('r1')],
+             'candidate': answer(text='第一个问题的实际发言。')},
+            {'response_request_updates': [request('r2', 't2')],
+             'candidate': answer(('r2',), 't2', text='静音中的候选。')},
+            {'candidate': answer(('r2',), 't2', text='解除静音后新生成的回答。')},
+        ]
+        session, model, events = await start(tmp_path, monkeypatch, script, muted=False)
+        try:
+            await teach(session, '请你回答第一个问题')
+            await until(lambda: len(replies(events)) == 1)
+            await session.set_muted(True)
+            await teach(session, '请你回答第二个问题')
+            await until(lambda: len(model.calls) == 2 and not session.processing)
+            await session.set_muted(False)
+            await until(lambda: len(replies(events)) == 2)
+            phase, payload, history = model.calls[-1]
+            assert phase == 'student_resume'
+            assert [m for m in history if m['role'] == 'assistant'] == [
+                {'role': 'assistant', 'content': '第一个问题的实际发言。'}]
+            assert payload['history_reply_metadata'] == [
+                {'reply_number': 1, 'reply_kind': 'answer', 'teacher_source_ids': ['t1']}]
+            assert '第一个问题的实际发言。' not in str(payload)
         finally:
             await session.close()
     asyncio.run(run())

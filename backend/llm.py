@@ -4,6 +4,7 @@ import time
 import httpx
 from pydantic import ValidationError
 from .runtime import RUNTIME, fingerprint
+from .schemas import Candidate
 from .settings import model_settings
 from .student_prompt import STUDENT_PHASES, compact_json, remove_schema_titles
 
@@ -133,14 +134,19 @@ class ModelClient:
                 # JSON 与课堂关联校验共用两次请求预算，不在外层再叠加重试。
                 return result_validator(result, attempt == 1) if result_validator else result
             except (ValidationError, ValueError, TypeError) as exc:
-                errors = ([{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in exc.errors()]
-                          if isinstance(exc, ValidationError) else [{'field': 'result', 'error': str(exc)}])
+                misplaced_candidate_fields = []
                 if isinstance(exc, ValidationError):
                     details = exc.errors()
+                    errors = [{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in details]
                     kind = ('json' if any(e['type'] == 'json_invalid' for e in details)
                             else 'content' if any(not e['loc'] for e in details) else 'schema')
+                    if phase in ('student', 'student_resume'):
+                        misplaced_candidate_fields = [
+                            e['loc'][0] for e in details if e['type'] == 'extra_forbidden'
+                            and len(e['loc']) == 1 and e['loc'][0] in Candidate.model_fields]
                 else:
                     kind = 'content'
+                    errors = [{'field': 'result', 'error': str(exc)}]
                 if student_phase:
                     await self.emit('student_validation_error', {'attempt': attempt + 1, 'kind': kind, 'errors': errors})
                     if getattr(exc, 'question_id', None) is not None and '例外申请' in str(exc):
@@ -156,6 +162,9 @@ class ModelClient:
                         raise ModelError('模型两次未返回有效画像结构，原有内容已保留，请重试。') from None
                     raise ModelError("模型两次未返回有效结构，未提交学生状态；可重试") from None
                 correction = "刚才输出未通过结构或关联校验。修正指出的错误，保留其他有效内容，返回完整 JSON 对象。"
+                if misplaced_candidate_fields:
+                    fields = '、'.join(misplaced_candidate_fields)
+                    correction += f'将顶层发言字段 {fields} 移入 candidate，其余合法的更新字段仍放在顶层。'
                 errors_json = compact_json(errors) if student_phase else json.dumps(errors, ensure_ascii=False)
                 correction += '\n具体错误：' + errors_json[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},

@@ -110,8 +110,9 @@ async def main(resume=None):
                            'current_state': context, 'new_teacher_segment_ids': [sid],
                            'teacher_sources': [student_teacher_source(v) for k, v in sources.items() if k.startswith('t')]}
                 recovery = []
+                messages, payload['history_reply_metadata'] = student_history(history, utterances)
                 result = await model.generate('student', system, payload, StudentResult,
-                    history=student_history(history, utterances),
+                    history=messages,
                     result_validator=student_result_validator(state, sources, {sid}, recovery, input_revision=revision, require_response=True))
                 state, candidate = apply_result(state, result, sources, {sid}, input_revision=revision)
                 history.append({'role': 'user', 'content': compact_json({'teacher_segments': [student_teacher_source(source)]})})

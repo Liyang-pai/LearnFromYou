@@ -48,13 +48,18 @@ def student_history(conversation, utterances):
     recent = utterances[-8:]
     recent_ids = {id(reply) for reply in recent}
     visible_ids = {id(turn['content']) for turn in conversation if turn['role'] == 'assistant'}
-    result = [{'role': 'assistant', 'content': compact_json(reply)}
-              for reply in recent if id(reply) not in visible_ids]
-    for turn in conversation:
+    turns = [{'role': 'assistant', 'content': reply} for reply in recent if id(reply) not in visible_ids]
+    turns.extend(conversation)
+    result, metadata = [], []
+    reply_number = 0
+    for turn in turns:
         if turn['role'] == 'assistant':
             reply = turn['content']
-            content = compact_json(reply) if id(reply) in recent_ids else reply['text']
-            result.append({'role': 'assistant', 'content': content})
+            reply_number += 1
+            result.append({'role': 'assistant', 'content': reply['text']})
+            if id(reply) in recent_ids:
+                metadata.append({'reply_number': reply_number, 'reply_kind': reply['kind'],
+                                 'teacher_source_ids': reply['sources']})
         else:
             result.append(turn)
-    return result
+    return result, metadata
