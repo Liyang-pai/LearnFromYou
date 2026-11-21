@@ -34,8 +34,8 @@ class QuestionReleaseError(ValueError):
 
 
 class ResponseIntentError(ValueError):
-    def __init__(self):
-        super().__init__('教师有本轮待回应请求，不能因没有新知识而 silence。按意图回应：'
+    def __init__(self, message=None):
+        super().__init__(message or '教师有本轮待回应请求，不能因没有新知识而 silence。按意图回应：'
                          '说明疑问用 question（暂缓疑问附例外申请），回答用 answer，检查声音用 ack；'
                          '没有疑问可说明没有疑问，不强造问题。')
 
@@ -180,8 +180,13 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
             raise ValueError('教师回应请求只能引用教师来源')
         old = requests.get(update.id)
         immutable = ('text', 'sources', 'kind', 'invitation_source_id', 'invitation_quote')
-        if old and any(getattr(update, key) != getattr(old, key) for key in immutable):
-            raise ValueError('已有教师请求必须保留意图、正文和原始来源；新请求使用新 ID')
+        if old:
+            changed = [f'{key} 原值为 {getattr(old, key)!r}' for key in immutable
+                       if getattr(update, key) != getattr(old, key)]
+            if changed:
+                raise ValueError(f'已有教师请求 {update.id!r} 必须保留原字段：' + '、'.join(changed)
+                                 + '。若仅回应，请省略该请求的更新，通过 candidate.response_request_ids 关联。'
+                                 '新增回答依据填 candidate.sources，独立的新请求使用新 ID。')
         if old and old.status != 'pending':
             if update.status != old.status and not (old.kind == 'invite_questions' and old.status == 'dismissed'):
                 raise ValueError('已回应或已取消的请求不能重新激活或改写')
@@ -205,7 +210,8 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
             if not update.reason.strip() or not update.resolution_sources:
                 raise ValueError('取消教师请求需要原因和教师依据')
             if not resume and not set(update.resolution_sources) & current_ids:
-                raise ValueError('取消教师请求需要本轮教师依据')
+                raise ValueError(f'取消教师请求 {update.id!r} 需要本轮教师依据。'
+                                 '请在 resolution_sources 引用支持撤回的本轮片段；没有依据时省略该请求的更新。')
         requests[update.id] = ResponseRequest(**update.model_dump(),
             input_revision=old.input_revision if old else sources.get(update.invitation_source_id, {}).get('revision', input_revision))
     next_state.response_requests = list(requests.values())
@@ -260,7 +266,12 @@ def apply_result(state: StudentState, result: StudentResult, sources: dict, curr
     if candidate.response_request_ids:
         if candidate.kind == 'silence':
             raise ValueError('沉默不能标记已回应教师请求')
-        if any(rid not in requests or requests[rid].status != 'pending' for rid in candidate.response_request_ids):
+        unavailable = [rid for rid in candidate.response_request_ids
+                       if rid not in requests or requests[rid].status != 'pending']
+        if unavailable:
+            if candidate.kind in ('answer', 'ack') and not candidate.question_release_request:
+                raise ResponseIntentError(f'candidate.response_request_ids 中的请求 {unavailable!r} 不存在或已关闭。'
+                                          '只关联本次实际回应、仍为 pending 的请求；已取消的请求不能同时回应。')
             raise QuestionReleaseError(candidate.question_id, reason='候选关联的教师邀请或请求已经失效')
     if candidate.kind != 'question' and (candidate.question_release_request or candidate.question_id):
         raise QuestionReleaseError(candidate.question_id, reason='不能把提问关联放进 answer/ack 绕过限制')

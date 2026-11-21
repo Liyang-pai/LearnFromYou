@@ -135,6 +135,7 @@ class ModelClient:
                 return result_validator(result, attempt == 1) if result_validator else result
             except (ValidationError, ValueError, TypeError) as exc:
                 misplaced_candidate_fields = []
+                extra_request_revision = False
                 if isinstance(exc, ValidationError):
                     details = exc.errors()
                     errors = [{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in details]
@@ -144,6 +145,10 @@ class ModelClient:
                         misplaced_candidate_fields = [
                             e['loc'][0] for e in details if e['type'] == 'extra_forbidden'
                             and len(e['loc']) == 1 and e['loc'][0] in Candidate.model_fields]
+                        extra_request_revision = any(
+                            e['type'] == 'extra_forbidden' and len(e['loc']) == 3
+                            and e['loc'][0] == 'response_request_updates' and e['loc'][2] == 'input_revision'
+                            for e in details)
                 else:
                     kind = 'content'
                     errors = [{'field': 'result', 'error': str(exc)}]
@@ -165,6 +170,9 @@ class ModelClient:
                 if misplaced_candidate_fields:
                     fields = '、'.join(misplaced_candidate_fields)
                     correction += f'将顶层发言字段 {fields} 移入 candidate，其余合法的更新字段仍放在顶层。'
+                if extra_request_revision:
+                    correction += ('删除所有 response_request_updates 条目中的 input_revision，该字段由程序填写。'
+                                   '仅回应已有待答请求时，省略该请求的更新，在 candidate.response_request_ids 填对应 ID。')
                 errors_json = compact_json(errors) if student_phase else json.dumps(errors, ensure_ascii=False)
                 correction += '\n具体错误：' + errors_json[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},

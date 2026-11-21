@@ -8,7 +8,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from backend.llm import ModelClient
-from backend.schemas import Knowledge, StudentState
+from backend.schemas import Knowledge, ResponseRequest, StudentState
 from backend.student_prompt import compact_learning_context, student_history
 
 
@@ -92,4 +92,24 @@ def test_nonempty_knowledge_fields_and_non_knowledge_empty_fields_remain():
     context = compact_learning_context(state.learning_context())
     assert context['knowledge'] == original['knowledge']
     assert context['response_requests'] == [] and context['open_questions'] == []
+    assert state.model_dump() == original
+
+
+def test_request_versions_hidden_only_for_ordinary_requests_in_model_input():
+    state = StudentState(response_requests=[
+        ResponseRequest(id='rr1', text='确认看见图片', kind='check_understanding',
+                        sources=['t1'], input_revision=25),
+        ResponseRequest(id='rr2', text='说出疑问', kind='invite_questions',
+                        sources=['t2'], input_revision=29, invitation_source_id='t2',
+                        invitation_quote='你有什么疑问？'),
+        ResponseRequest(id='rr3', text='回答旧题', sources=['t1'], status='answered',
+                        input_revision=23),
+    ])
+    original = state.model_dump()
+    requests = compact_learning_context(state.learning_context())['response_requests']
+    assert requests == [
+        {key: value for key, value in request.items() if key != 'input_revision'}
+        if request['kind'] != 'invite_questions' else request
+        for request in original['response_requests']
+    ]
     assert state.model_dump() == original

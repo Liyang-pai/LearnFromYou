@@ -20,7 +20,7 @@ def data_root():
 
 
 ASR_THREADS = int(os.getenv("ASR_THREADS", "2"))
-SEGMENT_PAUSE = float(os.getenv("SEGMENT_PAUSE", "3"))
+SEGMENT_PAUSE = float(os.getenv("SEGMENT_PAUSE", "2"))
 LONG_PAUSE = float(os.getenv("LONG_SEGMENT_PAUSE", "1"))
 SEGMENT_MAX_WAIT = float(os.getenv("SEGMENT_MAX_WAIT", "20"))
 SPEAK_PAUSE = float(os.getenv("SPEAK_PAUSE", "5"))

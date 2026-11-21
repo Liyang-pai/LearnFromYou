@@ -40,6 +40,9 @@ def compact_learning_context(context):
         for key in ('dependencies', 'independent_sources', 'correction_sources', 'supersedes'):
             if record.get(key) == []:
                 record.pop(key)
+    for request in context['response_requests']:
+        if request['kind'] != 'invite_questions':
+            request.pop('input_revision', None)
     return context
 
 

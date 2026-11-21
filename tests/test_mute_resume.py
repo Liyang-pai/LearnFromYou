@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from backend import config
 from backend.llm import ModelError
-from backend.policy import apply_result, mark_delivered
+from backend.policy import ResponseIntentError, apply_result, mark_delivered, student_result_validator
 from backend.schemas import Lesson, Preparation, ResponseRequest, ResumeResult, StudentResult, StudentState
 from backend.session import Session
 from test_session import until
@@ -96,6 +96,20 @@ def test_request_only_actual_delivery_closes_and_advances_version():
     assert state.version == before + 1
 
 
+def test_repeated_request_can_use_old_id_and_independent_request_can_register_new_id():
+    state = waiting('r1')
+    sources = {**SOURCES, 't3': {'text': '再加一个独立的问题，请说说你用的规则。'}}
+    next_state, candidate = apply_result(state, StudentResult.model_validate({
+        'candidate': answer(('r1',), source='t1'),
+        'response_request_updates': [request('r2', 't3')],
+    }), sources, {'t3'}, input_revision=3)
+    assert [r.id for r in next_state.response_requests] == ['r1', 'r2']
+    assert next_state.response_requests[0] == state.response_requests[0]
+    assert next_state.response_requests[1].sources == ['t3']
+    mark_delivered(next_state, candidate)
+    assert [r.status for r in next_state.response_requests] == ['answered', 'pending']
+
+
 @pytest.mark.parametrize('updates', [
     [request(status='dismissed')],
     [request(sources=['p1'])],
@@ -116,6 +130,26 @@ def test_invalid_request_is_atomic(updates):
 def test_invalid_reply_request_link(candidate):
     with pytest.raises(ValueError):
         apply_result(waiting('r1'), StudentResult.model_validate({'candidate': candidate}), SOURCES, {'t1'})
+
+
+@pytest.mark.parametrize('rid', ['r1', 'missing'])
+def test_invalid_ordinary_reply_names_request_and_can_recover(rid):
+    state = waiting('r1', 'r2')
+    before = state.model_dump()
+    result = StudentResult.model_validate({
+        'response_request_updates': [request(status='dismissed', reason='教师撤回', resolution_sources=['t2'])],
+        'candidate': answer((rid,), kind='ack'),
+    })
+    recovery = []
+    validate = student_result_validator(state, SOURCES, {'t2'}, recovery)
+    with pytest.raises(ResponseIntentError, match=rf'candidate\.response_request_ids.*{rid!r}'):
+        validate(result, False)
+    cleaned = validate(result, True)
+    assert cleaned.candidate.kind == 'silence'
+    assert recovery[0]['code'] == 'response_intent_unrepaired'
+    updated, _ = apply_result(state, cleaned, SOURCES, {'t2'})
+    assert [r.status for r in updated.response_requests] == ['dismissed', 'pending']
+    assert state.model_dump() == before
 
 
 def test_dismissal_needs_evidence_and_cannot_resurrect():
@@ -155,12 +189,16 @@ def test_muted_learning_then_fresh_merged_response_without_input(tmp_path, monke
             await until(lambda: session.state.version == 1)
             assert model.calls[0][1]['interaction_context'] == {'muted': True, 'trigger': 'teacher_input', 'input_revision': 1}
             assert not replies(events) and session.candidate is None
+            assert [r.input_revision for r in session.state.response_requests] == [1, 1]
             cognition = deepcopy(session.state.knowledge)
             await session.set_muted(False)
             await until(lambda: len(replies(events)) == 1)
             assert model.calls[1][0] == 'student_resume'
             assert model.calls[1][1]['interaction_context'] == {'muted': False, 'trigger': 'unmuted', 'input_revision': 1}
             assert model.calls[1][1]['new_teacher_segment_ids'] == []
+            requests = model.calls[1][1]['current_state']['response_requests']
+            assert [(r['id'], r['status']) for r in requests] == [('r1', 'pending'), ('r2', 'pending')]
+            assert all('input_revision' not in r for r in requests)
             assert replies(events)[0]['data']['text'] == '根据最新内容重新回应。'
             assert all(r.status == 'answered' for r in session.state.response_requests)
             assert session.state.knowledge == cognition

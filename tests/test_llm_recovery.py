@@ -8,7 +8,8 @@ import pytest
 
 from backend import config, report_contract
 from backend.llm import ModelClient, ModelError
-from backend.schemas import ResumeResult, StudentResult
+from backend.policy import apply_result, mark_delivered, student_result_validator
+from backend.schemas import ResponseRequest, ResumeResult, StudentResult, StudentState
 
 
 async def client(monkeypatch, responses):
@@ -95,6 +96,48 @@ def test_misplaced_candidate_fields_get_targeted_retry_and_existing_validation(m
             retry_text = calls[1]['messages'][-1]['content']
             assert 'kind、text、sources 移入 candidate' in retry_text and '更新字段仍放在顶层' in retry_text
             assert [d['kind'] for k, d in events if k == 'student_validation_error'] == ['schema']
+        finally:
+            await model.close()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(('update_fields', 'expected'), [
+    ({'input_revision': 29}, '删除所有 response_request_updates 条目中的 input_revision'),
+    ({'sources': ['t1', 't2']}, "sources 原值为 ['t1']"),
+    ({'kind': None}, "kind 原值为 'check_understanding'"),
+    ({'status': 'dismissed', 'reason': '教师撤回', 'resolution_sources': ['t1']},
+     "取消教师请求 'rr1' 需要本轮教师依据"),
+])
+def test_teacher_request_retry_pinpoints_bad_update_and_delivers_only_corrected_reply(
+        monkeypatch, update_fields, expected):
+    request = ResponseRequest(id='rr1', text='能否看到图片', kind='check_understanding',
+                              sources=['t1'], input_revision=25)
+    state = StudentState(response_requests=[request])
+    original = state.model_dump()
+    sources = {'t1': {'text': '能看到图片吗？'}, 't2': {'text': '回答刚才的问题。'}}
+    update = request.model_dump(exclude={'input_revision'}) | update_fields
+    if update['kind'] is None:
+        del update['kind']
+    candidate = {'kind': 'ack', 'text': '能看到。', 'sources': ['t1', 't2'], 'response_request_ids': ['rr1']}
+
+    async def run():
+        model, calls, events = await client(monkeypatch, [
+            envelope(json.dumps({'candidate': candidate, 'response_request_updates': [update]})),
+            envelope(json.dumps({'candidate': candidate})),
+        ])
+        try:
+            validate = student_result_validator(state, sources, {'t2'}, [], input_revision=29)
+            result = await model.generate('student', '学生规则', {}, StudentResult, result_validator=validate)
+            assert len(calls) == 2
+            retry_text = calls[1]['messages'][-1]['content']
+            assert expected in retry_text
+            assert [data['attempt'] for kind, data in events if kind == 'student_validation_error'] == [1]
+            assert state.model_dump() == original
+            updated, reply = apply_result(state, result, sources, {'t2'}, input_revision=29)
+            assert updated.response_requests[0] == request
+            mark_delivered(updated, reply)
+            assert updated.response_requests[0].status == 'answered'
         finally:
             await model.close()
 
