@@ -15,7 +15,9 @@ from .llm import ModelClient, ModelError
 from .review import selected_text
 from .report_accuracy import ACCURACY_PROMPT, SCORE_CAPS, score_accuracy, statement_key
 from .report_prompt import (TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT,
-                            REFLECTION_NOTES, LEGACY_ANALYZE_CHUNK, LEGACY_MERGE_NOTES, FILLER_COUNTS_PROMPT)
+                            REFLECTION_NOTES, LEGACY_ANALYZE_CHUNK, LEGACY_MERGE_NOTES,
+                            FILLER_COUNTS_PROMPT, TYPED_FILLER_COUNTS_PROMPT)
+from .report_scoring import RUBRIC_PROMPT
 from .report_contract import (TeachingReport, ReflectionReport, DIMENSION_NAMES, evidence_turns,
                               validate_sources as check_sources, validate_grounding, validate_reflection)
 
@@ -159,6 +161,12 @@ def source_hash(classroom, prompt=None, *, legacy=False):
         from .report_pipeline import ScoredReflectionReport
         content.update(schema=ScoredReflectionReport.model_json_schema(),
                        accuracy_prompt=ACCURACY_PROMPT, filler_prompt=FILLER_COUNTS_PROMPT)
+        teacher_turns = [turn for turn in classroom.get('turns', ()) if turn['role'] == 'teacher']
+        if any(turn.get('mode') == 'text' for turn in teacher_turns):
+            content['filler_prompt'] = TYPED_FILLER_COUNTS_PROMPT
+        if teacher_turns and all(turn.get('mode') == 'text' for turn in teacher_turns):
+            # 纯文字课堂按新版评分提示生成报告，保留纯语音课堂的缓存。
+            content['rubric_prompt'] = RUBRIC_PROMPT
     return hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest()
 
 

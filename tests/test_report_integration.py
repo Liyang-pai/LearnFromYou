@@ -109,7 +109,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
                 }],
                 'expression': None,
                 'word_counts': [{'word': word, 'count': count} for word, count in [
-                    ('空链表', 2), ('不用访问', 2), ('就是', 2), ('然后', 1), ('我们先想一下啊', 3),
+                    ('空链表', 3), ('不用访问', 2), ('就是', 2), ('然后', 1), ('我们先想一下啊', 3),
                     ('那个', 5), ('嗯', 4), ('对吧', 2), (' 就是 ', 2),
                     ('大家稍微等一下啊', 3), ('链表最后', 30),
                 ]],
@@ -153,7 +153,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
         assert transcript['t2'].get('elapsed') is None
         assert transcript['r1']['role'] == 'ai' and transcript['r1']['elapsed'] == 18
         assert transcript['t3']['role'] == 'teacher' and transcript['t3']['elapsed'] == 20.5
-        assert result['word_counts'] == []  # 原文、键盘和学生中的口头词不属于最终语音文本。
+        assert result['word_counts'] == []  # 打字只出现了一次“就是”，转写原文和小纸的发言不计入。
         assert 'word_counts' not in result['report']
         assert set(result['scores']) == DIMENSIONS
         assert {key: item['score'] for key, item in result['scores'].items()} == {
@@ -244,7 +244,7 @@ def test_accuracy_findings_use_checked_conclusions_and_survive_capture_gaps(tmp_
         assert accuracy['score'] == 2.0
         assert result['capture_status'] == 'complete'
         assert result['scores']['interaction']['pending_label'] == '未见小纸回应'
-        assert result['scores']['expression']['pending_label'] == '仅记录文字'
+        assert result['scores']['expression']['pending_label'] == '证据不足'
         assert len(accuracy['checks']) == 2
         assert len(result['report']['findings']) == 1
         finding = result['report']['findings'][0]
@@ -255,6 +255,42 @@ def test_accuracy_findings_use_checked_conclusions_and_survive_capture_gaps(tmp_
         assert wrong in markdown.text and basis in markdown.text and '错误声称子表不存在' not in markdown.text
         assert '未见小纸回应' in markdown.text
         assert '资料待核对' not in markdown.text
+
+
+def test_typed_explanation_counts_for_expression_score_and_fillers(tmp_path, monkeypatch):
+    quote = '一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。'
+    evidence = {'source_id': 't1', 'actor': 'teacher', 'quote': quote}
+    write_log(tmp_path, [
+        ready(),
+        event('transcript', {'id': 't1', 'mode': 'text', 'text': '怎么说呢，' + quote}),
+        event('transcript', {'id': 't2', 'mode': 'text', 'text': '怎么说呢，代入 x = 0 就能求出 b。'}),
+        finished(),
+    ])
+
+    class Model:
+        async def generate(self, phase, system, payload, contract):
+            assert '教师打字输入的自然语言讲解与语音转写都可作为评分证据' in system
+            assert '顶层expression（语音表达观察正文）必须是null' in system
+            assert '教师的打字输入和语音转写都计入' in system
+            assert '键盘文字、代码和AI回应都不能当口头禅' not in system
+            assert payload['turns'][0]['mode'] == 'text'
+            return contract.model_validate({
+                'overview': {'text': '你解释了 k 和 b 的含义。', 'evidence': [evidence]},
+                'keep': None, 'expression': None, 'findings': [], 'practice': None,
+                'assessment': {'expression': {'main_meaning': [evidence]}},
+                'word_counts': [{'word': '怎么说呢', 'count': 2}],
+            })
+
+        async def close(self):
+            pass
+
+    with client_for(tmp_path, monkeypatch, lambda _: Model()) as client:
+        assert client.post(REPORT).status_code == 200
+        result = wait_until_ready(client)
+        assert result['scores']['expression']['score'] == 3.0
+        assert result['scores']['expression']['evidence'] == [evidence]
+        assert result['report']['expression'] is None
+        assert result['word_counts'] == [{'word': '怎么说呢', 'count': 2}]
 
 
 def test_accuracy_finding_chooses_the_right_claim_when_two_checks_share_a_quote(tmp_path, monkeypatch):

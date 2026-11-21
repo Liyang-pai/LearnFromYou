@@ -44,7 +44,7 @@ function wordChart(counts, expression, transcript) {
   const rows = Array.isArray(counts) ? counts.filter(row => Number.isSafeInteger(row?.count) && row.count >= 2).slice(0, 4) : [];
   const max = Math.max(1, ...rows.map(row => row.count));
   return `<section class="report-stat" aria-labelledby="words-title">
-    <h3 id="words-title">口头禅统计</h3><p class="report-stat-note">基于教师语音转写</p>
+    <h3 id="words-title">口头禅统计</h3><p class="report-stat-note">基于教师的语音转写和文字输入</p>
     ${rows.length ? rows.map(({word, count}) => `<div class="report-word"><span>${escape(word)}</span><span class="report-bar" aria-hidden="true"><i style="width:${count / max * 100}%"></i></span><span>${count} 次</span></div>`).join('')
       : `<p class="report-stat-note">${Array.isArray(counts) ? '未统计到出现至少 2 次的口头禅。' : '暂无口头禅统计。'}</p>`}
     ${expression ? `<details class="report-expression"><summary>表达观察</summary><p>${escape(expression.text)}</p>${evidenceList(expression.evidence, transcript) || (expression.quote ? `<p><q>${escape(expression.quote)}</q></p>` : '')}<p>${escape(expression.action)}</p></details>` : ''}

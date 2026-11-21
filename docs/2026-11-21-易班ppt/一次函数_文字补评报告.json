@@ -1,0 +1,297 @@
+{
+  "schema_version": 3,
+  "session_id": "846b7510676c",
+  "source_hash": "828c84ce3013e610bf0ee451350662a3bd1fe8395afd6959b248ebf8c7eef04c",
+  "status": "ready",
+  "progress": "报告已生成。",
+  "report": {
+    "overview": {
+      "text": "你以 y=2x+1 为例，先代入求点，再让学生提问，并针对“2 的含义”用相邻函数值差解释变化率，随后换例检查，最后归纳 k、b 的意义。整体讲解主线清楚，互动有具体回应和理由检查。",
+      "evidence": [
+        {
+          "source_id": "t1",
+          "actor": "teacher",
+          "quote": "把 x = 1 代入，2 乘 1 加 1 得 3；把 x = 2 代入，2 乘 2 加 1 得 5。"
+        },
+        {
+          "source_id": "t3",
+          "actor": "teacher",
+          "quote": "把相邻两次的函数值相减，5 − 3 = 2；从式子看，x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。"
+        },
+        {
+          "source_id": "t4",
+          "actor": "teacher",
+          "quote": "一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。"
+        }
+      ]
+    },
+    "keep": {
+      "text": "你让学生先提出具体疑问，再针对“2 是不是变化率”给出相邻函数值相减的解释，并追问“为什么”，形成了有理由的检查。",
+      "evidence": [
+        {
+          "source_id": "t2",
+          "actor": "teacher",
+          "quote": "请挑一个具体的地方问老师。"
+        },
+        {
+          "source_id": "t3",
+          "actor": "teacher",
+          "quote": "请你试试：如果 x 从 2 增到 4，y 增加多少？为什么？"
+        },
+        {
+          "source_id": "r2",
+          "actor": "ai",
+          "quote": "因为 x 从 2 增到 4 增加了 2，而 x 每增加 1，y 增加 2，所以 y 增加 2×2=4"
+        }
+      ]
+    },
+    "findings": [
+      {
+        "kind": "可选提升",
+        "dimension": "understanding_check",
+        "title": "换例后补一句归纳，把“2 是变化率”和 k 的一般含义串起来",
+        "fact": "学生答出 y 增加 4 并说明理由后，你直接转向常数 1 和 k、b 的总结，没有先口头回扣“2 就是变化率”这一结论。",
+        "action": "在 t4 开头加一句：“刚才 x 从 2 增到 4，y 增加 4，还是因为每增加 1 就增加 2，这个 2 就是变化率。”再讲 b 和 k 的一般含义。",
+        "evidence": [
+          {
+            "source_id": "t3",
+            "actor": "teacher",
+            "quote": "式子里的 2 就是这个变化率。"
+          },
+          {
+            "source_id": "r2",
+            "actor": "ai",
+            "quote": "y 增加 4。因为 x 从 2 增到 4 增加了 2，而 x 每增加 1，y 增加 2，所以 y 增加 2×2=4"
+          },
+          {
+            "source_id": "t4",
+            "actor": "teacher",
+            "quote": "说得对。再看式子里的常数 1"
+          }
+        ]
+      }
+    ],
+    "expression": null,
+    "practice": {
+      "minutes": 2,
+      "task": "在换例检查后、讲 b 之前，用一句话把“2 是变化率”和 k 的一般含义串起来，再进入常数 1 的讲解。",
+      "example": "“刚才 x 从 2 增到 4，y 增加 4，还是因为每增加 1 就增加 2，这个 2 就是变化率。所以 k 表示 x 每增加 1 时 y 的改变量。”",
+      "criterion": "教师能说出包含“变化率”和“k 表示 x 每增加 1 时 y 的改变量”的过渡句。"
+    }
+  },
+  "error": "",
+  "word_counts": [],
+  "topic": "一次函数",
+  "grade": "初中 · 八年级",
+  "subject": "数学",
+  "transcript": [
+    {
+      "id": "t1",
+      "role": "teacher",
+      "text": "今天学习一次函数。以 y = 2x + 1 为例，自变量是 x。把 x = 1 代入，2 乘 1 加 1 得 3；把 x = 2 代入，2 乘 2 加 1 得 5。图上相应的点是 (1, 3) 和 (2, 5)。",
+      "elapsed": 2.777
+    },
+    {
+      "id": "t2",
+      "role": "teacher",
+      "text": "小纸，结合刚才的两个点和图像，你有哪些地方还没弄明白？请挑一个具体的地方问老师。",
+      "elapsed": 31.063
+    },
+    {
+      "id": "r1",
+      "role": "ai",
+      "text": "老师，从 (1,3) 到 (2,5)，x 增加1，y 增加2，这个2和 y=2x+1 里的2是同一个意思吗？",
+      "elapsed": 42.168
+    },
+    {
+      "id": "t3",
+      "role": "teacher",
+      "text": "是的。把相邻两次的函数值相减，5 − 3 = 2；从式子看，x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。式子里的 2 就是这个变化率。请你试试：如果 x 从 2 增到 4，y 增加多少？为什么？",
+      "elapsed": 180.869
+    },
+    {
+      "id": "r2",
+      "role": "ai",
+      "text": "y 增加 4。因为 x 从 2 增到 4 增加了 2，而 x 每增加 1，y 增加 2，所以 y 增加 2×2=4；也可以算：x=2 时 y=5，x=4 时 y=9，9−5=4。",
+      "elapsed": 191.475
+    },
+    {
+      "id": "t4",
+      "role": "teacher",
+      "text": "说得对。再看式子里的常数 1：当 x = 0 时，y = 1，所以这条直线与纵轴交在 (0, 1)。一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。总结一下，2 决定怎样变化，1 决定直线在纵轴上从哪里经过。",
+      "elapsed": 253.949
+    }
+  ],
+  "capture_status": "complete",
+  "transcription_notice": "",
+  "elapsed": 384.772,
+  "scores": {
+    "accuracy": {
+      "score": 5,
+      "reason": "核心说法已核对 3/3 项。核心说法核对通过。",
+      "evidence": [],
+      "checks": [
+        {
+          "topic": "y=2x+1 的函数值计算",
+          "claim": "x=1 时 y=3，x=2 时 y=5，对应点 (1,3) 和 (2,5)。",
+          "core": true,
+          "verdict": "correct",
+          "basis": "代入 x=1 得 2×1+1=3，代入 x=2 得 2×2+1=5，对应点 (1,3)、(2,5) 正确。",
+          "evidence": [
+            {
+              "source_id": "t1",
+              "actor": "teacher",
+              "quote": "把 x = 1 代入，2 乘 1 加 1 得 3；把 x = 2 代入，2 乘 2 加 1 得 5。"
+            },
+            {
+              "source_id": "t1",
+              "actor": "teacher",
+              "quote": "图上相应的点是 (1, 3) 和 (2, 5)。"
+            }
+          ],
+          "corrected": false,
+          "label": "核对通过"
+        },
+        {
+          "topic": "一次函数 y=kx+b 中 k 的含义",
+          "claim": "k 表示 x 每增加 1 时 y 的改变量。",
+          "core": true,
+          "verdict": "correct",
+          "basis": "对 y=2x+1，x 每增加 1，2x 增加 2，常数 1 不变，所以 y 增加 2；一般地 k 表示 x 每增加 1 时 y 的改变量。",
+          "evidence": [
+            {
+              "source_id": "t3",
+              "actor": "teacher",
+              "quote": "x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。"
+            },
+            {
+              "source_id": "t4",
+              "actor": "teacher",
+              "quote": "k 表示 x 每增加 1 时 y 的改变量"
+            }
+          ],
+          "corrected": false,
+          "label": "核对通过"
+        },
+        {
+          "topic": "一次函数 y=kx+b 中 b 的含义",
+          "claim": "b 表示 x=0 时的函数值。",
+          "core": true,
+          "verdict": "correct",
+          "basis": "在 y=kx+b 中令 x=0，得 y=b，所以 b 是 x=0 时的函数值，也是直线与纵轴交点的纵坐标。",
+          "evidence": [
+            {
+              "source_id": "t4",
+              "actor": "teacher",
+              "quote": "当 x = 0 时，y = 1，所以这条直线与纵轴交在 (0, 1)。"
+            },
+            {
+              "source_id": "t4",
+              "actor": "teacher",
+              "quote": "b 表示 x = 0 时的函数值"
+            }
+          ],
+          "corrected": false,
+          "label": "核对通过"
+        }
+      ],
+      "preview_check_index": 0
+    },
+    "clarity": {
+      "score": 4,
+      "reason": "用例子走完了关键步骤；讲清了关键步骤各怎么做。",
+      "evidence": [
+        {
+          "source_id": "t1",
+          "actor": "teacher",
+          "quote": "把 x = 1 代入，2 乘 1 加 1 得 3；把 x = 2 代入，2 乘 2 加 1 得 5。"
+        },
+        {
+          "source_id": "t3",
+          "actor": "teacher",
+          "quote": "把相邻两次的函数值相减，5 − 3 = 2；从式子看，x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。"
+        },
+        {
+          "source_id": "t4",
+          "actor": "teacher",
+          "quote": "当 x = 0 时，y = 1，所以这条直线与纵轴交在 (0, 1)。"
+        }
+      ]
+    },
+    "coherence": {
+      "score": 4,
+      "reason": "各段围绕本课目标展开；进入新内容时给了过渡提示。",
+      "evidence": [
+        {
+          "source_id": "t3",
+          "actor": "teacher",
+          "quote": "式子里的 2 就是这个变化率。"
+        },
+        {
+          "source_id": "t4",
+          "actor": "teacher",
+          "quote": "一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。"
+        },
+        {
+          "source_id": "t4",
+          "actor": "teacher",
+          "quote": "再看式子里的常数 1"
+        }
+      ]
+    },
+    "interaction": {
+      "score": 5,
+      "reason": "要求说明关键知识点的理由，并听到了理由；围绕该理由作了进一步提问或给出了具体反馈。",
+      "evidence": [
+        {
+          "source_id": "t3",
+          "actor": "teacher",
+          "quote": "请你试试：如果 x 从 2 增到 4，y 增加多少？为什么？"
+        },
+        {
+          "source_id": "r2",
+          "actor": "ai",
+          "quote": "因为 x 从 2 增到 4 增加了 2，而 x 每增加 1，y 增加 2，所以 y 增加 2×2=4"
+        },
+        {
+          "source_id": "t4",
+          "actor": "teacher",
+          "quote": "说得对。"
+        }
+      ]
+    },
+    "expression": {
+      "score": 4,
+      "reason": "文字补评。讲解用句直接，“变化率”“函数值”等术语前后统一，能清楚说明系数和常数项的含义。",
+      "evidence": [
+        {
+          "source_id": "t3",
+          "quote": "从式子看，x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。",
+          "actor": "teacher"
+        },
+        {
+          "source_id": "t4",
+          "quote": "一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。",
+          "actor": "teacher"
+        }
+      ]
+    }
+  },
+  "presentation_review": {
+    "kind": "文字补评",
+    "dimension": "expression",
+    "score": 4,
+    "evidence": [
+      {
+        "source_id": "t3",
+        "quote": "从式子看，x 每增加 1，2x 就增加 2，加上的 1 保持不变，所以 y 增加 2。",
+        "actor": "teacher"
+      },
+      {
+        "source_id": "t4",
+        "quote": "一次函数 y = kx + b 中，k 表示 x 每增加 1 时 y 的改变量，b 表示 x = 0 时的函数值。",
+        "actor": "teacher"
+      }
+    ]
+  }
+}

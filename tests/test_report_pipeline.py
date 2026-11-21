@@ -162,21 +162,25 @@ def test_long_report_merges_filler_counts_across_segments(tmp_path, omit_late_co
     classroom['presentation']['transcript'][0]['original_text'] = '仅供主动展开的原文。'
     classroom['turns'][0]['text'] = '怎么说呢，暂说尾节点还指向下一节点。'
     last = classroom['turns'][-1]
-    last['mode'] = 'microphone'
+    last['mode'] = 'text'
     last['text'] = '怎么说呢，先等一下，' + last['text']
-    speech_chunks = []
+    filler_sources = []
 
     class Model(NotesModel):
         async def generate(self, phase, prompt, payload, schema):
             result = await super().generate(phase, prompt, payload, schema)
             if phase == 'teaching_report_chunk':
-                speech = [t for t in payload['turns'] if t.get('mode') == 'microphone']
-                if speech:
-                    turn, = speech
-                    speech_chunks.append(turn['id'])
+                assert '教师的打字输入和语音转写都计入' in prompt
+                result.word_counts = []
+                for turn in payload['turns']:
+                    if '怎么说呢' not in turn['text']:
+                        continue
+                    filler_sources.append((turn['id'], turn['mode']))
                     assert turn['text'].count('怎么说呢') == 1
                     assert 'original_text' not in turn
-                    if not omit_late_counts or turn['id'] != last['id']:
+                    if omit_late_counts and turn['id'] == last['id']:
+                        result.word_counts = None
+                    else:
                         result.word_counts = [pipeline.FillerCount(word='怎么说呢', count=1)]
                         if turn['id'] == last['id']:
                             result.word_counts.append(pipeline.FillerCount(word='先等一下', count=1))
@@ -184,7 +188,7 @@ def test_long_report_merges_filler_counts_across_segments(tmp_path, omit_late_co
 
     result = asyncio.run(pipeline.ReportPipeline(Model([]), tmp_path, SID, 'fillers', lambda _: None)
                          .generate(classroom))
-    assert speech_chunks == ['t1', 't3']
+    assert filler_sources == [('t1', 'microphone'), ('t3', 'text')]
     assert result.model_dump()['word_counts'] == (None if omit_late_counts else [{'word': '怎么说呢', 'count': 2}])
 
 
@@ -223,7 +227,7 @@ def test_interaction_notes_keep_legacy_type_and_cache_each_prompt_independently(
     asyncio.run(run())
 
 
-def test_filler_bounds_use_only_canonical_speech_and_ignore_repeated_context():
+def test_filler_bounds_use_teacher_text_and_ignore_repeated_context():
     turns = [
         {'id': 't1', 'role': 'teacher', 'mode': 'microphone',
          'text': '嗯，嗯，就是，就是，那个，那个，对吧，对吧，怎么说呢，怎么说呢。',
@@ -233,9 +237,9 @@ def test_filler_bounds_use_only_canonical_speech_and_ignore_repeated_context():
         {'id': 't1', 'role': 'teacher', 'mode': 'microphone', 'text': '呃，呃。', 'context_only': True},
     ]
     rows = [pipeline.FillerCount(word=word, count=count) for word, count in
-            [('嗯', 2), ('就是', 2), ('那个', 2), ('对吧', 2), ('怎么说呢', 2), ('呃', 2), ('嗯', 3)]]
+            [('嗯', 2), ('就是', 2), ('那个', 2), ('对吧', 2), ('怎么说呢', 2), ('呃', 2), ('呃', 3), ('嗯', 3)]]
     counts = pipeline.count_fillers(rows, turns)
-    assert counts == {'嗯': 2, '就是': 2, '那个': 2, '对吧': 2, '怎么说呢': 2}
+    assert counts == {'嗯': 2, '就是': 2, '那个': 2, '对吧': 2, '怎么说呢': 2, '呃': 2}
     assert [(row.word, row.count) for row in pipeline.rank_filler_counts(counts)] == [
         ('嗯', 2), ('就是', 2), ('那个', 2), ('对吧', 2)]
 

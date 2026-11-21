@@ -11,7 +11,8 @@ from .llm import ModelError
 from .report_accuracy import ACCURACY_PROMPT, AccuracyCheck, AccuracyClaim, AccuracyJudgment, statement_key
 from .report_calculation import list_depth_facts
 from .report_contract import AnalysisNotes, ReflectionReport, evidence_turns, source_bound, interaction_facts
-from .report_prompt import ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES, FILLER_COUNTS_PROMPT
+from .report_prompt import (ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES,
+                            FILLER_COUNTS_PROMPT, TYPED_FILLER_COUNTS_PROMPT)
 from .report_scoring import RUBRIC_PROMPT, RubricAssessment
 from .schemas import StrictModel
 
@@ -67,17 +68,16 @@ def compact(classroom):
 
 
 def count_fillers(rows, turns):
-    speech = [turn['text'] for turn in turns if turn['role'] == 'teacher'
-              and turn.get('mode') == 'microphone' and not turn.get('context_only')]
-    if rows is None and any(speech):
+    teacher_texts = [turn['text'] for turn in turns if turn['role'] == 'teacher' and not turn.get('context_only')]
+    if rows is None and any(teacher_texts):
         return None
     counts = Counter()
     for item in rows or ():
         word = item.word.strip()
         if not (1 <= len(word) <= 7 and word[0].isalnum() and word[-1].isalnum() and item.count > 0):
             continue
-        # The transcript bounds the model's count, which includes only filler uses.
-        if item.count <= sum(text.count(word) for text in speech):
+        # The teacher's text bounds the model's count, which includes only filler uses.
+        if item.count <= sum(text.count(word) for text in teacher_texts):
             counts[word] = max(counts[word], item.count)
     return counts
 
@@ -290,8 +290,13 @@ class ReportPipeline:
             '把“先后怎么安排”“换题前多说一句”“由教师再演示”等建议标为可选提升。'
             '尚未看到更完整的讲法，不能证明已有讲解妨碍理解。'
         ) + RUBRIC_PROMPT + ACCURACY_PROMPT
+        has_typed_input = any(t['role'] == 'teacher' and t.get('mode') == 'text' for t in self.turns)
+        filler_prompt = TYPED_FILLER_COUNTS_PROMPT if has_typed_input else FILLER_COUNTS_PROMPT
+        if has_typed_input:
+            final_prompt = final_prompt.replace('键盘文字、代码和AI回应都不能当口头禅。', '')
         if not any(t.get('mode') == 'microphone' for t in self.turns):
-            final_prompt += '\n本次只有打字讲授，expression字段（表达观察正文）必须是null。'
+            final_prompt += ('\n本次只有打字讲授，顶层expression（语音表达观察正文）必须是null。'
+                             'assessment.expression仍按评分规则检查教师文字讲解。')
         if len(encode(payload)) <= SHORT_LIMIT:
             self.progress('正在分析讲授内容与改进建议……')
             if verified_depths:
@@ -300,7 +305,7 @@ class ReportPipeline:
                 '\nassessment.accuracy列出逐条核对结果及逐字引文。没有可核对的知识说法时返回[]。'
                 '每条basis控制在一两句话，次要说法只保留有诊断价值的。核心核对因篇幅受限时，'
                 '设置accuracy_coverage_limited为true。'
-            ) + FILLER_COUNTS_PROMPT, payload, ScoredReflectionReport, teachers)
+            ) + filler_prompt, payload, ScoredReflectionReport, teachers)
             if report.assessment.accuracy is None:
                 report.assessment.accuracy = []
                 report.accuracy_coverage_limited = True
@@ -319,7 +324,7 @@ class ReportPipeline:
                 '使这段连续原文在该来源中只出现一次；不要单引每个例子都会重复的结论。'
                 '保留后续更正、限定条件及讲法不同的结论。本段重复且意思相同的只记一次，'
                 '小纸作答仅在教师随后明确采用时保留，来源用输入中的reply_id。没有适用说法时返回[]。'
-            ) + FILLER_COUNTS_PROMPT, part, AccuracyChunkNotes, allowed, reflection=True)
+            ) + filler_prompt, part, AccuracyChunkNotes, allowed, reflection=True)
             groups.append({'range': [i, i], **notes.model_dump(include={'notes'})})
             found, limited = chunk_accuracy_claims(part, notes.accuracy_claims)
             claims.extend(found)

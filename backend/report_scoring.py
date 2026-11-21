@@ -50,7 +50,7 @@ TIERS = {
     ),
     'expression': (
         {'unclear_key_lines': '多处关键句难以理解，或有效发言太少'},
-        {'partial_meaning': '部分语句的意思能听清'},
+        {'partial_meaning': '部分语句的意思可以理解'},
         {'main_meaning': '主要意思表达清楚'},
         {'consistent_terms': '术语在前后讲解中保持一致', 'direct_sentences': '讲解用句直接'},
         {'clear_references': '关键表述用词和指代清楚', 'helpful_rephrasing': '需要重述时换了说法，帮助理解'},
@@ -68,7 +68,10 @@ RUBRIC_PROMPT = """
 没有足够证据的条件请省略；某维度全部没证据就传空对象或省略该维度，不能填空数组或猜测引用。
 依据后端提供的课堂文本评价，不推测识别原话、审核过程或记录之外的讲授。
 整体性条件需结合全课，使用能支持判断的代表短引。涉及前后关系时引用相关两处，不只引用无关开场。
-除了下述师生互动序列，每个条件都须直接引用教师原话；小纸的发言只能作为辅助背景。表达维度只引用教师实际讲解的自然语言。
+除了下述师生互动序列，每个条件都须直接引用教师原话；小纸的发言只能作为辅助背景。
+assessment.expression用于五维中的表达规范评分。教师打字输入的自然语言讲解与语音转写都可作为评分证据，使用同一套档位条件。
+纯文字课堂也要检查这一维。有原句能支持“主要意思表达清楚”时填写main_meaning，即使同时填写了更高档的条件。
+只引用教师实际讲解的自然语言，不依据单独的代码、公式或小纸的发言评价教师表达。
 followup_or_feedback依次引用实际小纸的提问或作答、教师针对该回应的追问或反馈。笼统附和或换话题不算。
 先检查有没有完整的理由问答与反馈。checks_reason依次引用教师明确要求说明关键点的理由、依据或判断过程，以及实际小纸给出的理由；能否答对不是评分条件。
 specific_reason_feedback在同一轮checks_reason的两条依据后，添教师针对该理由的具体追问、认可解释或纠正。
@@ -155,8 +158,6 @@ def score_assessment(assessment: RubricAssessment | None, turns, *, incomplete=F
         pending, reason = '证据不足', '现有课堂片段还不足以给这一项定档。'
         if name == 'interaction' and teacher_turns and not has_reply:
             pending, reason = '未见小纸回应', '本次记录未见小纸回应，现有证据还不足以给师生互动评分。'
-        elif name == 'expression' and teacher_turns and all(turn.get('mode') == 'text' for turn in teacher_turns):
-            pending, reason = '仅记录文字', '本次记录为文字讲解，现有证据还不足以给表达规范评分。'
         scores[name] = {'score': None, 'pending_label': pending, 'reason': reason, 'evidence': []}
         observations = {}
         for key, references in provided.items():
