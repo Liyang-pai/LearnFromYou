@@ -31,7 +31,13 @@
 .report-stat { padding: 12px; border: 1px solid var(--line); border-radius: 15px; min-width: 0; }
 .report-stat h3 { margin: 0 0 7px; }
 .report-stat-note { font-size: 14px; color: #597390; }
-.report-word { display: grid; grid-template-columns: 3em minmax(10px, 1fr) auto; gap: 6px; align-items: center; font-size: 14px; padding: 5px 0; overflow-wrap: anywhere; }
+.report-accuracy-details { margin-bottom: 13px; overflow-wrap: anywhere; }
+.report-accuracy-check { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 9px; }
+.report-accuracy-check p { margin: 4px 0; }
+.report-accuracy-basis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
+.report-accuracy-label { margin: 0; color: #386bb0; font-size: 14px; }
+.report-accuracy-grounds { align-self: start; padding: 9px 10px; border-radius: 11px; background: #edf5ff; }
+.report-word { display: grid; grid-template-columns: minmax(3em, 7em) minmax(10px, 1fr) auto; gap: 6px; align-items: center; font-size: 14px; padding: 5px 0; overflow-wrap: anywhere; }
 .report-word > :last-child { color: #6780a0; font-size: 13px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .report-bar { height: 6px; border-radius: 6px; background: var(--soft); }
 .report-bar i { display: block; height: 100%; border-radius: inherit; background: var(--blue); }
@@ -52,7 +58,11 @@
 .report-axis .report-score { font-weight: 700; color: #366ab1; font-variant-numeric: tabular-nums; }
 .report-score-pending { color: #587192; font-size: .85em; }
 .report-axis > button:hover, .report-axis > button:focus-visible { background: var(--soft); cursor: help; }
+.report-axis > button[data-action="report-accuracy"] { cursor: pointer; }
 .report-axis-tip { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); width: min(220px, 92cqi); max-height: 174px; overflow: auto; padding: 8px 10px; visibility: hidden; color: var(--ink); background: #fff; border: 1px solid #dfe9f7; border-radius: 10px; box-shadow: 0 5px 20px #355c8b20; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.report-axis-tip-accuracy { width: min(324px, 98cqi); max-height: min(340px, 55dvh); padding: 10px 12px; }
+.report-axis-tip-accuracy p + p, .report-axis-tip-accuracy > .report-stat-note { margin-top: 7px; }
+.report-axis-tip-accuracy time { margin-left: 8px; color: #597390; font-variant-numeric: tabular-nums; }
 .report-axis-left .report-axis-tip { top: 0; left: 100%; transform: none; }
 .report-axis-right .report-axis-tip { top: 0; left: auto; right: 100%; transform: none; }
 .report-axis-lower .report-axis-tip { top: auto; bottom: 100%; }
@@ -60,7 +70,7 @@
 .report-axis-lower.report-axis-right .report-axis-tip { right: 0; }
 .report-axis:hover { z-index: 2; }
 .report-axis:focus-within { z-index: 1; }
-.report-axis:is(:hover, :focus-within):not([data-tooltip-dismissed]) .report-axis-tip { visibility: visible; }
+.report-axis:is(:hover, :focus-within):not([data-tooltip-dismissed]) > button:not([aria-expanded="true"]) + .report-axis-tip { visibility: visible; }
 .report-strengths { border-radius: 15px; background: #eaf7f0; color: #386e5c; margin-bottom: 13px; }
 .report-strengths ul { margin: 0; padding: 1px 20px 13px 33px; font-size: 16px; }
 .report-strengths > p { padding: 0 13px 11px; }
@@ -98,6 +108,7 @@ button.report-evidence:hover { background: #ecf4ff; border-color: #cddff6; }
 }
 @container (max-width: 420px) {
   .report-stat-grid { grid-template-columns: minmax(0, 1fr); }
+  .report-accuracy-basis { grid-template-columns: minmax(0, 1fr); }
 }
 @container (max-width: 375px) {
   .report-issue-content { grid-template-columns: minmax(0, 1fr); }

@@ -4,6 +4,236 @@ from pydantic import ValidationError
 from backend.report_scoring import RubricAssessment, score_assessment
 
 
+def accuracy_check(source, quote, *, topic='广义表深度', verdict='correct', core=True):
+    return {'topic': topic, 'claim': quote, 'core': core, 'verdict': verdict,
+            'basis': '((a),(b)) 有三对括号，最大嵌套深度为二。',
+            'evidence': [{'source_id': source, 'actor': 'teacher', 'quote': quote}]}
+
+
+def test_accuracy_uses_the_final_statement_by_classroom_order():
+    turns = [
+        {'id': 't9', 'role': 'teacher', 'mode': 'text', 'text': '广义表的深度等于括号对数。'},
+        {'id': 't10', 'role': 'teacher', 'mode': 'text', 'text': '更正，广义表的深度是最大嵌套层数。'},
+        {'id': 't11', 'role': 'teacher', 'mode': 'text', 'text': '所以深度还是等于括号对数。'},
+    ]
+    wrong = accuracy_check('t9', turns[0]['text'], verdict='core_error')
+    corrected = accuracy_check('t10', turns[1]['text'])
+    repeated = accuracy_check('t11', turns[2]['text'], verdict='core_error')
+
+    base = score_assessment(RubricAssessment(accuracy=[wrong]), turns[:1])['accuracy']
+    assert base['score'] == 2.0
+    unexplained = [turns[0], {**turns[1], 'text': '广义表的深度是最大嵌套层数。'}]
+    inconsistent = score_assessment(
+        RubricAssessment(accuracy=[wrong, accuracy_check('t10', unexplained[1]['text'])]), unexplained)['accuracy']
+    assert inconsistent['score'] == 2.0 and not inconsistent['checks'][0]['corrected']
+    corrected['corrects_earlier'] = True
+    wrong['topic'] = '广义表深度（错误说法）'
+    corrected['topic'] = '广义表深度（更正）'
+    after = score_assessment(RubricAssessment(accuracy=[corrected, wrong]), turns[:2])['accuracy']
+    assert after['score'] == 5.0
+    assert after['checks'][0]['corrected'] is True
+    assert [e['source_id'] for e in after['checks'][0]['evidence']] == ['t9', 't10']
+    final = score_assessment(RubricAssessment(accuracy=[repeated, corrected, wrong]), turns)['accuracy']
+    assert final['score'] == 2.0 and len(final['checks']) == 1
+    assert final['checks'][0]['evidence'][0]['source_id'] == 't11'
+
+
+def test_accuracy_marks_ambiguous_core_and_keeps_verified_teacher_evidence():
+    t5 = '它的元素可以是单元素也可以是子表'
+    t10 = '如果有多个括号比如说有有两个括号'
+    turns = [
+        {'id': 't5', 'role': 'teacher', 'text': t5, 'mode': 'microphone', 'review_status': 'disabled'},
+        {'id': 't10', 'role': 'teacher', 'text': t10, 'mode': 'microphone', 'review_status': 'disabled'},
+    ]
+    definition = accuracy_check('t5', t5, topic='广义表元素')
+    ambiguity = accuracy_check('t10', t10, verdict='unverified')
+    result = score_assessment(RubricAssessment(accuracy=[definition, ambiguity]), turns)['accuracy']
+    assert result['score'] is None
+    assert result['pending_label'] == '已核对 1/2'
+    assert [check['verdict'] for check in result['checks']] == ['correct', 'unverified']
+    assert result['preview_check_index'] == 1
+    assert '1/2' in result['reason']
+    ambiguity['core'] = False
+    result = score_assessment(RubricAssessment(accuracy=[definition, ambiguity]), turns)['accuracy']
+    assert result['score'] == 5.0 and result['preview_check_index'] == 0
+
+
+def test_accuracy_does_not_promote_an_ambiguous_bracket_example_to_a_rule():
+    definition = '它的元素可以是单元素也可以是子表'
+    ambiguous = '如果有多个括号比如说有有两个括号那么就意味着呃有两有两个这个呃呃这个广义表然后一个嵌在另一个里面'
+    clarified = '有多个括号，比如两个括号，也要分清并列与嵌套，深度看最大嵌套层数。'
+
+    def run(statement):
+        turns = [{'id': source, 'role': 'teacher', 'text': text, 'mode': 'microphone', 'review_status': 'disabled'}
+                 for source, text in [('t5', definition), ('t10', statement)]]
+        assessments = [
+            {**accuracy_check('t5', definition, topic='广义表元素'), 'basis': '广义表可容纳原子和子表。'},
+            {**accuracy_check('t10', statement), 'basis': '括号表示嵌套，教师说法正确。'},
+        ]
+        return score_assessment(RubricAssessment(accuracy=assessments), turns)['accuracy']
+
+    result = run(ambiguous)
+    assert result['score'] is None
+    assert [row['verdict'] for row in result['checks']] == ['correct', 'unverified']
+    assert '并列' in result['checks'][1]['basis']
+    assert run(clarified)['score'] == 5.0
+
+
+@pytest.mark.parametrize(('texts', 'expected', 'fact'), [
+    (['例如 L=(((a)),(b),(c,(d)))，所以这个广义表的深度是四。'], 3.0, '最大嵌套为3层'),
+    (['例如 L=(((a)),(b),(c,(d)))，最深处有四层，所以这个广义表的深度是四。'], 3.0, '最大嵌套为3层'),
+    (['例如 L=((a),(b))，L 的深度是三。再说一次，L 的深度是三。'], 3.0, '最大嵌套为2层'),
+    (['看 L=((a),(b))。', '深度就是括号的总对数。这个式子有三对括号，所以它的深度是三。'],
+     2.0, '最大嵌套为2层'),
+    (['例如 L=(((a)),(b),(c,(d)))，所以这个广义表的深度是三。'], 5.0, None),
+    (['设 C=(a,(b))。看 L=(C,a)，它的深度是三。'], 5.0, None),
+])
+def test_accuracy_recomputes_explicit_generalized_lists_even_when_model_agrees_with_teacher(texts, expected, fact):
+    turns = [{'id': f't{i}', 'role': 'teacher', 'mode': 'text', 'text': text} for i, text in enumerate(texts, 1)]
+    incorrect_model = accuracy_check(turns[-1]['id'], texts[-1])
+    report = score_assessment(RubricAssessment(accuracy=[incorrect_model]), turns,
+                              lesson={'topic': '广义表与深度'})['accuracy']
+    assert report['score'] == expected
+    if fact:
+        assert fact in report['checks'][0]['basis']
+
+
+@pytest.mark.parametrize('split_turns', [False, True])
+@pytest.mark.parametrize(('next_example', 'quote'), [
+    ('另一个例子是空表，空表的深度是一。', '空表的深度是一。'),
+    ('再来看空表，它的深度是一。', '它的深度是一。'),
+    ('也可以看看 (a)，这个广义表的深度是一。', '这个广义表的深度是一。'),
+    ('第二题改用单层结构，这个广义表的深度是一。', '这个广义表的深度是一。'),
+    ('B 表只有外层一对括号，深度是一。', '深度是一。'),
+])
+def test_other_list_example_is_not_recomputed_with_the_first_literal(split_turns, next_example, quote):
+    first = '例如 L=((a),(b))，L 的深度是二。'
+    texts = [first, next_example] if split_turns else [first + next_example]
+    turns = [turn(f't{i}', text, mode='text') for i, text in enumerate(texts, 1)]
+    later = accuracy_check(turns[-1]['id'], quote, topic='第二个例子')
+    later['basis'] = '外层括号为一层。'
+    assessment = RubricAssessment(accuracy=[accuracy_check('t1', first), later])
+    result = score_assessment(assessment, turns, lesson={'topic': '广义表与深度'})['accuracy']
+    assert result['score'] == 5.0
+    assert '程序复算' in result['checks'][0]['basis']
+    assert result['checks'][1]['basis'] == later['basis']
+
+
+def test_accuracy_blocks_fabricated_support_and_simulated_answers():
+    turns = [
+        {'id': 't1', 'role': 'teacher', 'text': '你认为这里的深度是多少？'},
+        {'id': 'r1', 'role': 'ai', 'text': '深度是二。'},
+        {'id': 't2', 'role': 'teacher', 'text': '确实，答案是二。'},
+        {'id': 't3', 'role': 'teacher', 'text': '深度等于括号对数。', 'mode': 'microphone', 'review_status': 'fallback'},
+    ]
+    answer = {'source_id': 'r1', 'actor': 'ai', 'quote': '深度是二。'}
+    for judge in (
+        accuracy_check('t1', '深度是二。'),
+        {**accuracy_check('t1', turns[0]['text']), 'evidence': [answer]},
+        {**accuracy_check('t1', turns[0]['text']), 'evidence': [answer, accuracy_check('t1', turns[0]['text'])['evidence'][0]]},
+        accuracy_check('t3', turns[3]['text'], verdict='core_error'),
+    ):
+        accuracy = score_assessment(RubricAssessment(accuracy=[judge]), turns)['accuracy']
+        assert accuracy['score'] is None and accuracy['checks'][0]['verdict'] == 'unverified'
+    adopted = accuracy_check('t2', turns[2]['text'])
+    adopted['evidence'].insert(0, answer)
+    assert score_assessment(RubricAssessment(accuracy=[adopted]), turns)['accuracy']['score'] == 5.0
+
+
+@pytest.mark.parametrize(('verdict', 'points'), [
+    ('imprecise', 4.5), ('secondary_error', 4.0), ('key_error', 3.0), ('core_error', 2.0),
+])
+def test_accuracy_caps_use_the_worst_verified_defect(verdict, points):
+    turns = [
+        {'id': 't1', 'role': 'teacher', 'text': '广义表可以包含子表。'},
+        {'id': 't2', 'role': 'teacher', 'text': '广义表的深度等于括号对数。'},
+        {'id': 't3', 'role': 'teacher', 'text': '空表有一个元素。'},
+    ]
+    definition = accuracy_check('t1', turns[0]['text'], topic='广义表元素')
+    issue = accuracy_check('t2', turns[1]['text'], verdict=verdict)
+    duplicate = {**issue, 'topic': '括号深度'}
+    result = score_assessment(RubricAssessment(accuracy=[definition, issue, duplicate]), turns)['accuracy']
+    assert result['score'] == points
+    assert result['checks'][result['preview_check_index']]['verdict'] == verdict
+    if verdict == 'core_error':
+        independent = accuracy_check('t3', turns[2]['text'], topic='空表长度', verdict='core_error')
+        assert score_assessment(RubricAssessment(accuracy=[issue, duplicate, independent]), turns)['accuracy']['score'] == 1.0
+
+
+def test_accuracy_keeps_the_verified_error_until_an_explicit_correction():
+    wrong = '广义表的深度等于括号对数。'
+    later = '同层有多个子表时需要看每个子表。'
+    turns = [{'id': source, 'role': 'teacher', 'text': quote}
+             for source, quote in [('t1', wrong), ('t2', later)]]
+    old = accuracy_check('t1', wrong, verdict='core_error')
+    imprecise = accuracy_check('t2', later, verdict='imprecise')
+    result = score_assessment(RubricAssessment(accuracy=[old, imprecise]), turns)['accuracy']
+    assert result['score'] == 2.0 and result['checks'][0]['evidence'][0]['source_id'] == 't1'
+    pending = {**imprecise, 'verdict': 'unverified'}
+    result = score_assessment(RubricAssessment(accuracy=[old, pending]), turns)['accuracy']
+    assert result['score'] is None and '0/1' in result['reason']
+    assert [row['verdict'] for row in result['checks']] == ['core_error', 'unverified']
+
+
+def test_accuracy_does_not_count_paraphrases_of_the_same_error_twice():
+    wrong = '广义表的深度等于括号对数。'
+    turns = [{'id': key, 'role': 'teacher', 'text': wrong} for key in ('t1', 't2')]
+    first = accuracy_check('t1', wrong, verdict='core_error')
+    shorter = {**accuracy_check('t1', '深度等于括号对数', topic='数括号', verdict='core_error'), 'claim': '按对数'}
+    repeated = {**accuracy_check('t2', wrong[:-1], topic='深度算法', verdict='core_error'), 'claim': '用总括号数'}
+    result = score_assessment(RubricAssessment(accuracy=[first, shorter, repeated]), turns)['accuracy']
+    assert result['score'] == 2.0
+    assert len(result['checks']) == 1
+
+
+@pytest.mark.parametrize('separator', ['。', '，以及', '以及'])
+def test_independent_core_errors_can_share_a_classroom_quote(separator):
+    circle = '圆的面积等于二乘圆周率乘半径'
+    triangle = '三角形的内角和是三百六十度'
+    whole = circle + separator + triangle + '。'
+    result = score([turn('t1', whole, mode='text')], accuracy=[
+        {**accuracy_check('t1', whole, topic='圆面积', verdict='core_error'),
+         'claim': circle, 'basis': '圆的面积为 πr²。'},
+        {**accuracy_check('t1', whole, topic='三角形内角和', verdict='core_error'),
+         'claim': triangle, 'basis': '平面三角形内角和为 180 度。'},
+    ])['accuracy']
+    assert result['score'] == 1.0
+    assert {row['claim'] for row in result['checks']} == {circle, triangle}
+
+
+def test_repeated_core_error_with_number_separators_counts_once():
+    wrong = '一千米等于 1,000,000 米。'
+    result = score([turn('t1', wrong), turn('t2', wrong)], accuracy=[
+        {**accuracy_check('t1', wrong, topic='米与千米的换算', verdict='core_error'), 'claim': '把千米换算为一百万米'},
+        {**accuracy_check('t2', wrong, topic='长度单位换算', verdict='core_error'), 'claim': '千米转换为米时用错进率'},
+    ])['accuracy']
+    assert result['score'] == 2.0 and len(result['checks']) == 1
+
+
+def test_accuracy_repeated_quote_within_turn_requires_unique_context():
+    wrong = '深度等于括号对数。'
+    correction = '我说错了，应取最大嵌套层数。'
+    turns = [{'id': 't1', 'role': 'teacher', 'text': wrong + correction + wrong}]
+    old = accuracy_check('t1', wrong, verdict='core_error')
+    update = {**accuracy_check('t1', correction), 'corrects_earlier': True}
+    assert score_assessment(RubricAssessment(accuracy=[old, update]), turns)['accuracy']['score'] is None
+
+
+def test_accuracy_requires_reliable_wrong_statement_and_rejects_ai_only_error():
+    wrong = '广义表的深度等于括号对数。'
+    turns = [
+        {'id': 't1', 'role': 'teacher', 'text': wrong, 'mode': 'microphone', 'review_status': 'disabled'},
+        {'id': 'r1', 'role': 'ai', 'text': wrong},
+        {'id': 't2', 'role': 'teacher', 'text': '你的说法不对，请再想想。', 'mode': 'text'},
+    ]
+    check = accuracy_check('t1', wrong, verdict='core_error')
+    context = accuracy_check('t2', turns[-1]['text'])['evidence'][0]
+    check['evidence'].append(context)
+    reject = {**check, 'evidence': [{'source_id': 'r1', 'actor': 'ai', 'quote': wrong}, context]}
+    for raw in (check, reject):
+        assert score_assessment(RubricAssessment(accuracy=[raw]), turns)['accuracy']['score'] is None
+
+
 def turn(source_id, text, *, kind=None, **metadata):
     return {'id': source_id, 'role': 'ai' if kind else 'teacher', 'text': text,
             **({'kind': kind} if kind else {}), **metadata}
@@ -72,7 +302,8 @@ def test_invalid_or_unreliable_evidence_does_not_produce_score(failure):
     assert result['clarity']['score'] is None
     assert result['clarity']['evidence'] == []
     assert result['accuracy']['score'] is None
-    assert '可靠教材' in result['accuracy']['reason']
+    assert result['accuracy']['pending_label'] == '未核对'
+    assert result['accuracy']['reason'] == '这份报告没有内容准确的核对记录。'
 
 
 def test_valid_teacher_evidence_survives_ai_background_and_unrelated_invalid_observation():

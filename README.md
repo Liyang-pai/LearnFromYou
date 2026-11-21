@@ -193,7 +193,11 @@ Windows 使用 System.Speech 的已安装语音，通过本机默认音频设备
 
 新生成的报告采用教学复盘布局，展示本次状态、值得保留的做法、最多三条有课堂依据的改进，以及有证据时的表达观察和下一次练习。六维用于分析全课。理解检查设计评价教师设问和后续处理，小纸的作答记录为当轮模拟表现。
 
-关键引文按原句和角色核验。报告页面和 Markdown 只展示教师需要的短评与简短依据。新版结果写入独立的 `*.teaching-report-reflection.json`。有效的 V2 历史报告按原格式读取和导出。
+关键引文按原句和角色核验。内容准确依据教师实际讲授和可复核的学科依据评分，报告页面和 Markdown 逐项展示课堂原话与核对依据。新版结果写入独立的 `*.teaching-report-reflection.json`。有效的 V2 历史报告按原格式读取和导出。
+
+正式报告页的口头禅统计由报告模型从教师原始语音转写中识别，词、词组和短句最多 7 个字符。后端汇总长课各段的次数，按次数从高到低展示最多 4 项，每项至少出现 2 次。缺少统计字段的旧 V3 报告在读取时按旧规则补算。
+
+2026-11-21 离线回归 643 项通过、5 项跳过。已在 Chrome 桌面和手机尺寸验证报告展示，并回放三份已由真实模型生成的报告。真实语音口头禅识别效果待实际试讲确认。
 
 离线测试使用 `python -m pytest -q tests/test_report_reflection.py tests/test_teaching_report.py tests/test_report_pipeline.py`。浏览器验收使用 `node tests/teaching_report_browser.cjs`（需要 Playwright 和 Chromium）。实体课堂评价质量与长课的真实模型耗时仍需实际试讲确认。
 

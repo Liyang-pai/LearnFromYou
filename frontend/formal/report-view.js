@@ -41,14 +41,27 @@ function evidenceList(evidence, transcript) {
 }
 
 function wordChart(counts, expression, transcript) {
-  const rows = (counts || []).filter(row => Number.isSafeInteger(row.count) && row.count >= 0);
+  const rows = Array.isArray(counts) ? counts.filter(row => Number.isSafeInteger(row?.count) && row.count >= 2).slice(0, 4) : [];
   const max = Math.max(1, ...rows.map(row => row.count));
   return `<section class="report-stat" aria-labelledby="words-title">
-    <h3 id="words-title">口头禅统计</h3><p class="report-stat-note">教师语音转写词频</p>
+    <h3 id="words-title">口头禅统计</h3><p class="report-stat-note">基于教师语音转写</p>
     ${rows.length ? rows.map(({word, count}) => `<div class="report-word"><span>${escape(word)}</span><span class="report-bar" aria-hidden="true"><i style="width:${count / max * 100}%"></i></span><span>${count} 次</span></div>`).join('')
-      : `<p class="report-stat-note">${Array.isArray(counts) ? '未统计到这些词。' : '暂无词频记录。'}</p>`}
+      : `<p class="report-stat-note">${Array.isArray(counts) ? '未统计到出现至少 2 次的口头禅。' : '暂无口头禅统计。'}</p>`}
     ${expression ? `<details class="report-expression"><summary>表达观察</summary><p>${escape(expression.text)}</p>${evidenceList(expression.evidence, transcript) || (expression.quote ? `<p><q>${escape(expression.quote)}</q></p>` : '')}<p>${escape(expression.action)}</p></details>` : ''}
   </section>`;
+}
+
+const accuracyBasisLabel = check => check.verdict === 'unverified' ? '待核实原因' : '学科依据';
+
+function accuracyPreview(check, transcript, count, reason) {
+  const evidence = check.evidence?.findLast(item => item.actor === 'teacher');
+  const turn = evidence && transcript.get(evidence.source_id);
+  return `<div id="report-reason-accuracy">
+    <p><strong>${escape(check.topic)} · ${escape(check.label)}</strong></p>
+    <p><strong class="report-accuracy-label">课堂原话</strong>${timestamp(turn?.elapsed)}<br>${evidence ? `<q>${escape(evidence.quote)}</q>` : '未能定位课堂原话。'}</p>
+    <p><strong class="report-accuracy-label">${accuracyBasisLabel(check)}</strong><br>${escape(check.basis)}</p>
+    ${reason ? `<p>${escape(reason)}</p>` : ''}
+  </div><p class="report-stat-note">点击分数查看全部 ${count} 项</p>`;
 }
 
 function radar(scores, transcript) {
@@ -67,15 +80,21 @@ function radar(scores, transcript) {
   const labels = axes.map(([key, name, x, y, position], i) => {
     const item = scores?.[key], score = item?.score;
     const valid = Number.isFinite(score) && score >= 1 && score <= 5;
-    const pending = item ? '资料待核对' : '待评分';
+    const hasChecks = key === 'accuracy' && Array.isArray(item?.checks);
+    const pending = item?.pending_label || (item ? '证据不足' : '待评分');
     const value = valid ? score.toFixed(1) : pending;
     const grade = valid ? levels[Math.floor(Number(value)) - 1] : pending;
-    const reason = item?.reason || (item ? '课堂资料待核对。' : '这份报告暂无评分依据。');
+    const reason = item?.reason || (item ? '现有课堂片段还不足以给这一项定档。' : '这份报告尚未生成五维评分。');
+    const preview = hasChecks ? item.checks[item.preview_check_index] : null;
     vertices.push(valid ? point(i, Number(value)) : null);
     return `<div class="report-axis${position}" data-dimension="${key}" style="--axis-x:${x / 370 * 100}%;--axis-y:${y / 250 * 100}%">
-      <button type="button" aria-label="${name}，${valid ? value + ' 分，' : ''}${grade}" aria-describedby="report-reason-${key}">
-        <strong>${name}</strong><span class="${valid ? 'report-score' : 'report-score-pending'}">${value}</span></button>
-      <div class="report-axis-tip"><p id="report-reason-${key}"><strong>${grade}</strong><br>${escape(reason)}</p>${evidenceList(item?.evidence, transcript)}</div>
+      <button type="button" aria-label="${name}，${valid ? value + ' 分，' : ''}${escape(preview && valid ? '查看核对依据' : grade)}" aria-describedby="report-reason-${key}"
+        ${hasChecks ? 'data-action="report-accuracy" aria-controls="report-accuracy-details" aria-expanded="false"' : ''}>
+        <strong>${name}</strong><span class="${valid ? 'report-score' : 'report-score-pending'}">${escape(value)}</span></button>
+      <div class="report-axis-tip${preview ? ' report-axis-tip-accuracy' : ''}">
+        ${preview ? accuracyPreview(preview, transcript, item.checks.length, !valid || score === 1 ? reason : '')
+          : `<p id="report-reason-${key}"><strong>${escape(grade)}</strong><br>${escape(reason)}</p>${evidenceList(item?.evidence, transcript)}`}
+      </div>
     </div>`;
   }).join('');
   let shape = '';
@@ -103,6 +122,28 @@ function radar(scores, transcript) {
         ${vertices.filter(Boolean).map(([x, y]) => `<circle class="report-radar-dot" cx="${x}" cy="${y}" r="4.2"/>`).join('')}
       </svg>${labels}
     </div>
+  </section>`;
+}
+
+function accuracyDetails(item, transcript) {
+  if (!Array.isArray(item?.checks)) return '';
+  return `<section class="report-stat report-accuracy-details" id="report-accuracy-details" aria-labelledby="accuracy-title" hidden>
+    <h3 id="accuracy-title">内容准确核对</h3>
+    <p class="report-stat-note">${escape(item.reason)}</p>
+    ${item.checks.map(check => `<article class="report-accuracy-check">
+      <span class="report-stat-note">${check.core ? '核心' : '次要'} · ${escape(check.label)}</span>
+      <p><strong>${escape(check.claim)}</strong></p>
+      <div class="report-accuracy-basis">
+        <div>
+          <h4 class="report-accuracy-label">课堂原话</h4>
+          ${evidenceList(check.evidence, transcript) || '<p class="report-stat-note">未能定位课堂原话。</p>'}
+        </div>
+        <div class="report-accuracy-grounds">
+          <h4 class="report-accuracy-label">${accuracyBasisLabel(check)}</h4>
+          <p>${escape(check.basis)}</p>
+        </div>
+      </div>
+    </article>`).join('')}
   </section>`;
 }
 
@@ -139,6 +180,7 @@ function reportLayout(result) {
           <img src="/static/formal/assets/小纸-用户原图.png" alt="" width="71" height="76">
         </section>
         <div class="report-stat-grid">${wordChart(word_counts, report.expression, byId)}${radar(scores, byId)}</div>
+        ${accuracyDetails(scores?.accuracy, byId)}
         <details class="report-strengths" open>
           <summary class="report-summary"><strong>教学亮点</strong><span class="badge green">${report.keep ? 1 : 0} 项</span>${icon('chevron', 'report-chevron')}</summary>
           ${report.keep ? `<ul><li>${escape(report.keep.text)}${report.keep.evidence?.length ? `<details class="report-strength-evidence"><summary>课堂证据</summary>${evidenceList(report.keep.evidence, byId)}</details>` : ''}</li></ul>` : '<p class="report-stat-note">本次没有单列教学亮点。</p>'}

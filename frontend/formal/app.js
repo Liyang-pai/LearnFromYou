@@ -366,6 +366,12 @@ view.addEventListener('click',event=>{
     else if(a==='back-class')await navigate('/classroom');
     else if(a==='back-create')await navigate('/create');
     else if(a==='report-back')await navigate(`/history/${id}`);
+    else if(a==='report-accuracy'){
+      const details = view.querySelector('#report-accuracy-details');
+      details.hidden = !details.hidden;
+      button.setAttribute('aria-expanded', String(!details.hidden));
+      if (!details.hidden) details.scrollIntoView({block:'nearest'});
+    }
     else if(a==='report-jump')jumpToReportEvidence(view,id,button.dataset.quote);
     else if(a==='home-create')await navigate(state.session.active?'/classroom':'/create');
     else if(a==='open-settings')await navigate('/settings');

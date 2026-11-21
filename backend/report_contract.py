@@ -351,7 +351,40 @@ def validate_grounding(report, turns):
                 raise ValueError('声称教师示范须在action_evidence提供相关教师原句；AI计算和教师要求不能作为示范依据')
 
 
-def source_bound(schema, allowed, turns=None):
+def _omit_unreviewed_findings(value, turns):
+    findings = value.get('findings')
+    if not isinstance(findings, list):
+        return value
+    teachers = {turn['id']: turn for turn in turns if turn['role'] == 'teacher'}
+    kept = []
+    for finding in findings:
+        if (isinstance(finding, dict) and finding.get('kind') == '重点改进'
+                and finding.get('dimension') in ('accuracy', 'clarity')
+                and isinstance(finding.get('evidence'), list)):
+            references = [teachers.get(item.get('source_id')) for item in finding['evidence']
+                          if isinstance(item, dict) and item.get('actor') == 'teacher'
+                          and isinstance(item.get('source_id'), str)]
+            if references and all(
+                row and row.get('mode') == 'microphone' and row.get('review_status') != 'reviewed'
+                for row in references
+            ):
+                continue
+        kept.append(finding)
+    if len(kept) == len(findings):
+        return value
+    result = {**value, 'findings': kept}
+    if not kept:
+        result['practice'] = None
+    elif kept[0] is not findings[0] and isinstance(kept[0], dict) and isinstance(kept[0].get('action'), str):
+        result['practice'] = {
+            'minutes': 2, 'task': kept[0]['action'],
+            'example': '选取这条建议对应的课堂片段，应用建议后重讲一次。',
+            'criterion': '教师能在重讲时完成这条建议中的具体动作。',
+        }
+    return result
+
+
+def source_bound(schema, allowed, turns=None, *, omit_unreviewed=False):
     # Reference validation participates in ModelClient's one correction attempt.
     class Bound(schema):
         @model_validator(mode='before')
@@ -370,6 +403,8 @@ def source_bound(schema, allowed, turns=None):
                                   '；仅可使用本阶段教师编号：' + ', '.join(sorted(allowed)))
                 if errors:
                     raise ValueError('；'.join(errors))
+            if omit_unreviewed and turns is not None and isinstance(value, dict):
+                value = _omit_unreviewed_findings(value, turns)
             return value
 
         @model_validator(mode='after')

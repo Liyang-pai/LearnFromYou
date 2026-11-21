@@ -9,7 +9,9 @@ from pydantic import ValidationError
 
 from backend import config
 from backend.llm import ModelError
+from backend.report_accuracy import AccuracyClaim
 from backend.report_contract import ReflectionReport, TeachingReport
+from backend.report_scoring import score_assessment
 from backend import report_pipeline as pipeline
 from backend.teaching_report import ReportService, read_classroom, export_markdown
 
@@ -99,6 +101,26 @@ def test_long_class_keeps_ai_misunderstanding_and_later_teacher_response_in_orde
     assert all(len(pipeline.encode(part)) <= pipeline.CHUNK_LIMIT for part in parts)
 
 
+def test_long_chunks_keep_answer_context_for_teacher_adoption():
+    turns = [{'id': f't{i}', 'role': 'teacher', 'text': '看这个例子。'} for i in range(1, 9)]
+    turns += [{'id': 'r1', 'role': 'ai', 'kind': 'answer', 'text': '最大深度是二。'},
+              {'id': 't9', 'role': 'teacher', 'text': '没错，就采用这个结论。'}]
+    parts = list(pipeline.chunks({'lesson': {}, 'turns': turns}))
+    assert [row['id'] for row in parts[1]['turns']] == ['r1', 't9']
+    assert parts[1]['turns'][0]['context_only'] is True
+
+
+def test_long_accuracy_context_preserves_late_corrections_among_repetitions():
+    texts = ['风险因素就是事故。'] + ['风险可能伴随损失。'] * 24 + ['更正，风险因素会影响事故发生的概率。']
+    turns = [{'id': f't{index}', 'role': 'teacher', 'text': text} for index, text in enumerate(texts, 1)]
+    claims = [AccuracyClaim(claim=turn['text'], core=True, evidence=[
+        {'source_id': turn['id'], 'actor': 'teacher', 'quote': turn['text']},
+    ]) for turn in turns]
+    context, limited = pipeline.accuracy_context(claims, turns)
+    assert limited is False
+    assert [row['evidence'][0]['source_id'] for row in context] == ['t1', 't2', 't25', 't26']
+
+
 def test_long_class_all_stages_feed_final_with_cross_chunk_correction(tmp_path, monkeypatch):
     classroom = long_class(tmp_path)
     monkeypatch.setattr(config, 'ROOT', tmp_path)
@@ -115,6 +137,36 @@ def test_long_class_all_stages_feed_final_with_cross_chunk_correction(tmp_path, 
         assert '暂说尾节点' in texts and '纠正开头' in texts and '下节' in texts
         assert result['report']['findings'][0]['kind'] == '可选提升'
     asyncio.run(run())
+
+
+@pytest.mark.parametrize('omit_late_counts', [False, True])
+def test_long_report_merges_filler_counts_across_segments(tmp_path, omit_late_counts):
+    classroom = long_class(tmp_path, length=30000)
+    classroom['presentation']['transcript'][0]['original_text'] = '怎么说呢，暂说尾节点还指向下一节点。'
+    last = classroom['turns'][-1]
+    last['mode'] = 'microphone'
+    last['text'] = '怎么说呢，先等一下，' + last['text']
+    speech_chunks = []
+
+    class Model(NotesModel):
+        async def generate(self, phase, prompt, payload, schema):
+            result = await super().generate(phase, prompt, payload, schema)
+            if phase == 'teaching_report_chunk':
+                speech = [t for t in payload['turns'] if t.get('mode') == 'microphone']
+                if speech:
+                    turn, = speech
+                    speech_chunks.append(turn['id'])
+                    assert turn.get('original_text', turn['text']).count('怎么说呢') == 1
+                    if not omit_late_counts or turn['id'] != last['id']:
+                        result.word_counts = [pipeline.FillerCount(word='怎么说呢', count=1)]
+                        if turn['id'] == last['id']:
+                            result.word_counts.append(pipeline.FillerCount(word='先等一下', count=1))
+            return result
+
+    result = asyncio.run(pipeline.ReportPipeline(Model([]), tmp_path, SID, 'fillers', lambda _: None)
+                         .generate(classroom))
+    assert speech_chunks == ['t1', 't3']
+    assert result.model_dump()['word_counts'] == (None if omit_late_counts else [{'word': '怎么说呢', 'count': 2}])
 
 
 def test_interaction_notes_keep_legacy_type_and_cache_each_prompt_independently(tmp_path):
@@ -211,6 +263,85 @@ def test_recursive_merge_keeps_last_correction_and_coverage(tmp_path, monkeypatc
         assert groups[0]['range'][0] == 0
         assert '后半课哨兵' in str(groups) and '纠正开头' in str(groups)
     asyncio.run(run())
+
+
+def test_long_accuracy_recovers_original_excerpts_and_resolves_late_correction(tmp_path):
+    question = '回忆一下疫情对你的影响大不大'
+    original = '这个事件发生的时候风险的可能性变成现实'
+    statements = [
+        ('t262', '风险的'), ('t263', question), ('t293', original),
+        ('t294', '风险因素本身就是已经发生的事故。'),
+        ('t301', '继续区分风险的可能性与发生的事件。' * 1900),
+        ('t404', '更正：风险因素增加事故发生的可能性，风险事件才代表事故发生。'),
+    ]
+    turns = [{'id': source, 'role': 'teacher', 'mode': 'text', 'text': text} for source, text in statements]
+    classroom = {'lesson': {'topic': '创业风险'}, 'teacher_segments': turns, 'turns': turns}
+    calls = []
+
+    class Model(NotesModel):
+        async def generate(self, phase, prompt, payload, schema):
+            if phase == 'teaching_report_chunk':
+                chunk = await super().generate(phase, prompt, payload, schema)
+                claims = []
+                for turn in payload['turns']:
+                    source = turn['id']
+                    if source not in ('t262', 't293', 't294', 't404'):
+                        continue
+                    quote = question if source == 't262' else turn['text']
+                    claims.append({'claim': quote, 'core': source in ('t294', 't404'),
+                                   'evidence': [{'source_id': source, 'actor': 'teacher', 'quote': quote}]})
+                return schema.model_validate({**chunk.model_dump(), 'accuracy_claims': claims})
+            if phase == 'teaching_report':
+                self.calls.append((phase, deepcopy(payload)))
+                excerpts = {item['source_id']: item['quote'] for item in payload['teacher_excerpts']}
+                assert excerpts['t262'] == '风险的' and excerpts['t263'] == question
+                assert excerpts['t293'] == original
+                claims = {item['evidence'][0]['source_id']: item for item in payload['accuracy_claims']}
+                assert 't262' not in claims
+                assert list(claims) == ['t293', 't294', 't404']
+                output = reflection_output(turns[1])
+                basis = '风险因素影响事故发生的可能性，风险事件是已经发生的事件。'
+                output['assessment']['accuracy'] = [
+                    {'claim_id': claims['t404']['id'], 'topic': '风险因素与风险事件', 'verdict': 'correct',
+                     'corrects_earlier': True, 'basis': basis},
+                    {'claim_id': claims['t294']['id'], 'topic': '风险因素与风险事件', 'verdict': 'core_error',
+                     'basis': basis},
+                    {'claim_id': claims['t293']['id'], 'topic': '风险事件', 'verdict': 'correct', 'basis': basis},
+                ]
+                return schema.model_validate(output)
+            return await super().generate(phase, prompt, payload, schema)
+
+    report = asyncio.run(pipeline.ReportPipeline(Model(calls), tmp_path, SID, 'accuracy', lambda _: None)
+                         .generate(classroom))
+    accuracy = score_assessment(report.assessment, turns)['accuracy']
+    assert accuracy['score'] == 5.0
+    correction = accuracy['checks'][-1]
+    assert correction['corrected'] and [row['source_id'] for row in correction['evidence']] == ['t294', 't404']
+    assert [phase for phase, _ in calls].count('teaching_report') == 1
+
+
+def test_new_report_discards_unreviewed_negative_finding_and_recovers_practice(tmp_path):
+    turns = [
+        {'id': 't1', 'role': 'teacher', 'mode': 'microphone', 'review_status': 'disabled', 'text': '呃这个定义呢从'},
+        {'id': 't2', 'role': 'teacher', 'mode': 'microphone', 'review_status': 'disabled', 'text': '广义表的元素可以是原子或子表。'},
+    ]
+    classroom = {'lesson': {'topic': '广义表'}, 'teacher_segments': turns, 'turns': turns}
+
+    class Model:
+        async def generate(self, phase, prompt, payload, schema):
+            output = reflection_output(turns[1])
+            output['findings'][0].update(dimension='coherence', action='引出新内容时先说明要观察的结构。')
+            output['findings'].insert(0, {
+                'kind': '重点改进', 'dimension': 'clarity', 'title': '定义不清',
+                'fact': '转写没有完整定义。', 'action': '重述定义并放慢语速。',
+                'evidence': [{'source_id': 't1', 'actor': 'teacher', 'quote': turns[0]['text']}],
+            })
+            return schema.model_validate(output)
+
+    report = asyncio.run(pipeline.ReportPipeline(Model(), tmp_path, SID, 'unreviewed', lambda _: None)
+                         .generate(classroom))
+    assert [finding.dimension for finding in report.findings] == ['coherence']
+    assert report.practice.task == report.findings[0].action
 
 
 def test_sparse_report_can_be_honest_without_inventing_strengths():

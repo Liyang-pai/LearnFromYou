@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field
 
+from .report_accuracy import AccuracyCheck, score_accuracy
 from .report_contract import ReflectionEvidence
 from .schemas import StrictModel
 
@@ -12,6 +13,7 @@ RubricEvidence = Annotated[list[ReflectionEvidence], Field(min_length=1, max_len
 
 
 class RubricAssessment(StrictModel):
+    accuracy: list[AccuracyCheck] | None = None
     clarity: dict[Literal['answer_only', 'some_steps', 'main_steps', 'example_steps',
                           'step_methods', 'contrast_example', 'decision_rule'], RubricEvidence] = Field(default_factory=dict)
     coherence: dict[Literal['opening_only', 'identifiable_topics', 'ordered_explanation', 'goal_alignment',
@@ -57,7 +59,7 @@ TIERS = {
 
 
 RUBRIC_PROMPT = """
-五维评价只提取可核对的课堂行为，不填写数值或主观分数。程序将依据以下固定条件计算得分。
+除内容准确另有核对规则外，四个维度只提取可核对的课堂行为，不填写数值或主观分数。程序依据以下固定条件计算得分。
 在assessment字段中从低到高查找已有行为，即使行为依据不足也要返回assessment空对象。
 优先保留能体现较高档行为的证据。较高档已经包含的较低档行为可由程序推出；同一档的独立条件应分别填写。
 仅有部分高档条件时，也保留已证实的条件；不把没有证据、语音疑似错转、或章节笔记没提到当作低分证据。
@@ -66,7 +68,6 @@ RUBRIC_PROMPT = """
 没有足够证据的条件请省略；某维度全部没证据就传空对象或省略该维度，不能填空数组或猜测引用。
 标为pending或fallback的语音转写不作评分依据；未经审核的语音转写不作第1档依据。
 整体性条件需结合全课，使用能支持判断的代表短引。涉及前后关系时引用相关两处，不只引用无关开场。
-内容准确需要可靠教材或题目依据，目前课堂输入没有独立依据，程序显示资料待核对。
 除了下述师生互动序列，每个条件都须直接引用教师原话；小纸的发言只能作为辅助背景。表达维度只引用教师实际讲解的自然语言。
 followup_or_feedback依次引用实际小纸的提问或作答、教师针对该回应的追问或反馈。笼统附和或换话题不算。
 先检查有没有完整的理由问答与反馈。checks_reason依次引用教师明确要求说明关键点的理由、依据或判断过程，以及实际小纸给出的理由；能否答对不是评分条件。
@@ -150,12 +151,20 @@ def _validated_anchors(criterion, evidence, by_id, turns):
 _LOW_TIERS = {next(iter(tiers[0])) for tiers in TIERS.values()}
 
 
-def score_assessment(assessment: RubricAssessment | None, turns):
-    scores = {'accuracy': {'score': None, 'reason': '缺少可独立核对课堂知识的可靠教材或题目依据。', 'evidence': []}}
+def score_assessment(assessment: RubricAssessment | None, turns, *, incomplete=False, coverage_limited=False, lesson=None):
     by_id = {turn['id']: (index, turn) for index, turn in enumerate(turns)}
+    scores = {'accuracy': score_accuracy(getattr(assessment, 'accuracy', None), turns,
+                                         incomplete=incomplete, coverage_limited=coverage_limited, lesson=lesson)}
+    teacher_turns = [turn for turn in turns if turn['role'] == 'teacher']
+    has_reply = any(turn['role'] == 'ai' for turn in turns)
     for name, tiers in TIERS.items():
         provided = getattr(assessment, name, {})
-        scores[name] = {'score': None, 'reason': '课堂记录中缺少可核对的行为依据。', 'evidence': []}
+        pending, reason = '证据不足', '现有课堂片段还不足以给这一项定档。'
+        if name == 'interaction' and teacher_turns and not has_reply:
+            pending, reason = '未见小纸回应', '本次记录未见小纸回应，现有证据还不足以给师生互动评分。'
+        elif name == 'expression' and teacher_turns and all(turn.get('mode') == 'text' for turn in teacher_turns):
+            pending, reason = '仅记录文字', '本次记录为文字讲解，现有证据还不足以给表达规范评分。'
+        scores[name] = {'score': None, 'pending_label': pending, 'reason': reason, 'evidence': []}
         observations = {}
         for key, references in provided.items():
             validated = _validated_anchors(key, references, by_id, turns)

@@ -11,13 +11,14 @@ from pathlib import Path
 import re
 from . import config
 from .llm import ModelClient, ModelError
+from .report_accuracy import SCORE_CAPS, score_accuracy, statement_key
 from .report_prompt import TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES
 from .report_contract import (TeachingReport, ReflectionReport, DIMENSION_NAMES, evidence_turns,
                               validate_sources as check_sources, validate_grounding, validate_reflection)
 
 REPORT_BUDGET = 300
 SCORE_NAMES = (*DIMENSION_NAMES[:3], ('interaction', '师生互动'), ('expression', '表达规范'))
-FILLER_WORDS = ('这个', '就是', '呃', '嗯')
+LEGACY_FILLER_WORDS = ('这个', '就是', '呃', '嗯')
 
 
 def recorded_elapsed(event):
@@ -125,11 +126,8 @@ def read_classroom(root: Path, session_id: str):
             if row['role'] == 'teacher' and originals[row['id']] != row['text'] else {})}
         for row in turns
     ]
-    voice_text = [originals[row['id']] for row in turns
-                  if row['role'] == 'teacher' and row['mode'] == 'microphone']
-    words = [{'word': word, 'count': sum(text.count(word) for text in voice_text)} for word in FILLER_WORDS]
     presentation = {
-        'transcript': transcript, 'word_counts': sorted(words, key=lambda item: -item['count']),
+        'transcript': transcript,
         'capture_status': 'incomplete' if capture_incomplete else 'empty' if no_lesson else 'complete',
         **finish_time,
     }
@@ -152,6 +150,15 @@ def source_hash(classroom, prompt=None, *, legacy=False):
     return hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest()
 
 
+def legacy_word_counts(classroom):
+    originals = {row['id']: row.get('original_text', row['text']) for row in classroom['presentation']['transcript']
+                 if row['role'] == 'teacher'}
+    speech = [originals[turn['id']] for turn in classroom['turns']
+              if turn['role'] == 'teacher' and turn['mode'] == 'microphone']
+    counts = [{'word': word, 'count': sum(text.count(word) for text in speech)} for word in LEGACY_FILLER_WORDS]
+    return sorted(counts, key=lambda item: -item['count'])
+
+
 def validate_sources(report, classroom):
     teachers = {s['id'] for s in classroom['teacher_segments']}
     check_sources(report, teachers)
@@ -161,15 +168,54 @@ def validate_sources(report, classroom):
         validate_grounding(report, classroom['turns'])
 
 
-def public_reflection(report):
-    display = report.model_dump(exclude={'assessment'})
+def public_reflection(report, accuracy=None):
+    display = report.model_dump(exclude={'assessment', 'accuracy_coverage_limited', 'word_counts'})
     if report.expression:
         display['expression']['quote'] = report.expression.evidence[0].quote
+    if accuracy and 'checks' in accuracy:
+        checks_by_ref = {}
+        if not report.accuracy_coverage_limited:
+            for check in accuracy['checks']:
+                for item in check['evidence']:
+                    if item['actor'] == 'teacher':
+                        key = (item['source_id'], item['quote'])
+                        checks_by_ref.setdefault(key, {})[statement_key(check['topic'])] = check
+        original = display['findings']
+        findings = []
+        used_topics = set()
+        for finding in original:
+            if finding['dimension'] == 'accuracy':
+                matches = {topic: check for ref in finding['evidence']
+                           for topic, check in checks_by_ref.get((ref['source_id'], ref['quote']), {}).items()}
+                if len(matches) > 1:
+                    title, claim = statement_key(finding['title']), statement_key(finding['fact'])
+                    matches = {topic: check for topic, check in matches.items()
+                               if title == topic or claim == statement_key(check['claim'])}
+                if len(matches) != 1:
+                    continue
+                matched = next(iter(matches.values()))
+                if matched['verdict'] not in SCORE_CAPS or matched['topic'] in used_topics:
+                    continue
+                used_topics.add(matched['topic'])
+                finding.update(title=matched['topic'], fact=matched['claim'], action=matched['basis'],
+                               evidence=matched['evidence'])
+            findings.append(finding)
+        display['findings'] = findings
+        if findings and findings[0]['dimension'] == 'accuracy':
+            display['practice'] = {
+                'minutes': 2, 'task': '用核对后的依据重新讲解这一处知识。', 'example': findings[0]['action'],
+                'criterion': '教师能讲清正确结论，并说明适用条件或推导依据。',
+            }
+        elif original and (not findings or original[0] is not findings[0]):
+            display['practice'] = None
     return display
 
 
 def status_scores(score, reason):
-    return {key: {'score': score, 'reason': reason, 'evidence': []} for key, _ in SCORE_NAMES}
+    row = {'score': score, 'reason': reason}
+    if score is None:
+        row['pending_label'] = '记录不完整'
+    return {key: {**row, 'evidence': []} for key, _ in SCORE_NAMES}
 
 
 def export_reflection(report):
@@ -203,8 +249,22 @@ def export_markdown(result):
             lines = ['', '## 五维评价', '']
             for key, name in SCORE_NAMES:
                 row = result['scores'][key]
-                grade = '资料待核对' if row['score'] is None else f"{row['score']:.1f} / 5.0"
+                pending = escape(row.get('pending_label', '证据不足'))
+                grade = pending if row['score'] is None else f"{row['score']:.1f} / 5.0"
                 lines.append(f"- {name} · {grade}　{escape(row['reason'])}")
+            checks = result['scores']['accuracy'].get('checks', [])
+            if checks:
+                lines.extend(['', '## 内容准确核对', ''])
+                for check in checks:
+                    scope = '核心' if check['core'] else '次要'
+                    lines.append(f"- **{scope} · {check['label']}**　{escape(check['claim'])}")
+                    for item in check['evidence']:
+                        speaker = '教师' if item['actor'] == 'teacher' else '小纸'
+                        lines.append(f"  - 课堂原话（{speaker}）　“{escape(item['quote'])}”")
+                    if not check['evidence']:
+                        lines.append('  - 课堂原话　未能定位课堂原话。')
+                    label = '待核实原因' if check['verdict'] == 'unverified' else '学科依据'
+                    lines.append(f"  - {label}　{escape(check['basis'])}")
             text += '\n'.join([*lines, ''])
         return text
     lines = ['# 试讲教学报告', '', '## 总体概括', '', report['overview']['text'], '']
@@ -257,18 +317,19 @@ class ReportService:
     def get(self, session_id):
         classroom, digest = self.material(session_id)
         result = {'schema_version': 3, 'session_id': session_id, 'source_hash': digest, 'status': 'idle',
-                  'progress': '课堂已结束，可以生成报告。', 'report': None, 'error': '',
+                  'progress': '课堂已结束，可以生成报告。', 'report': None, 'error': '', 'word_counts': None,
                   'topic': classroom['lesson'].get('topic', ''),
                   'grade': classroom['lesson'].get('grade', ''), 'subject': classroom['lesson'].get('subject', ''),
                   **classroom['presentation']}
         if classroom['no_lesson']:
             incomplete = result['capture_status'] == 'incomplete'
-            reason = ('课堂采集记录不完整，资料待核对。' if incomplete else
+            reason = ('课堂记录不完整，现有片段不足以给整课评分。' if incomplete else
                       '本次试讲已结束，课堂记录中没有可评价的讲授内容。')
             result.update(status='ready', progress='报告已生成。',
                           report={'overview': {'text': reason, 'evidence': []}, 'keep': None,
                                   'findings': [], 'expression': None, 'practice': None},
                           scores=status_scores(None if incomplete else 1.0, reason))
+            result['scores']['accuracy'] = score_accuracy([], [], incomplete=incomplete)
             return result
         path = self.path(session_id)
         if path.exists():
@@ -294,11 +355,22 @@ class ReportService:
                                 {key: value for key, value in cached.items() if key != 'assessment'}
                                 if isinstance(cached, dict) else cached)
                         validate_sources(report, classroom)
-                        result['report'] = public_reflection(report)
-                        if result['capture_status'] == 'incomplete':
-                            result['scores'] = status_scores(None, '课堂采集记录不完整，资料待核对。')
+                        incomplete = result['capture_status'] == 'incomplete'
+                        if incomplete:
+                            result['scores'] = status_scores(None, '课堂记录不完整，现有片段不足以给整课评分。')
+                        if assessment is not None:
+                            scores = score_assessment(assessment, evidence_turns(classroom), incomplete=incomplete,
+                                                      coverage_limited=report.accuracy_coverage_limited,
+                                                      lesson=classroom['lesson'])
+                            if not incomplete:
+                                result['scores'] = scores
+                            elif assessment.accuracy is not None:
+                                result['scores']['accuracy'] = scores['accuracy']
+                        if 'word_counts' not in cached:
+                            result['word_counts'] = legacy_word_counts(classroom)
                         elif assessment is not None:
-                            result['scores'] = score_assessment(assessment, evidence_turns(classroom))
+                            result['word_counts'] = report.model_dump(include={'word_counts'})['word_counts']
+                        result['report'] = public_reflection(report, result.get('scores', {}).get('accuracy'))
                     task = self.tasks.get(session_id)
                     if result['status'] == 'generating' and (not task or task.done()):
                         result.update(status='failed', report=None, error='上次生成因服务中断而停止，可重试；课堂内容已保留')

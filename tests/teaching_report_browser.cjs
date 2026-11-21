@@ -33,8 +33,11 @@ for index, turn in enumerate(turns):
     if index != 2:
         data['elapsed'] = index * 12.25
     records.append(data)
+fillers = {'对吧': 2, '我们先想一下啊': 4, '那个': 5, '怎么说呢': 3, '嗯': 6}
+speech = '。'.join('，'.join([word] * count) for word, count in fillers.items())
 for index in range(4, 22):
-    records.append({'type': 'transcript', 'data': {'id': f't{index}', 'mode': 'text', 'text': '继续核对例题的计算步骤。'}})
+    records.append({'type': 'transcript', 'data': {'id': f't{index}', 'mode': 'microphone' if index == 4 else 'text',
+        'text': speech if index == 4 else '继续核对例题的计算步骤。'}})
 records.append({'type': 'finished', 'data': {'session_id': '${sid}', 'lesson': {'topic': '广义表'}}, 'elapsed': 100})
 path.write_text('\\n'.join(json.dumps(row, ensure_ascii=False) for row in records), encoding='utf-8')
 pending = [
@@ -57,9 +60,16 @@ cache = root / 'logs' / f'{legacy_id}.teaching-report-v2.json'
 cache.write_text(json.dumps({'schema_version': 2, 'status': 'ready', 'report': fixtures['model_output'](),
     'source_hash': source_hash(read_classroom(root, legacy_id), legacy=True)}), encoding='utf-8')
 payload = original['example_report']()
+payload['word_counts'] = [{'word': word, 'count': count} for word, count in {**fillers, '就是': 1}.items()]
 t1, t3 = (original['quote'](key) for key in ('t1', 't3'))
 t2 = original['quote']('t2', '取最大子表深度再加1。')
 payload['assessment'] = {
+    'accuracy': [
+        {'topic': '深度递推', 'claim': '深度取最大子表深度再加一。', 'core': True, 'verdict': 'correct',
+         'basis': '外层括号增加一层，取各子表深度的最大值。', 'evidence': [t2]},
+        {'topic': '结点处理', 'claim': '进入子表前需要保存外层结点。', 'core': True, 'verdict': 'unverified',
+         'basis': '这一步需要知道本例采用的存储结构。', 'evidence': [t3]},
+    ],
     'clarity': {'some_steps': [t2], 'main_steps': [t2]},
     'coherence': {'identifiable_topics': [t2], 'ordered_explanation': [t1, t2]},
     'interaction': {'simple_question_or_reply': [t1], 'specific_question': [t1], 'addresses_question': [t2],
@@ -193,7 +203,31 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert.equal(await radar.locator('.report-radar-partial-line').getAttribute('d'), edges.join(' '));
     assert.equal(await radar.locator('.report-radar-partial-fill').getAttribute('d'), sectors.join(' '));
     assert.equal(await radar.locator('.report-radar-shape').count(), 0);
-    assert.match(await analysis.locator('.report-word').filter({hasText: '就是'}).innerText(), /1 次/);
+    const accuracy = analysis.locator('[data-dimension="accuracy"] > button');
+    const accuracyTip = analysis.locator('#report-reason-accuracy');
+    const checkDetails = analysis.locator('#report-accuracy-details');
+    assert.match(await accuracy.innerText(), /已核对 1\/2/);
+    await accuracy.focus();
+    assert(await accuracyTip.isVisible());
+    assert.match(await accuracyTip.innerText(), /课堂原话[\s\S]*先保存外层结点[\s\S]*待核实原因[\s\S]*本例采用的存储结构/);
+    await page.keyboard.press('Escape');
+    assert(!(await accuracyTip.isVisible()));
+    await accuracy.click();
+    assert.equal(await accuracy.getAttribute('aria-expanded'), 'true');
+    assert(!(await accuracyTip.isVisible()));
+    assert.match(await checkDetails.innerText(), /核心说法已核对 1\/2 项/);
+    const firstCheck = checkDetails.locator('.report-accuracy-check').first();
+    assert.deepEqual(await firstCheck.getByRole('heading', {level: 4}).allTextContents(), ['课堂原话', '学科依据']);
+    assert.match(await firstCheck.locator('.report-accuracy-grounds').innerText(), /外层括号增加一层/);
+    await checkDetails.locator('[data-action="report-jump"][data-id="t2"]').click();
+    assert.equal(await transcript.locator('.report-turn.is-linked[data-turn-id="t2"] mark').innerText(),
+      '取最大子表深度再加1。');
+    await accuracy.click();
+    assert.equal(await accuracy.getAttribute('aria-expanded'), 'false');
+    assert(!(await checkDetails.isVisible()));
+    assert.deepEqual(await analysis.locator('.report-word').evaluateAll(rows => rows.map(row =>
+      [row.firstElementChild.textContent, row.lastElementChild.textContent])),
+    [['嗯', '6 次'], ['那个', '5 次'], ['我们先想一下啊', '4 次'], ['怎么说呢', '3 次']]);
     const clarity = analysis.locator('[data-dimension="clarity"]');
     const tooltip = clarity.locator('.report-axis-tip');
     await clarity.locator('button').first().focus();
@@ -219,7 +253,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     await issue.locator('summary').click();
     assert(await issue.evaluate(node => node.open));
     assert(await page.getByText('教师能讲清取最大值与数个数的区别。', {exact: false}).isVisible());
-    for (const [name, expected] of [['导出 Markdown', '通用规则'], ['导出日志', '"type": "transcript"']]) {
+    for (const [name, expected] of [['导出 Markdown', '学科依据　外层括号增加一层'], ['导出日志', '"type": "transcript"']]) {
       const download = page.waitForEvent('download');
       await page.getByRole('link', {name, exact: true}).click();
       assert(fs.readFileSync(await (await download).path(), 'utf8').includes(expected));
@@ -232,6 +266,10 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     const [upper, lower] = await Promise.all([transcript.boundingBox(), analysis.boundingBox()]);
     assert(upper.y + upper.height <= lower.y, 'narrow report panes must stack');
+    await accuracy.click();
+    assert(await checkDetails.isVisible());
+    await checkDetails.locator('[data-action="report-jump"][data-id="t2"]').click();
+    assert.equal(await transcript.locator('.report-turn.is-linked mark').innerText(), quote);
     await issue.locator('[data-action="report-jump"][data-id="t2"]').click();
     assert.equal(await transcript.locator('.report-turn.is-linked mark').innerText(), quote);
     await page.getByRole('button', {name: '返回教室', exact: true}).click();
@@ -239,7 +277,9 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     await page.goto(`${base}/report/${pendingSid}`);
     await page.getByRole('heading', {name: '本次教学概览', exact: true}).waitFor();
     assert.equal(await page.locator('.report-issue').count(), 0);
-    assert.deepEqual(await page.locator('.report-axis > button > span').allTextContents(), Array(5).fill('资料待核对'));
+    assert.equal(await page.locator('.report-word').count(), 0);
+    assert.deepEqual(await page.locator('.report-axis > button > span').allTextContents(),
+      Array(5).fill('记录不完整'));
     assert.equal(await page.locator('.report-radar-shape').count(), 0);
     assert.equal(await page.locator('.report-radar-partial-line, .report-radar-partial-fill, .report-radar-dot').count(), 0);
     await page.getByRole('button', {name: '再创建一次试讲', exact: true}).click();
@@ -267,7 +307,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
       assert.equal(axes.length, 5);
       if (hasAssessment) {
         assert(axes.some(value => /^\d\.\d$/.test(value)), 'real assessment must display a grounded score');
-        assert.equal(axes[0], '资料待核对', 'accuracy stays pending without trusted reference materials');
+        assert.equal(axes[0], '未核对', 'the archived report has no accuracy checks');
       } else {
         assert.deepEqual(axes, Array(5).fill('待评分'));
       }
@@ -283,7 +323,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     }
     assert.equal(posts, 1);
     assert.deepEqual(errors, []);
-    console.log('PASS: formal V3 on desktop and mobile, score reasons, exact evidence, unavailable scores, downloads, navigation, V2, and debug polling/retry' +
+    console.log('PASS: formal V3 on desktop and mobile, ranked filler counts, score reasons, exact evidence, unavailable scores, downloads, navigation, V2, and debug polling/retry' +
       (archive ? ', plus archived 91-turn V3' : ''));
   } finally {
     if (browser) await browser.close();
