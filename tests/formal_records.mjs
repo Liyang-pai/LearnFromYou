@@ -1,7 +1,9 @@
+// 核对正式课堂记录、只读字段兼容事件和日志导出的业务投影。
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 const source=await readFile(new URL('../frontend/formal/service.js',import.meta.url),'utf8');
-const {emptySession,recordClassEvent,elapsedSeconds,stopClock,classroomStats,exportClassroom,publicValue}=await import('data:text/javascript;base64,'+Buffer.from(source).toString('base64'));
+const serviceModule='data:text/javascript;base64,'+Buffer.from(source).toString('base64');
+const {emptySession,recordClassEvent,elapsedSeconds,stopClock,classroomStats,exportClassroom,publicValue,applyEvent}=await import(serviceModule);
 const s=emptySession();let now=1000;
 const event=(type,data={},elapsed)=>recordClassEvent(s,{type,data,...(elapsed==null?{}:{elapsed})},now);
 event('ready',{state:{version:0,knowledge:[]}},2);s.active=true;
@@ -25,4 +27,27 @@ now=20000;event('finished',{},19);const end=elapsedSeconds(s,now);assert.equal(e
 now=30000;event('status',{message:'收尾记录'},100);assert.equal(elapsedSeconds(s,now),end,'收尾消息不能推进已结束的时钟');
 const disconnected=emptySession();recordClassEvent(disconnected,{type:'ready',elapsed:0,data:{}},100);stopClock(disconnected,2100);assert.equal(elapsedSeconds(disconnected,99999),2);
 assert.equal(classroomStats(emptySession()).modelSeconds,null);
+const recordsSource=(await readFile(new URL('../frontend/formal/records-view.js',import.meta.url),'utf8')).replace("'./service.js'",JSON.stringify(serviceModule));
+const {outputs,transcripts}=await import('data:text/javascript;base64,'+Buffer.from(recordsSource).toString('base64'));
+const compatible=emptySession();
+const raw=JSON.stringify({question_updates:[{id:'q2',attempts:99}],candidate:{kind:'silence'}});
+applyEvent(compatible,{type:'llm_output',data:{phase:'student',attempt:1,raw}});
+applyEvent(compatible,{type:'student_recovery',data:{code:'readonly_fields_ignored',phase:'student',attempt:1,
+  message:'已忽略模型回显的只读字段，继续校验本轮结果',
+  ignored_fields:[{field:'question_updates[0].attempts',value:99,reason:'该字段由后端维护'}]}});
+assert.equal(compatible.error,'');assert.equal(compatible.retryable,false);
+assert.equal(compatible.records.find(row=>row.type==='llm_output').data.raw,raw);
+const markup=outputs(compatible);
+assert.ok(markup.includes('只读字段兼容'));assert.ok(markup.includes('question_updates[0].attempts'));
+assert.ok(markup.includes('&quot;value&quot;: 99'));assert.ok(!markup.includes('处理错误'));
+const projection=emptySession();
+applyEvent(projection,{type:'transcript',data:{id:'t1',mode:'microphone',text:'识别原文',review_status:'pending'}});
+let rendered=transcripts(projection);assert.ok(rendered.includes('审核中，完成后显示本段讲授。'));assert.equal((rendered.match(/class="live-record"/g)||[]).length,1);
+applyEvent(projection,{type:'review_completed',data:{segments:[{id:'t1',text:'审核正文',review_status:'reviewed'}]}});
+applyEvent(projection,{type:'segment',data:{sources:['t1'],text:'不应重复展示的整理文本'}});
+rendered=transcripts(projection);assert.ok(rendered.includes('<p>审核正文</p>'));assert.ok(rendered.includes('识别原文'));assert.ok(!rendered.includes('不应重复展示'));assert.equal((rendered.match(/class="live-record"/g)||[]).length,1);
+applyEvent(projection,{type:'transcript',data:{id:'t2',mode:'microphone',text:'关闭审核原文',review_status:'disabled'}});
+applyEvent(projection,{type:'transcript',data:{id:'t3',mode:'microphone',text:'失败原文',review_status:'pending'}});
+applyEvent(projection,{type:'review_completed',data:{segments:[{id:'t3',text:'无效审核结果',review_status:'fallback'}]}});
+rendered=transcripts(projection);assert.ok(rendered.includes('<p>关闭审核原文</p>'));assert.ok(rendered.includes('<p>失败原文</p>'));assert.ok(!rendered.includes('无效审核结果'));
 console.log('formal records: all projections, source filtering, original business text, timing anchors and frozen lifecycle passed');

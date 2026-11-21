@@ -107,6 +107,7 @@ event_updates 的 kind 为 opening/task/request/lesson_end/organization，附本
 已有 ID 更新时 revision 原样使用上下文修订号，由程序递增；新条目 revision=1。普通补充不填写 supersedes 或 correction_sources。明确同 ID 纠正填写 correction_sources，旧版本标记失效并归档；不同 ID 替代在 supersedes 写旧 ID。不要把新替代规则本身设成 invalid。已 invalid 的条目不可复活，重新采用应新建 ID 并给出依据。
 条件澄清使冲突消除时，沿用冲突 ID，status=resolved，填写 resolution 与 resolution_sources，并重新判断双方；不是简单地把双方都设 understood。教师明确纠正其中一方时，程序也会关闭关系并安排保留方复核。
 删除已有依赖时必须提供 independent_sources，指向本轮教师给出的独立解释，并在 sources 和 reason 中说明。不能仅因为前提 invalid/unclear/conflict 就清空依赖；此时保留该前提及最新修订号，结论通常 unclear。已失效前提以后有新规则时，依赖关系仍是复核线索。
+对已有推导结论，教师只重复、强调或坚持结论，或只否定另一说法，均未补上原推理缺口，不能据此填写 independent_sources、移除依赖或判 understood。必须有新增且足够的解释、例子、条件或证据，说明为何无需原受限前提也能理解该结论；能这样独立解释时允许解除相应依赖。不要把这一要求扩大到本就没有推导依赖的直接讲授事实。
 每条推导必须在 dependencies 中记录实际采用的知识 ID 和 revision，不能只引用这些知识的 t 来源来隐去依赖。不自引用，不形成循环。直接讲授的独立事实无需依赖。失效历史可用于说明困惑，不能用于推导有效新结论。
 优先处理 current_state.pending_reviews 涉及的结论，依据本轮信息重新判断，使用最新前提修订号。没有充分依据仍应保留障碍，不为清空队列强行 understood。
 current_state.knowledge 是可用于推理的确定知识；tentative_knowledge 只能有条件使用并传递待确认性质；inactive_knowledge、pending_reviews 和 knowledge_history 不是可直接采用的确定事实。
@@ -154,6 +155,7 @@ KNOWLEDGE_REVIEW = """你负责按上述五状态规则复核指定知识，不�
 review_targets 是唯一可更新的知识 ID 集合，必须逐个返回；不得新建或替代其他条目，不得修改冲突关系。
 knowledge_updates 每条都写 reason；revision 使用当前值，dependencies 使用上下文最新版本。
 若前提变化不影响结论，解释理由并更新其依赖版本；若有独立依据，可移除不再需要的依赖，但必须填写 independent_sources 并解释。前提失效导致的 unclear 必须保留原依赖及最新版本。
+复核已有推导结论时，教师仅重申结论、强调肯定或否定另一说法，不能当作新增独立解释。原推理缺口仍在就保留依赖并标 unclear；新的解释、例子、条件或证据确实建立独立理解路径时，才允许移除相应依赖并说明理由。
 若前提失效、冲突或缺失且无独立依据，知识应为 unclear；不因前提失效直接把结论 invalid。
 仅依赖 tentative 的结论仍为 tentative；教师明确针对本结论撤回时才允许 invalid 并引用 correction_sources。
 前提仍在 pending_reviews 中时不能以其为确定依据；没有独立依据可保持 unclear。

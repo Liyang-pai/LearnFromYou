@@ -9,7 +9,8 @@ import pytest
 from backend import config, report_contract
 from backend.llm import ModelClient, ModelError
 from backend.policy import apply_result, mark_delivered, student_result_validator
-from backend.schemas import ResponseRequest, ResumeResult, StudentResult, StudentState
+from backend.schemas import (Knowledge, KnowledgeConflict, Question, ResponseRequest, ResumeResult,
+                             StudentResult, StudentState)
 
 
 async def client(monkeypatch, responses):
@@ -103,7 +104,6 @@ def test_misplaced_candidate_fields_get_targeted_retry_and_existing_validation(m
 
 
 @pytest.mark.parametrize(('update_fields', 'expected'), [
-    ({'input_revision': 29}, '删除所有 response_request_updates 条目中的 input_revision'),
     ({'sources': ['t1', 't2']}, "sources 原值为 ['t1']"),
     ({'kind': None}, "kind 原值为 'check_understanding'"),
     ({'status': 'dismissed', 'reason': '教师撤回', 'resolution_sources': ['t1']},
@@ -138,6 +138,112 @@ def test_teacher_request_retry_pinpoints_bad_update_and_delivers_only_corrected_
             assert updated.response_requests[0] == request
             mark_delivered(updated, reply)
             assert updated.response_requests[0].status == 'answered'
+        finally:
+            await model.close()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('phase,result_type', [('student', StudentResult), ('student_resume', ResumeResult)])
+@pytest.mark.parametrize('echoed_attempts', [0, 99, '模型错误回显'])
+def test_readonly_echo_is_ignored_once_and_logged_without_spending_a_question(
+        monkeypatch, phase, result_type, echoed_attempts):
+    request = ResponseRequest(id='rr1', text='说说还有什么不懂', sources=['t1'], input_revision=25)
+    question = Question(id='q1', topic='判断步骤', text='下一步怎么判断？',
+                        status='pending', sources=['t1'], attempts=0)
+    state = StudentState(response_requests=[request], open_questions=[question])
+    original = state.model_dump()
+    output = {
+        'response_request_updates': [{**request.model_dump(exclude={'input_revision'}), 'input_revision': 999}],
+        'question_updates': [{**question.model_dump(exclude={'attempts'}), 'attempts': echoed_attempts}],
+        'candidate': {'kind': 'question', 'text': '老师，下一步怎么判断？', 'question_id': 'q1',
+                      'sources': ['t1', 't2'], 'response_request_ids': ['rr1']},
+    }
+    raw = json.dumps(output, ensure_ascii=False)
+    sources = {'t1': {'text': '说说还有什么不懂'}, 't2': {'text': '回答刚才的问题。'}}
+    resume = phase == 'student_resume'
+
+    async def run():
+        model, calls, events = await client(monkeypatch, [envelope(raw)])
+        try:
+            validate = student_result_validator(state, sources, {'t2'}, [], input_revision=29, resume=resume)
+            result = await model.generate(phase, '学生规则', {}, result_type, result_validator=validate)
+            assert len(calls) == 1
+            assert not [data for kind, data in events if kind == 'student_validation_error']
+            assert next(data['raw'] for kind, data in events if kind == 'llm_output') == raw
+            recovery = next(data for kind, data in events if kind == 'student_recovery')
+            assert recovery['code'] == 'readonly_fields_ignored'
+            assert recovery['phase'] == phase and recovery['attempt'] == 1
+            assert {(item['field'], item['value']) for item in recovery['ignored_fields']} == {
+                ('question_updates[0].attempts', echoed_attempts),
+                ('response_request_updates[0].input_revision', 999),
+            }
+            assert all(item['reason'] for item in recovery['ignored_fields'])
+            assert state.model_dump() == original
+            updated, candidate = apply_result(state, StudentResult(**result.model_dump()), sources, {'t2'},
+                                              input_revision=29, resume=resume)
+            assert updated.response_requests[0].input_revision == 25
+            assert updated.questions[0].attempts == 0
+            mark_delivered(updated, candidate)
+            assert updated.questions[0].attempts == 1
+        finally:
+            await model.close()
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize('phase', ['student', 'student_resume', 'knowledge_review'])
+def test_readonly_compatibility_keeps_unknown_fields_and_other_phases_strict(monkeypatch, phase):
+    question = {'id': 'q1', 'topic': '规则', 'text': '规则是什么？',
+                'status': 'pending', 'sources': ['t1'], 'attempts': 1}
+    if phase != 'knowledge_review':
+        question['unknown_field'] = '保留以便校验'
+    raw = json.dumps({'question_updates': [question]})
+
+    async def run():
+        model, calls, events = await client(monkeypatch, [envelope(raw), envelope('{}')])
+        try:
+            await model.generate(phase, '', {}, StudentResult)
+            assert len(calls) == 2
+            errors = next(data['errors'] for kind, data in events if kind == 'student_validation_error')
+            assert errors[0]['field'] == ('question_updates.0.attempts' if phase == 'knowledge_review'
+                                           else 'question_updates.0.unknown_field')
+            assert bool([data for kind, data in events if kind == 'student_recovery']) == (phase != 'knowledge_review')
+        finally:
+            await model.close()
+
+    asyncio.run(run())
+
+
+def test_revision_repair_names_the_knowledge_and_preserves_restricted_dependency_check(monkeypatch):
+    other = Knowledge(id='k4', text='原说法', status='conflict', sources=['t1'], reason='原前提冲突尚未解释')
+    parent = Knowledge(id='k5', text='原前提', status='conflict', sources=['t1'], reason='原前提冲突尚未解释')
+    child = Knowledge(id='k6', text='推导结论', status='unclear', sources=['t1'], reason='原前提仍缺少解释',
+                      dependencies=[{'id': 'k5', 'revision': 1}])
+    conflict = KnowledgeConflict(id='c1', left_id='k4', right_id='k5', sources=['t1'],
+                                 conditions='同一观察条件', reason='两条说法在同一条件下冲突')
+    state = StudentState(knowledge=[other, parent, child], conflicts=[conflict])
+    original = state.model_dump()
+    update = child.model_dump() | {'status': 'understood', 'revision': 2}
+    corrected = update | {'revision': 1}
+
+    async def run():
+        model, calls, events = await client(monkeypatch, [
+            envelope(json.dumps({'knowledge_updates': [update]})),
+            envelope(json.dumps({'knowledge_updates': [corrected]})),
+        ])
+        try:
+            validate = student_result_validator(state, {'t1': {'text': '继续讲授'}}, {'t1'}, [])
+            with pytest.raises(ModelError, match='两次'):
+                await model.generate('student', '', {}, StudentResult, result_validator=validate)
+            assert len(calls) == 2 and state.model_dump() == original
+            errors = [data['errors'][0]['error'] for kind, data in events if kind == 'student_validation_error']
+            assert all(word in errors[0] for word in ('k6', '预期为 1', '实际为 2'))
+            assert all(word in errors[1] for word in ('k6', 'k5(conflict)', 'independent_sources'))
+            repair = calls[1]['messages'][-1]['content']
+            assert all(word in repair for word in (
+                'k6', '预期为 1', '实际为 2', 'k5(conflict, revision=1)',
+                '本轮更新后的依赖', '保留依赖并将结论标 unclear', '同时核查整轮 dependencies'))
         finally:
             await model.close()
 

@@ -1,3 +1,4 @@
+// 验证正式课堂记录、字段兼容展示、保留草稿及浏览器交互。
 'use strict';
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path');
 const {chromium}=require('playwright');
@@ -21,13 +22,17 @@ const root=path.resolve(__dirname,'../frontend'),base='http://127.0.0.1:18979',s
  assert.equal(await page.locator('.student-status').count(),0);assert.equal(await page.locator('[data-action="sidebar-tab"]').count(),3);
  // Acknowledgement below reads the real event reducer, avoiding fixed waits.
  const send=async(type,data,elapsed=6)=>{const count=await page.evaluate(async()=>(await import('/static/formal/service.js')).state.session.records.length);socket.send(JSON.stringify({type,elapsed,data}));await page.waitForFunction(async n=>(await import('/static/formal/service.js')).state.session.records.length>n,count);};
- await send('transcript',{id:'t1',text:'物体具有保持原来运动状太的性质。',mode:'microphone',asr_seconds:0.2});
+ await send('transcript',{id:'t1',text:'物体具有保持原来运动状太的性质。',mode:'microphone',review_status:'pending',asr_seconds:0.2});
+ await page.locator('#sidebar-tab-transcript').click();await page.getByText('审核中，完成后显示本段讲授。',{exact:true}).waitFor();assert.equal(await page.locator('#sidebar-transcript article.live-record').count(),1);
  await send('review_completed',{segments:[{id:'t1',raw_text:'物体具有保持原来运动状太的性质。',text:'物体具有保持原来运动状态的性质。',review_status:'reviewed',review_seconds:0.68}]});
+ await page.getByText('物体具有保持原来运动状态的性质。',{exact:true}).waitFor();assert.equal(await page.locator('#sidebar-transcript article.live-record').count(),1);
  await send('segment',{text:'惯性是一种性质，不是一种力。',reason:'完整概念讲解',sources:['t1']});
  await send('llm_request',{phase:'student',attempt:2,body:{model:'offline',messages:[{role:'user',content:JSON.stringify({teacher_sources:[{id:'t1',text:'真实讲解正文'}],knowledge:[{id:'k1',text:'惯性是一种性质',sources:['t1']}]})}]}});
  const knowledge=['understood','tentative','unclear','conflict','invalid'].map((status,i)=>({id:'k'+i,text:['惯性是一种性质','静止的物体也有惯性','如何区分性质与力','两种说法有矛盾','只有运动的物体有惯性'][i],status,reason:'依据教师的课堂讲解',conditions:'本次课堂',sources:['t1']}));
  await send('state',{state:{version:3,knowledge,open_questions:[{text:'静止的物体有惯性吗？',status:'asked',attempts:1}],knowledge_history:[{previous:{id:'k4',status:'invalid',text:'旧说法'},change_reason:'教师明确纠正',invalidated:true}],pending_reviews:[{knowledge_id:'k1',status:'failed',reason:'需要确认例子',error:'复核未完成'}]},candidate:{text:'候选尚未实际发出'}});
  await send('llm_output',{phase:'student',attempt:2,seconds:2.31,raw:JSON.stringify({text:'模型业务结果',sources:['t1']})});await send('suppressed',{reason:'教师补充了新讲解，取消旧候选'});await send('reply',{text:'实际发出的学生问题'});
+ await send('student_recovery',{code:'readonly_fields_ignored',phase:'student',attempt:1,message:'已忽略模型回显的只读字段，继续校验本轮结果',ignored_fields:[{field:'question_updates[0].attempts',value:99,reason:'该字段由后端维护'}]});
+ assert.equal(await page.locator('[data-recovery-notice]').count(),0);
  await page.locator('#teacher-draft').fill('保留的讲解草稿');
  await page.evaluate(async()=>{const {state}=await import('/static/formal/service.js');state.session.image={url:'/static/formal/assets/小纸-用户原图.png',name:'保留截图.png'};});
  await page.locator('#sidebar-tab-transcript').click();await page.getByText('教学片段',{exact:false}).first().waitFor();assert.equal(await page.locator('#teacher-draft').inputValue(),'保留的讲解草稿');await page.locator('summary').filter({hasText:'查看识别原文'}).click();await page.getByText('物体具有保持原来运动状太的性质。',{exact:true}).first().waitFor();await shot('transcripts');
@@ -37,6 +42,9 @@ const root=path.resolve(__dirname,'../frontend'),base='http://127.0.0.1:18979',s
  await page.locator('#sidebar-tab-transcript').click();await page.locator('#sidebar-transcript').evaluate(el=>el.scrollTop=80);await page.locator('#sidebar-tab-student').click();await page.locator('#sidebar-tab-transcript').click();assert.equal(await page.locator('#sidebar-transcript').evaluate(el=>el.scrollTop),80);
  await page.locator('[data-action="class-details"]').click();await page.waitForURL('**/classroom/details');assert.equal(await page.locator('.live-tabs [role="tab"]').count(),4);
  for(const [tab,body] of [['input','真实讲解正文'],['student','知识修订历史'],['output','候选已取消或抑制'],['transcript','教学片段']]){await page.locator('#details-tab-'+tab).click();if(tab==='input')await page.locator('summary').first().click();assert.ok((await page.locator('.live-detail').innerText()).includes(body));if(tab==='input')assert.ok(!(await page.locator('pre').innerText()).includes('"t1"'));await shot('details-'+tab);}
+ await page.locator('#details-tab-output').click();
+ const compatible=page.locator('details').filter({has:page.locator('summary').filter({hasText:'只读字段兼容'})});
+ await compatible.locator('summary').click();assert.ok((await compatible.locator('pre').innerText()).includes('question_updates[0].attempts'));await shot('readonly-compatibility');
  const downloadWait=page.waitForEvent('download');await page.locator('[data-action="export-session"]').click();const download=await downloadWait;const exported=JSON.parse(await fs.readFile(await download.path(),'utf8'));assert.ok(exported.records.some(r=>r.type==='llm_request'));assert.ok(!JSON.stringify(exported).includes('"sources"'));
  await page.locator('[data-action="back-class"]').click();await page.waitForURL(base+'/classroom');assert.equal(await page.locator('#teacher-draft').inputValue(),'保留的讲解草稿');assert.equal(await page.locator('.chip-name').innerText(),'保留截图.png');assert.equal(starts,1);
  const image=await page.locator('[data-stage-student]').elementHandle();const clock=await page.locator('[data-class-clock]').innerText();await page.waitForFunction(old=>document.querySelector('[data-class-clock]').textContent!==old,clock);assert.ok(await image.evaluate(el=>el.isConnected),'计时不得重新挂载角色');

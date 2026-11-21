@@ -3,7 +3,6 @@ import hashlib
 import json
 import re
 from collections import Counter
-from itertools import zip_longest
 from pathlib import Path
 
 from pydantic import Field
@@ -61,19 +60,14 @@ def compact(classroom):
     if any(turn.get('image_id') for turn in classroom['turns']):
         lesson['has_visual_material'] = True
     turns = [
-        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id', 'review_status',
+        {key: turn[key] for key in ('id', 'role', 'text', 'mode', 'kind', 'image_id',
                                   'question_status', 'resolution_sources') if key in turn}
         for turn in evidence_turns(classroom)]
-    originals = {row['id']: row['original_text'] for row in classroom.get('presentation', {}).get('transcript', ())
-                 if 'original_text' in row}
-    for turn in turns:
-        if turn.get('mode') == 'microphone' and turn['id'] in originals:
-            turn['original_text'] = originals[turn['id']]
     return {'lesson': lesson, 'interaction_facts': interaction_facts(classroom['turns']), 'turns': turns}
 
 
 def count_fillers(rows, turns):
-    speech = [turn.get('original_text', turn['text']) for turn in turns if turn['role'] == 'teacher'
+    speech = [turn['text'] for turn in turns if turn['role'] == 'teacher'
               and turn.get('mode') == 'microphone' and not turn.get('context_only')]
     if rows is None and any(speech):
         return None
@@ -111,12 +105,8 @@ def chunks(payload):
         raise ModelError('教学设置过长，无法在分析窗口中完整保留；请缩短设置后重试')
     current, previous_teacher = [], None
     for turn in payload['turns']:
-        original = turn.get('original_text')
-        raw_parts = split_text(original) if original is not None else ()
-        for text, raw in zip_longest(split_text(turn['text']), raw_parts, fillvalue=''):
+        for text in split_text(turn['text']):
             part = {**turn, 'text': text}
-            if original is not None:
-                part['original_text'] = raw
             candidate = {'lesson': lesson, 'turns': [*current, part]}
             teachers = sum(t['role'] == 'teacher' and not t.get('context_only') for t in current)
             dense = part['role'] == 'teacher' and teachers >= CHUNK_TEACHER_LIMIT
@@ -127,8 +117,7 @@ def chunks(payload):
                 if part['role'] == 'ai' and previous_teacher:
                     # Context was already analyzed in full. Repeating it makes an
                     # AI-only continuation interpretable without inventing a source.
-                    context = {key: value for key, value in previous_teacher.items() if key != 'original_text'}
-                    current.append({**context, 'context_only': True})
+                    current.append({**previous_teacher, 'context_only': True})
                 elif part['role'] == 'teacher' and preceding_reply:
                     current.append({**preceding_reply, 'context_only': True})
             current.append(part)
@@ -270,7 +259,7 @@ class ReportPipeline:
                        '例如已要求先读坐标轴和单位且得到相应回应，就肯定并精简该做法，'
                        '不要再把先读坐标轴、单位作为新增提升。若实际AI明确表示图中文字太小，'
                        '可依据真实回应建议裁剪放大，这与报告自身看不到图不同。')
-        bound = source_bound(schema, allowed, self.turns, omit_unreviewed=phase == 'teaching_report')
+        bound = source_bound(schema, allowed, self.turns)
         key = hashlib.sha256(encode({'phase': phase, 'prompt': prompt, 'payload': payload,
                                     'schema': schema.model_json_schema()}).encode('utf-8')).hexdigest()
         path = self.directory / (key[:24] + '.json')
@@ -303,10 +292,6 @@ class ReportPipeline:
         ) + RUBRIC_PROMPT + ACCURACY_PROMPT
         if not any(t.get('mode') == 'microphone' for t in self.turns):
             final_prompt += '\n本次只有打字讲授，expression字段（表达观察正文）必须是null。'
-        elif all(t.get('mode') == 'microphone' and t.get('review_status') != 'reviewed'
-                 for t in self.turns if t['role'] == 'teacher'):
-            final_prompt += ('\n教师内容全部来自未经确认的语音转写。不要把疑似识别错误写作教师知识或表达错误。'
-                             '如果只能依据疑似错转的一句，findings为[]、expression为null、practice为null，概览只陈述录得的主题。')
         if len(encode(payload)) <= SHORT_LIMIT:
             self.progress('正在分析讲授内容与改进建议……')
             if verified_depths:

@@ -106,6 +106,7 @@ class ModelClient:
                 "finish_reason": finish_reason, "seconds": round(time.monotonic() - started, 3),
                 "usage": envelope.get("usage", {})})
             if phase in ('student', 'student_resume'):
+                draft = None
                 try:
                     draft = json.loads(raw)
                     release = draft.get('candidate', {}).get('question_release_request')
@@ -130,12 +131,31 @@ class ModelClient:
                     '候选回复和note保持简短，不展开推理过程。'}]
                 continue
             try:
-                result = output_type.model_validate_json(raw)
+                validation_raw = raw
+                if phase in ('student', 'student_resume'):
+                    ignored_fields = []
+                    if isinstance(draft, dict):
+                        for group, field in (('question_updates', 'attempts'),
+                                             ('response_request_updates', 'input_revision')):
+                            updates = draft.get(group)
+                            if not isinstance(updates, list):
+                                continue
+                            for index, update in enumerate(updates):
+                                if isinstance(update, dict) and field in update:
+                                    ignored_fields.append({'field': f'{group}[{index}].{field}',
+                                        'value': update.pop(field),
+                                        'reason': '该字段由后端维护，模型回显不参与状态更新'})
+                    if ignored_fields:
+                        validation_raw = compact_json(draft)
+                        await self.emit('student_recovery', {'code': 'readonly_fields_ignored',
+                            'phase': phase, 'attempt': attempt + 1,
+                            'message': '已忽略模型回显的只读字段，继续校验本轮结果',
+                            'ignored_fields': ignored_fields})
+                result = output_type.model_validate_json(validation_raw)
                 # JSON 与课堂关联校验共用两次请求预算，不在外层再叠加重试。
                 return result_validator(result, attempt == 1) if result_validator else result
             except (ValidationError, ValueError, TypeError) as exc:
                 misplaced_candidate_fields = []
-                extra_request_revision = False
                 if isinstance(exc, ValidationError):
                     details = exc.errors()
                     errors = [{'field': '.'.join(map(str, e['loc'])), 'error': e['msg']} for e in details]
@@ -145,10 +165,6 @@ class ModelClient:
                         misplaced_candidate_fields = [
                             e['loc'][0] for e in details if e['type'] == 'extra_forbidden'
                             and len(e['loc']) == 1 and e['loc'][0] in Candidate.model_fields]
-                        extra_request_revision = any(
-                            e['type'] == 'extra_forbidden' and len(e['loc']) == 3
-                            and e['loc'][0] == 'response_request_updates' and e['loc'][2] == 'input_revision'
-                            for e in details)
                 else:
                     kind = 'content'
                     errors = [{'field': 'result', 'error': str(exc)}]
@@ -170,9 +186,10 @@ class ModelClient:
                 if misplaced_candidate_fields:
                     fields = '、'.join(misplaced_candidate_fields)
                     correction += f'将顶层发言字段 {fields} 移入 candidate，其余合法的更新字段仍放在顶层。'
-                if extra_request_revision:
-                    correction += ('删除所有 response_request_updates 条目中的 input_revision，该字段由程序填写。'
-                                   '仅回应已有待答请求时，省略该请求的更新，在 candidate.response_request_ids 填对应 ID。')
+                if student_phase and any(word in str(exc) for word in ('revision', '前提', '依赖')):
+                    correction += ('知识 revision 使用上下文当前修订号，由程序递增。'
+                                   '同时核查整轮 dependencies：冲突、失效、理解障碍或待复核前提仍不可用。'
+                                   '没有新增的独立解释时保留依赖并将结论标为 unclear，重复断言结论不能解除依赖。')
                 errors_json = compact_json(errors) if student_phase else json.dumps(errors, ensure_ascii=False)
                 correction += '\n具体错误：' + errors_json[:2000]
                 messages += [{"role": "assistant", "content": str(raw)},

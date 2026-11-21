@@ -131,10 +131,11 @@ def test_accuracy_blocks_fabricated_support_and_simulated_answers():
         accuracy_check('t1', '深度是二。'),
         {**accuracy_check('t1', turns[0]['text']), 'evidence': [answer]},
         {**accuracy_check('t1', turns[0]['text']), 'evidence': [answer, accuracy_check('t1', turns[0]['text'])['evidence'][0]]},
-        accuracy_check('t3', turns[3]['text'], verdict='core_error'),
     ):
         accuracy = score_assessment(RubricAssessment(accuracy=[judge]), turns)['accuracy']
         assert accuracy['score'] is None and accuracy['checks'][0]['verdict'] == 'unverified'
+    fallback = accuracy_check('t3', turns[3]['text'], verdict='core_error')
+    assert score_assessment(RubricAssessment(accuracy=[fallback]), turns)['accuracy']['score'] == 2.0
     adopted = accuracy_check('t2', turns[2]['text'])
     adopted['evidence'].insert(0, answer)
     assert score_assessment(RubricAssessment(accuracy=[adopted]), turns)['accuracy']['score'] == 5.0
@@ -219,7 +220,7 @@ def test_accuracy_repeated_quote_within_turn_requires_unique_context():
     assert score_assessment(RubricAssessment(accuracy=[old, update]), turns)['accuracy']['score'] is None
 
 
-def test_accuracy_requires_reliable_wrong_statement_and_rejects_ai_only_error():
+def test_accuracy_accepts_canonical_teacher_statement_and_rejects_ai_only_error():
     wrong = '广义表的深度等于括号对数。'
     turns = [
         {'id': 't1', 'role': 'teacher', 'text': wrong, 'mode': 'microphone', 'review_status': 'disabled'},
@@ -230,8 +231,8 @@ def test_accuracy_requires_reliable_wrong_statement_and_rejects_ai_only_error():
     context = accuracy_check('t2', turns[-1]['text'])['evidence'][0]
     check['evidence'].append(context)
     reject = {**check, 'evidence': [{'source_id': 'r1', 'actor': 'ai', 'quote': wrong}, context]}
-    for raw in (check, reject):
-        assert score_assessment(RubricAssessment(accuracy=[raw]), turns)['accuracy']['score'] is None
+    assert score_assessment(RubricAssessment(accuracy=[check]), turns)['accuracy']['score'] == 2.0
+    assert score_assessment(RubricAssessment(accuracy=[reject]), turns)['accuracy']['score'] is None
 
 
 def turn(source_id, text, *, kind=None, **metadata):
@@ -286,8 +287,8 @@ def test_generalized_list_reason_and_feedback_raise_interaction(question, answer
     assert [item['source_id'] for item in with_feedback['evidence']] == ['t65', 'r13', 't66']
 
 
-@pytest.mark.parametrize('failure', ['role', 'quote', 'missing_id', 'unreviewed'])
-def test_invalid_or_unreliable_evidence_does_not_produce_score(failure):
+@pytest.mark.parametrize('failure', ['role', 'quote', 'missing_id'])
+def test_invalid_evidence_does_not_produce_score(failure):
     explain = turn('t1', '先去掉第一个元素，再把剩余元素组成表。')
     anchor = reference(explain)
     if failure == 'role':
@@ -296,14 +297,21 @@ def test_invalid_or_unreliable_evidence_does_not_produce_score(failure):
         anchor['quote'] = '先去掉最后一个元素'
     elif failure == 'missing_id':
         anchor['source_id'] = 't2'
-    else:
-        explain.update(mode='microphone', review_status='fallback')
     result = score([explain], clarity={'main_steps': [anchor]})
     assert result['clarity']['score'] is None
     assert result['clarity']['evidence'] == []
     assert result['accuracy']['score'] is None
     assert result['accuracy']['pending_label'] == '未核对'
     assert result['accuracy']['reason'] == '这份报告没有内容准确的核对记录。'
+
+
+@pytest.mark.parametrize('review_status', ['reviewed', 'disabled', 'fallback', 'pending', None])
+def test_scoring_uses_canonical_text_independent_of_review_status(review_status):
+    explain = turn('t1', '先去掉第一个元素，再把剩余元素组成表。',
+                   mode='microphone', review_status=review_status)
+    assessed = score([explain], clarity={'main_steps': [reference(explain)]})
+    assert assessed['clarity']['score'] == 3.0
+    assert assessed['clarity']['evidence'] == [reference(explain)]
 
 
 def test_valid_teacher_evidence_survives_ai_background_and_unrelated_invalid_observation():
@@ -412,7 +420,7 @@ def test_low_observation_requires_usable_evidence_and_remains_an_actual_grade():
     assert assessed['coherence']['score'] == 1.0
     assert all(assessed[name]['score'] is None for name in ('accuracy', 'clarity', 'interaction', 'expression'))
     intro['review_status'] = 'disabled'
-    assert score([intro], coherence={'opening_only': evidence})['coherence']['score'] is None
+    assert score([intro], coherence={'opening_only': evidence})['coherence']['score'] == 1.0
 
 
 def test_no_evidence_results_in_pending_and_model_cannot_provide_score():

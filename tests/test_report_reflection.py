@@ -55,7 +55,7 @@ def test_exact_evidence_from_later_in_a_long_source():
 @pytest.mark.parametrize(('fault', 'error'), [
     ('wrong_role', '角色'), ('fabrication', '逐字'), ('mastery', '模拟'),
     ('duplicate', '重复'), ('typed_expression', '语音转写'), ('resolved', '已处理'),
-    ('demonstration', '演示'), ('unverified_asr', '转写'), ('passivity', '被动'), ('practice', '独立完成'),
+    ('demonstration', '演示'), ('passivity', '被动'), ('practice', '独立完成'),
 ])
 def test_teacher_feedback_rejects_unsupported_claims(fault, error):
     data, turns = example_report(), deepcopy(TURNS)
@@ -77,9 +77,6 @@ def test_teacher_feedback_rejects_unsupported_claims(fault, error):
         finding['fact'] = '教师一直没有澄清疑问。'
     elif fault == 'demonstration':
         data['overview']['text'] = '教师演示了如何计算深度。'
-    elif fault == 'unverified_asr':
-        turns[-1]['review_status'] = 'fallback'
-        finding.update(kind='重点改进', dimension='accuracy', evidence=[quote('t3', '所以所以所以就是')])
     elif fault == 'passivity':
         finding['fact'] = '教师直接归纳规则，学生只是被动接收。'
     elif fault == 'practice':
@@ -92,6 +89,16 @@ def test_extra_understanding_check_is_an_optional_improvement():
     data = example_report()
     data['findings'][0]['kind'] = '重点改进'
     assert validate(data).findings[0].kind == '可选提升'
+
+
+@pytest.mark.parametrize('review_status', ['reviewed', 'disabled', 'fallback', 'pending', None])
+@pytest.mark.parametrize('dimension', ['accuracy', 'clarity'])
+def test_teacher_text_supports_primary_findings_independent_of_review_status(review_status, dimension):
+    data, turns = example_report(), deepcopy(TURNS)
+    turns[-1]['review_status'] = review_status
+    finding = data['findings'][0]
+    finding.update(kind='重点改进', dimension=dimension, evidence=[quote('t3', '所以所以所以就是')])
+    assert validate(data, turns).findings[0].kind == '重点改进'
 
 
 def test_reflection_service_shows_short_facts_and_exports_without_internal_sources(tmp_path, monkeypatch):

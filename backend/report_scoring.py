@@ -62,11 +62,11 @@ RUBRIC_PROMPT = """
 除内容准确另有核对规则外，四个维度只提取可核对的课堂行为，不填写数值或主观分数。程序依据以下固定条件计算得分。
 在assessment字段中从低到高查找已有行为，即使行为依据不足也要返回assessment空对象。
 优先保留能体现较高档行为的证据。较高档已经包含的较低档行为可由程序推出；同一档的独立条件应分别填写。
-仅有部分高档条件时，也保留已证实的条件；不把没有证据、语音疑似错转、或章节笔记没提到当作低分证据。
-第1档是基于完整可靠课堂确实观察到的低档表现，有第2档及以上行为就不填第1档。
+仅有部分高档条件时，也保留已证实的条件；没有评分依据的维度留空。判断全课缺口前先核对后续解释和更正。
+第1档须有现有课堂文本支持的低档表现，有第2档及以上行为就不填第1档。
 每个条件提供1–3个精简且连续的逐字短引，每条含source_id、actor和quote。避免整段长引。
 没有足够证据的条件请省略；某维度全部没证据就传空对象或省略该维度，不能填空数组或猜测引用。
-标为pending或fallback的语音转写不作评分依据；未经审核的语音转写不作第1档依据。
+依据后端提供的课堂文本评价，不推测识别原话、审核过程或记录之外的讲授。
 整体性条件需结合全课，使用能支持判断的代表短引。涉及前后关系时引用相关两处，不只引用无关开场。
 除了下述师生互动序列，每个条件都须直接引用教师原话；小纸的发言只能作为辅助背景。表达维度只引用教师实际讲解的自然语言。
 followup_or_feedback依次引用实际小纸的提问或作答、教师针对该回应的追问或反馈。笼统附和或换话题不算。
@@ -122,10 +122,6 @@ def _validated_anchors(criterion, evidence, by_id, turns):
             if independent_questions:
                 continue
             return None
-        if turn.get('mode') == 'microphone':
-            review = turn.get('review_status')
-            if review in ('pending', 'fallback') or (criterion in _LOW_TIERS and review != 'reviewed'):
-                return None
         anchors.append(index)
         validated.append(item)
 
@@ -146,9 +142,6 @@ def _validated_anchors(criterion, evidence, by_id, turns):
         if any(t['role'] == 'ai' and t.get('kind') in ('answer', 'question') for t in turns[first + 1:last]):
             return None
     return evidence[:len(expected)]
-
-
-_LOW_TIERS = {next(iter(tiers[0])) for tiers in TIERS.values()}
 
 
 def score_assessment(assessment: RubricAssessment | None, turns, *, incomplete=False, coverage_limited=False, lesson=None):

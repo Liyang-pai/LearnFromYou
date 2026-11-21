@@ -216,9 +216,11 @@ function handle(event) {
       // 这是自动修复的过程记录，不将课堂切换到暂停或手动重试状态。
       append($('events'),recordNode(`${stamp} · 模型结果校验 · ${d.attempt === 1 ? '正在修复' : '未通过'}`,
         JSON.stringify(d.errors,null,2),true),true); break;
-    case 'student_recovery':
-      $('studentMood').textContent = d.message;
-      append($('events'),recordNode(`${stamp} · ${d.message}`,JSON.stringify(d,null,2),true),true); break;
+    case 'student_recovery': {
+      const compatibility = d.code === 'readonly_fields_ignored';
+      if (!compatibility) $('studentMood').textContent = d.message;
+      append($('events'),recordNode(`${stamp} · ${compatibility ? '只读字段兼容' : d.message}`,JSON.stringify(d,null,2),true),true); break;
+    }
     case 'llm_request':
       if (d.phase === 'student') { studentBusy = true; studentFailed = false; }
       if (d.phase === 'preparation') $('sessionStatus').textContent = '正在分析课堂范围';

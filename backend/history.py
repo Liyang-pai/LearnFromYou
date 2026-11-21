@@ -10,8 +10,9 @@ import threading
 
 from . import config
 from .dialogue import HistoryDialogue, StudentView, student_segments
+from .review import selected_text
 
-VERSION = 4
+VERSION = 5
 PAGE_SIZE = 50
 CLASSROOM_LOG = re.compile(
     r'(?:[0-9]{4}-[0-9]{2}-[0-9]{2}_(?:[0-9]{6}|[0-9]{2}-[0-9]{2}-[0-9]{2})_)?([0-9a-f]{12})\.jsonl'
@@ -124,8 +125,8 @@ class HistoryService:
                     elif kind == 'review_completed':
                         for segment in data.get('segments', []):
                             row = dialogue.sources.get(segment['id'])
-                            if row is not None and isinstance(segment.get('text'), str):
-                                row['text'] = segment['text']
+                            if row is not None:
+                                row['text'] = selected_text(segment, row['raw_text'])
                                 row['review_status'] = segment.get('review_status')
                     elif kind == 'state':
                         dialogue.processed(data)

@@ -83,6 +83,23 @@ def test_long_class_covers_all_characters_and_keeps_ids_and_order(tmp_path):
     assert all(t['id'] in {'t1', 't2', 't3'} for part in parts for t in part['turns'])
 
 
+def test_current_report_stages_use_canonical_text_policy_and_preserve_legacy_prompt_hashes():
+    import hashlib
+    from backend import report_prompt
+    previous = {
+        'TEACHING_REPORT': 'b5d2357e7e72c3879a33e8896d9a805e7202cb2af13b400e13093e4676f8ccaf',
+        'LEGACY_ANALYZE_CHUNK': '3f9f43e2526e68908d0403a874ee330ac98a444bdd984a1402d88944d54440ec',
+        'LEGACY_MERGE_NOTES': 'fc96d6f47e9b6230e32dbd037aecd196ec4b0aceb2f3f9d2d8739b3a875bae25',
+    }
+    for name, digest in previous.items():
+        assert hashlib.sha256(getattr(report_prompt, name).encode('utf-8')).hexdigest() == digest
+    for prompt in (report_prompt.ANALYZE_CHUNK, report_prompt.MERGE_NOTES, report_prompt.REFLECTION_REPORT):
+        assert '直接依据后端提供的课堂文本' in prompt
+        assert '不假设教师在记录之外补讲过' in prompt
+        assert '只分析审核后的' not in prompt
+        assert '非reviewed' not in prompt
+
+
 def test_long_class_keeps_ai_misunderstanding_and_later_teacher_response_in_order():
     turns = [
         {'id': 't1', 'role': 'teacher', 'text': '解释节点与next。' * 1400},
@@ -142,7 +159,8 @@ def test_long_class_all_stages_feed_final_with_cross_chunk_correction(tmp_path, 
 @pytest.mark.parametrize('omit_late_counts', [False, True])
 def test_long_report_merges_filler_counts_across_segments(tmp_path, omit_late_counts):
     classroom = long_class(tmp_path, length=30000)
-    classroom['presentation']['transcript'][0]['original_text'] = '怎么说呢，暂说尾节点还指向下一节点。'
+    classroom['presentation']['transcript'][0]['original_text'] = '仅供主动展开的原文。'
+    classroom['turns'][0]['text'] = '怎么说呢，暂说尾节点还指向下一节点。'
     last = classroom['turns'][-1]
     last['mode'] = 'microphone'
     last['text'] = '怎么说呢，先等一下，' + last['text']
@@ -156,7 +174,8 @@ def test_long_report_merges_filler_counts_across_segments(tmp_path, omit_late_co
                 if speech:
                     turn, = speech
                     speech_chunks.append(turn['id'])
-                    assert turn.get('original_text', turn['text']).count('怎么说呢') == 1
+                    assert turn['text'].count('怎么说呢') == 1
+                    assert 'original_text' not in turn
                     if not omit_late_counts or turn['id'] != last['id']:
                         result.word_counts = [pipeline.FillerCount(word='怎么说呢', count=1)]
                         if turn['id'] == last['id']:
@@ -202,6 +221,23 @@ def test_interaction_notes_keep_legacy_type_and_cache_each_prompt_independently(
                    for call in calls if call[0].endswith('merge'))
         assert first.notes[0].kind == '提问检查' and first.notes[0].source_ids == ['t1', 't2']
     asyncio.run(run())
+
+
+def test_filler_bounds_use_only_canonical_speech_and_ignore_repeated_context():
+    turns = [
+        {'id': 't1', 'role': 'teacher', 'mode': 'microphone',
+         'text': '嗯，嗯，就是，就是，那个，那个，对吧，对吧，怎么说呢，怎么说呢。',
+         'original_text': '原文只有呃，呃，呃。'},
+        {'id': 't2', 'role': 'teacher', 'mode': 'text', 'text': '呃，呃。'},
+        {'id': 'r1', 'role': 'ai', 'text': '呃，呃。'},
+        {'id': 't1', 'role': 'teacher', 'mode': 'microphone', 'text': '呃，呃。', 'context_only': True},
+    ]
+    rows = [pipeline.FillerCount(word=word, count=count) for word, count in
+            [('嗯', 2), ('就是', 2), ('那个', 2), ('对吧', 2), ('怎么说呢', 2), ('呃', 2), ('嗯', 3)]]
+    counts = pipeline.count_fillers(rows, turns)
+    assert counts == {'嗯': 2, '就是': 2, '那个': 2, '对吧': 2, '怎么说呢': 2}
+    assert [(row.word, row.count) for row in pipeline.rank_filler_counts(counts)] == [
+        ('嗯', 2), ('就是', 2), ('那个', 2), ('对吧', 2)]
 
 
 def test_failed_stage_resume_reuses_completed_chunks_after_restart(tmp_path, monkeypatch):
@@ -320,7 +356,7 @@ def test_long_accuracy_recovers_original_excerpts_and_resolves_late_correction(t
     assert [phase for phase, _ in calls].count('teaching_report') == 1
 
 
-def test_new_report_discards_unreviewed_negative_finding_and_recovers_practice(tmp_path):
+def test_new_report_keeps_directly_grounded_findings_without_review_gate(tmp_path):
     turns = [
         {'id': 't1', 'role': 'teacher', 'mode': 'microphone', 'review_status': 'disabled', 'text': '呃这个定义呢从'},
         {'id': 't2', 'role': 'teacher', 'mode': 'microphone', 'review_status': 'disabled', 'text': '广义表的元素可以是原子或子表。'},
@@ -340,8 +376,8 @@ def test_new_report_discards_unreviewed_negative_finding_and_recovers_practice(t
 
     report = asyncio.run(pipeline.ReportPipeline(Model(), tmp_path, SID, 'unreviewed', lambda _: None)
                          .generate(classroom))
-    assert [finding.dimension for finding in report.findings] == ['coherence']
-    assert report.practice.task == report.findings[0].action
+    assert [finding.dimension for finding in report.findings] == ['clarity', 'coherence']
+    assert report.practice.task == reflection_output(turns[1])['practice']['task']
 
 
 def test_sparse_report_can_be_honest_without_inventing_strengths():

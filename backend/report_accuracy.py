@@ -36,7 +36,7 @@ ACCURACY_PROMPT = """
 遇到层数、深度、总数等易混量，分别计算。计算最大嵌套层数时，每条路径都计入最外层，再取最大值；并列的括号增加括号总对数。规则可用反例核对。稳定知识写出规则与适用条件。文件上传状态与评分无关。
 若输入有verified_list_depths，它是程序从教师给出的显式广义表算出的结果。pairs是括号总对数，max_depth是最大嵌套层数。核对同一算式时使用这些值，并引用教师报出结论的原话。
 含糊说法先找教师是否在前后明确限定含义。若原话既可理解为对某个例子的描述，也可理解为另一条通用规则，且上下文无法确定，判为unverified并具体指出歧义。例如从“有多个括号”直接说到“比如两个括号”且未说明并列情况，需核实是只谈这个例子还是在讲通则。保留待核实的核心说法，也分别列出能够独立核对的清楚说法。
-特定教材口径、法规、时效数据、未经提供的图片内容或疑似转写错误，依据不足时用unverified并说明缺少什么。不要编造来源。pending或fallback转写也用unverified。
+特定教材口径、法规、时效数据、未经提供的图片内容，依据不足时用unverified并说明缺少什么。不要编造来源。直接核对后端选定的课堂文本，不推测识别原话，也不根据审核状态改变判定。
 verdict使用correct（核对通过）、imprecise（只影响术语精度）、secondary_error（次要事实错误）、key_error（关键例题或实质适用条件错误）、core_error（核心定义、规则或结论错误）、unverified（待核实）。模型填写判定，程序计算分数。
 正文若有内容准确方面的改进建议，只引用最终仍有偏差的同一核对项，原句与核对项保持一致；其余提示集中在核对详情。
 """
@@ -158,14 +158,7 @@ def score_accuracy(checks, turns, *, incomplete=False, coverage_limited=False, l
         ordered = sorted(located, key=lambda pair: pair[0])
         row['evidence'] = [item.model_dump() for _, item in ordered]
         teacher_turns = [turns[index] for (index, _), _ in teachers]
-        if any(turn.get('mode') == 'microphone' and turn.get('review_status') in ('pending', 'fallback')
-               for turn in teacher_turns):
-            row.update(verdict='unverified', basis='这段教师语音转写待核实。')
-        elif row['verdict'] in SCORE_CAPS and any(
-                turn.get('mode') == 'microphone' and turn.get('review_status') != 'reviewed'
-                for turn in teacher_turns):
-            row.update(verdict='unverified', basis='这段语音转写未经审核，需核对原话后再判断偏差。')
-        elif row['verdict'] == 'correct':
+        if row['verdict'] == 'correct':
             classroom_words = ' '.join(turn['text'] for turn in teacher_turns)
             if BRACKET_EXAMPLE_SCOPE.search(classroom_words) and not CLARIFIES_BRACKET_SCOPE.search(classroom_words):
                 row.update(verdict='unverified',
@@ -178,12 +171,8 @@ def score_accuracy(checks, turns, *, incomplete=False, coverage_limited=False, l
                 if verdict == 'correct' and row['verdict'] == 'correct':
                     row['basis'] = basis
                 elif verdict != 'correct':
-                    if any(turn.get('mode') == 'microphone' and turn.get('review_status') != 'reviewed'
-                           for turn in teacher_turns):
-                        row.update(verdict='unverified', basis='复算与转写结论有差异，需核对教师原话。' + basis)
-                    else:
-                        worst = min((verdict, row['verdict']), key=lambda value: SCORE_CAPS.get(value, 5.0))
-                        row.update(verdict=worst, basis=basis, core=True)
+                    worst = min((verdict, row['verdict']), key=lambda value: SCORE_CAPS.get(value, 5.0))
+                    row.update(verdict=worst, basis=basis, core=True)
         name = statement_key(check.topic)
         key = TOPIC_STAGE_SUFFIX.sub('', name).strip() or name
         grouped.setdefault(key, []).append((max(position for position, _ in teachers), row, check.corrects_earlier))

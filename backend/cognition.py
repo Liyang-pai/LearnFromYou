@@ -66,8 +66,24 @@ def apply_knowledge(state, result, sources, current_ids):
         old = original.get(kid)
         if old is None and kid.startswith('p'):
             raise ValueError('不能凭空新增画像前置知识 p')
-        if item.revision != (old.revision if old else 1):
-            raise ValueError('知识 revision 必须使用上下文当前修订号；新条目使用 1')
+        expected_revision = old.revision if old else 1
+        if item.revision != expected_revision:
+            dependency_ids = {dep.id for dep in item.dependencies}
+            if old:
+                dependency_ids.update(dep.id for dep in old.dependencies)
+            dependency_context = []
+            for dep_id in sorted(dependency_ids):
+                parent = original.get(dep_id)
+                if parent:
+                    review = '，待复核' if dep_id in prior_reviews else ''
+                    dependency_context.append(f'{dep_id}({parent.status}, revision={parent.revision}{review})')
+            context = ''
+            if dependency_context:
+                context = ('。当前快照依赖为 ' + '、'.join(dependency_context) +
+                           '；同时核对本轮更新后的依赖，若仍受限且没有新增独立解释，'
+                           '应保留依赖并将结论标 unclear，不能只修正 revision 后继续 understood')
+            raise ValueError(f'知识 {kid!r} revision 预期为 {expected_revision}，实际为 {item.revision}；'
+                             '必须使用上下文当前修订号，新条目使用 1，由程序递增' + context)
         if old and old.status == 'invalid' and semantic(old) != semantic(item):
             raise ValueError('已失效旧条目不能恢复或改写；重新采用需创建新 ID')
         if item.status == 'invalid' and old is None:
@@ -168,12 +184,17 @@ def apply_knowledge(state, result, sources, current_ids):
                 before = original.get(dep.id)
                 accepted = {1} if before is None else {before.revision, parent.revision}
                 if dep.revision not in accepted:
-                    raise ValueError('依赖 revision 必须匹配当前前提版本')
+                    raise ValueError(f'知识 {kid!r} 的依赖 {dep.id!r} revision 预期为 '
+                                     f'{sorted(accepted)}，实际为 {dep.revision}；必须匹配当前前提版本')
                 dep.revision = parent.revision
         parents = [known[d.id] for d in item.dependencies]
-        restricted = any(p.status in ('unclear', 'conflict', 'invalid') or p.id in pending for p in parents)
+        restricted = [p for p in parents if p.status in ('unclear', 'conflict', 'invalid') or p.id in pending]
         if explicit and item.status in ('understood', 'tentative') and restricted:
-            raise ValueError('不能用缺失、冲突、失效或待复核前提生成可用结论；请提供独立依据或标 unclear')
+            details = '、'.join(f'{p.id}({p.status}' + ('，待复核' if p.id in pending else '') + ')'
+                               for p in restricted)
+            raise ValueError(f'知识 {kid!r} 不能用缺失、冲突、失效或待复核前提生成可用结论；'
+                             f'当前受限依赖为 {details}；请提供独立解释并填写 independent_sources，'
+                             '或保留依赖并标 unclear')
         if item.status == 'understood' and any(p.status == 'tentative' for p in parents):
             item.status = 'tentative'
             item.reason = ('依赖未确认前提；' + item.reason)[:400]

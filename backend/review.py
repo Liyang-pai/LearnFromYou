@@ -7,6 +7,16 @@ from .llm import ModelError
 from .schemas import ReviewGlossary, ReviewResult
 
 
+def selected_text(source, original=None):
+    """供历史读取和报告复用课堂最终文本规则，审核无效时回退原始转写。"""
+    text = source.get('text')
+    raw = original if original is not None else source.get('raw_text', text)
+    if (source.get('mode') == 'text' or source.get('review_status') in
+            ('reviewed', 'corrected', 'unchanged')) and isinstance(text, str) and text.strip():
+        return text
+    return raw
+
+
 def teacher_source(source):
     """Only canonical classroom text crosses the student boundary."""
     result = {key: source[key] for key in ("id", "text", "mode", "revision", "at")}

@@ -1,3 +1,4 @@
+// 验证报告入口、文本提示、评分证据、历史兼容及调试事件。
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -116,6 +117,16 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     });
     await page.goto(base + '/debug');
     await page.waitForFunction(() => Boolean(window.teachingReport));
+    await page.reload();
+    await page.waitForFunction(() => Boolean(window.teachingReport));
+    const originalMood = await page.locator('#studentMood').innerText();
+    await page.evaluate(() => handle({type:'student_recovery',data:{code:'readonly_fields_ignored',phase:'student',attempt:1,
+      message:'已忽略模型回显的只读字段，继续校验本轮结果',
+      ignored_fields:[{field:'question_updates[0].attempts',value:99,reason:'该字段由后端维护'}]}}));
+    assert.equal(await page.locator('#studentMood').innerText(),originalMood);
+    assert(await page.locator('#error').isHidden());
+    assert((await page.locator('#events').innerText()).includes('只读字段兼容'));
+    if (process.env.LFY_REPORT_SCREENSHOT) await page.screenshot({path:path.join(path.dirname(process.env.LFY_REPORT_SCREENSHOT),'debug.png'),fullPage:true});
     await page.evaluate(id => handle({type: 'finished', data: {session_id: id, unprocessed_sources: [],
       state: {version: 1, knowledge: [], open_questions: [], recent_events: []}}}), sid);
     await page.getByText('正在核对全课解释、更正与优先改进……', {exact: true}).waitFor();
@@ -135,6 +146,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert.equal(await page.locator('#teachingReport details').count(), 0);
     const download = page.waitForEvent('download'); await page.locator('#exportTeachingReport').click();
     const markdown = fs.readFileSync(await (await download).path(), 'utf8');
+    assert.equal(markdown.split(seeded.transcription_notice).length-1,1);
     assert(markdown.includes('通用规则'));
     assert(markdown.includes('所以所以所以就是') && markdown.includes('完成标准'));
     assert(!markdown.includes('提问检查') && !markdown.includes('source_ids'));
@@ -179,10 +191,20 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert(href.endsWith(newSid + '/export'));
     await page.unroute('**/api/teaching-report/**');
     await page.setViewportSize({width: 1440, height: 1000});
+    await page.goto(base + '/');
+    await page.locator('.app').waitFor();
+    await page.reload();
+    await page.locator('.app').waitFor();
+    if (process.env.LFY_REPORT_SCREENSHOT) await page.screenshot({path:path.join(path.dirname(process.env.LFY_REPORT_SCREENSHOT),'home.png'),fullPage:true});
     await page.goto(`${base}/report/${sid}`);
     const transcript = page.locator('#transcript-scroll');
     const analysis = page.locator('#analysis-scroll');
     await page.getByRole('heading', {name: '本次教学概览', exact: true}).waitFor();
+    assert.equal(await page.locator('[data-transcription-notice]').count(),1);
+    assert.equal(await page.locator('[data-transcription-notice]').innerText(),seeded.transcription_notice);
+    await page.reload();
+    await page.getByRole('heading', {name: '本次教学概览', exact: true}).waitFor();
+    assert.equal(await page.locator('[data-transcription-notice]').count(),1);
     assert(await page.getByText('试讲主题：广义表', {exact: false}).isVisible());
     assert(await transcript.isVisible() && await analysis.isVisible());
     const [left, right] = await Promise.all([transcript.boundingBox(), analysis.boundingBox()]);
@@ -270,6 +292,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert(await checkDetails.isVisible());
     await checkDetails.locator('[data-action="report-jump"][data-id="t2"]').click();
     assert.equal(await transcript.locator('.report-turn.is-linked mark').innerText(), quote);
+    if (process.env.LFY_REPORT_SCREENSHOT) await page.screenshot({path:path.join(path.dirname(process.env.LFY_REPORT_SCREENSHOT),'report-mobile.png'),fullPage:true});
     await issue.locator('[data-action="report-jump"][data-id="t2"]').click();
     assert.equal(await transcript.locator('.report-turn.is-linked mark').innerText(), quote);
     await page.getByRole('button', {name: '返回教室', exact: true}).click();
@@ -280,6 +303,7 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     assert.equal(await page.locator('.report-word').count(), 0);
     assert.deepEqual(await page.locator('.report-axis > button > span').allTextContents(),
       Array(5).fill('记录不完整'));
+    assert.equal(await page.locator('[data-transcription-notice]').count(),0);
     assert.equal(await page.locator('.report-radar-shape').count(), 0);
     assert.equal(await page.locator('.report-radar-partial-line, .report-radar-partial-fill, .report-radar-dot').count(), 0);
     await page.getByRole('button', {name: '再创建一次试讲', exact: true}).click();
@@ -287,11 +311,13 @@ uvicorn.run(app.app, host='127.0.0.1', port=${port})
     await page.goto(`${base}/report/${newSid}`);
     await page.getByText('师生互动', {exact: true}).waitFor();
     assert.equal(await page.locator('.dimension').count(), 4);
+    assert.equal(await page.locator('[data-transcription-notice]').count(),1);
     const reportEndpoint = `${base}/api/teaching-report/${sid}`;
-    await page.route(reportEndpoint, route => route.fulfill({json: {...seeded, scores: {...seeded.scores,
+    await page.route(reportEndpoint, route => route.fulfill({json: {...seeded, transcription_notice:'', scores: {...seeded.scores,
       accuracy: {score: 4.5, reason: '模拟参考资料已核对', evidence: []}}}}));
     await page.goto(`${base}/report/${sid}`);
     await radar.locator('.report-radar-shape').waitFor();
+    assert.equal(await page.locator('[data-transcription-notice]').count(),0);
     assert.equal(await radar.locator('.report-radar-dot').count(), 5);
     assert.equal(await radar.locator('.report-radar-partial-line, .report-radar-partial-fill').count(), 0);
     await page.unroute(reportEndpoint);

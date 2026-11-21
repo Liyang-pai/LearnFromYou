@@ -169,6 +169,7 @@ function reportLayout(result) {
     <section class="card report-review-panel" aria-labelledby="transcript-title">
       <header class="report-review-head"><span class="report-symbol">${icon('book')}</span><h2 id="transcript-title">教学原文（试讲过程）</h2></header>
       <div class="report-scroll report-transcript" id="transcript-scroll" tabindex="0" role="region" aria-label="教学原文列表">
+        ${result.transcription_notice ? `<p class="report-stat-note" data-transcription-notice>${escape(result.transcription_notice)}</p>` : ''}
         ${turns.map(transcriptRow).join('') || `<p class="report-stat-note">${Array.isArray(transcript) ? '本次没有课堂发言记录。' : '这份报告暂无课堂原文。'}</p>`}
       </div>
     </section>
@@ -247,6 +248,13 @@ export function report(state, path) {
     }
     setText(root, '.report-main>h2', '本次教学报告');
     setText(root, '.report-intro', data.overview?.text);
+    if (r.transcription_notice) {
+      const notice = document.createElement('p');
+      notice.className = 'report-stat-note';
+      notice.dataset.transcriptionNotice = '';
+      notice.textContent = r.transcription_notice;
+      root.querySelector('.report-intro')?.after(notice);
+    }
     const keys = ['accuracy', 'clarity', 'coherence', 'checking'];
     for (const [index, node] of [...root.querySelectorAll('.dimension')].entries()) {
       const dimension = data.dimensions[keys[index]];

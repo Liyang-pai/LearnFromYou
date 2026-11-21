@@ -42,6 +42,60 @@ def test_facts_use_delivered_replies_and_canonical_teacher_text(tmp_path):
     assert '未发出的回答' not in json.dumps(classroom, ensure_ascii=False)
 
 
+@pytest.mark.parametrize(('status', 'review_text', 'expected'), [
+    ('reviewed', '链表尾节点指向空。', '链表尾节点指向空。'),
+    ('corrected', '链表尾节点指向空。', '链表尾节点指向空。'),
+    ('unchanged', '链表尾节点指向空。', '链表尾节点指向空。'),
+    ('reviewed', '', '尾节点的指针指向空。'),
+    ('reviewed', '  ', '尾节点的指针指向空。'),
+    ('reviewed', None, '尾节点的指针指向空。'),
+    ('fallback', '失败结果不能采用。', '尾节点的指针指向空。'),
+    ('failed', '失败结果不能采用。', '尾节点的指针指向空。'),
+    ('disabled', '未审核结果不能采用。', '尾节点的指针指向空。'),
+    ('pending', '未完成结果不能采用。', '尾节点的指针指向空。'),
+    (None, '无成功审核状态。', '尾节点的指针指向空。'),
+])
+def test_backend_selects_one_teacher_text_before_report_analysis(tmp_path, status, review_text, expected):
+    from backend.report_pipeline import compact
+    events = [
+        {'type': 'ready', 'data': {'session_id': SID}},
+        {'type': 'transcript', 'data': {'id': 't1', 'text': '尾节点的指针指向空。',
+                                      'mode': 'microphone', 'review_status': 'pending'}},
+        {'type': 'review_completed', 'data': {'segments': [
+            {'id': 't1', 'text': review_text, 'review_status': status}]}},
+        {'type': 'reply', 'data': {'kind': 'answer', 'text': '所以看到空指针就结束。'}},
+        {'type': 'finished', 'data': {'session_id': SID, 'lesson': {'topic': '链表'}}},
+    ]
+    path = tmp_path / 'logs' / f'{SID}.jsonl'
+    path.parent.mkdir()
+    path.write_text('\n'.join(json.dumps(event, ensure_ascii=False) for event in events), encoding='utf-8')
+    before = path.read_bytes()
+    classroom = read_classroom(tmp_path, SID)
+    payload = compact(classroom)
+    assert payload['turns'][0] == {'id': 't1', 'role': 'teacher', 'text': expected, 'mode': 'microphone'}
+    assert payload['turns'][1]['text'] == '所以看到空指针就结束。'
+    assert not any(field in json.dumps(payload) for field in ('review_status', 'raw_text', 'original_text'))
+    assert path.read_bytes() == before
+
+
+def test_mixed_teacher_sources_keep_review_selection_and_input_types(tmp_path):
+    from backend.report_pipeline import compact
+    path = save_classroom(tmp_path)
+    events = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
+    events.insert(3, {'type': 'transcript', 'data': {
+        'id': 't4', 'text': '错误的待审核副本。', 'raw_text': '先判断当前指针是否为空。',
+        'mode': 'microphone', 'review_status': 'disabled'}})
+    path.write_text('\n'.join(json.dumps(event, ensure_ascii=False) for event in events), encoding='utf-8')
+    payload = compact(read_classroom(tmp_path, SID))
+    teachers = [turn for turn in payload['turns'] if turn['role'] == 'teacher']
+    assert [(turn['id'], turn['text'], turn['mode']) for turn in teachers] == [
+        ('t1', '链表由节点组成。', 'microphone'),
+        ('t4', '先判断当前指针是否为空。', 'microphone'),
+        ('t2', '沿 next 指针逐个访问节点。', 'text'),
+        ('t3', '最后一个节点指向空。', 'text'),
+    ]
+
+
 def test_no_answers_is_an_observation_not_a_mastery_judgment(tmp_path):
     save_classroom(tmp_path, replies=False)
     classroom = read_classroom(tmp_path, SID)

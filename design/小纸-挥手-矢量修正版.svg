@@ -1,0 +1,91 @@
+<!-- 小纸挥手插画的矢量重描，包含纸身、表情、双手、椭圆脚和铅笔。 -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1254" height="1254" viewBox="0 0 1254 1254" role="img" aria-labelledby="title">
+  <title id="title">小纸挥手</title>
+  <defs>
+    <linearGradient id="paper-white" x2="0.82" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#fff"/>
+      <stop offset="1" stop-color="#fafcfe"/>
+    </linearGradient>
+    <linearGradient id="paper-blue" x2="1" y2="0.9" gradientUnits="objectBoundingBox">
+      <stop stop-color="#c7eaff"/>
+      <stop offset="1" stop-color="#e1f3ff"/>
+    </linearGradient>
+    <linearGradient id="eye-color" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop stop-color="#203a51"/>
+      <stop offset="0.6" stop-color="#233e56"/>
+      <stop offset="1" stop-color="#254159"/>
+    </linearGradient>
+  </defs>
+
+  <g id="motion-marks" fill="#0097ff">
+    <path d="M119 329c12-7 24-1 32 10l34 47c8 12 1 24-11 27-7 2-14 0-20-6l-41-42c-12-12-9-28 6-36z"/>
+    <path d="M47 421c4-14 17-21 31-16l55 21c12 5 16 15 12 25-3 9-12 13-23 11l-56-11c-15-3-23-15-19-30z"/>
+    <path d="M59 510c2-7 8-12 16-15l36-12c12-4 20 1 23 10 4 9 0 17-9 22l-37 18c-16 8-33-7-29-23z"/>
+  </g>
+
+  <g id="feet" stroke="#0097ff" stroke-width="14">
+    <g id="left-foot" transform="translate(515 1054) rotate(-8)">
+      <ellipse rx="97" ry="59" fill="url(#paper-white)" stroke="none"/>
+      <path fill="url(#paper-blue)" stroke="none" d="M-97 0A97 59 0 0 1 83-30C51-49 6-52-30-35c-30 14-50 40-41 58 9 19 36 28 71 36A97 59 0 0 1-97 0z"/>
+      <ellipse rx="97" ry="59" fill="none"/>
+    </g>
+    <g id="right-foot" transform="translate(814 1024) rotate(2)">
+      <ellipse rx="115" ry="84" fill="url(#paper-white)" stroke="none"/>
+      <path fill="url(#paper-blue)" stroke="none" d="M-115 0A115 84 0 0 1 107-31C82-44 54-47 28-41c-39 8-76 37-78 69-2 27 20 47 51 56A115 84 0 0 1-115 0z"/>
+      <ellipse rx="115" ry="84" fill="none"/>
+    </g>
+  </g>
+
+  <g id="body" stroke="#0097ff" stroke-width="14" stroke-linejoin="round" stroke-linecap="round">
+    <path id="back-sheet" fill="#bfe7ff" stroke="none" d="M302 795c-33 7-63 18-87 19-29 2-47-12-48-33-1-12 3-28 6-43 13-62 57-248 71-305l67 35 15 321z"/>
+    <path fill="url(#paper-white)" stroke="none" d="M244 433c5-23-17-62-14-86 4-30 22-52 54-61l527-137c39-10 67 0 91 28l99 117c14 17 21 33 27 61l67 299c16 62-39 152-67 216-18 41-40 59-81 66l-517 89c-48 8-78-15-87-57-14-60-32-144-45-193-8-31-12-52-16-74-6-33-17-74-31-98-31-52-13-135-7-170z"/>
+    <path id="paper-rim" fill="url(#paper-blue)" stroke="none" d="M244 433c5-23-17-62-14-86 4-30 22-52 54-61l30-8c-32 12-53 43-44 79l131 596c9 39 37 56 76 49l489-84-19 18-517 89c-48 8-78-15-87-57-14-60-32-144-45-193-8-31-12-52-16-74-6-33-17-74-31-98-31-52-13-135-7-170z"/>
+    <path id="corner-fold" fill="#d0edff" stroke="none" d="M819 147c24-3 37 11 32 40l-25 111c-9 41-1 55 34 69l187 75-19-87c-7-31-17-43-44-53l-85-16c-21-4-26-12-26-37v-41c0-40-21-63-54-61z"/>
+    <path id="fold-crease" fill="#9fd8fc" stroke="none" d="M820 147c29-4 55 12 55 63v52c0 19 6 26 25 30 48 8 108 12 118 52-23-22-69-29-120-36-28-4-36-15-36-40v-60c0-38-9-61-42-61z"/>
+    <path id="body-outline" fill="none" d="M302 795c-33 7-63 18-87 19-29 2-47-12-48-33-1-12 3-28 6-43 13-62 57-248 71-305 5-23-17-62-14-86 4-30 22-52 54-61l527-137c39-10 67 0 91 28l99 117c14 17 21 33 27 61l67 299c16 62-39 152-67 216-18 41-40 59-81 66l-517 89c-48 8-78-15-87-57-14-60-32-144-45-193-8-31-12-52-16-74-5-28-12-55-22-79"/>
+  </g>
+
+  <g id="face">
+    <g id="eyes" fill="url(#eye-color)">
+      <ellipse cx="551" cy="647" rx="50" ry="71" transform="rotate(-10 551 647)"/>
+      <ellipse cx="843" cy="594" rx="49" ry="71" transform="rotate(-11 843 594)"/>
+    </g>
+    <g id="eye-glints" fill="#f7fcff">
+      <ellipse cx="528" cy="619" rx="11" ry="16" transform="rotate(16 528 619)"/>
+      <ellipse cx="818" cy="565" rx="10" ry="15" transform="rotate(16 818 565)"/>
+    </g>
+    <g id="cheeks" fill="#ffdee1">
+      <ellipse cx="474" cy="747" rx="64" ry="51" transform="rotate(-19 474 747)"/>
+      <ellipse cx="945" cy="668" rx="66" ry="53" transform="rotate(-22 945 668)"/>
+    </g>
+    <g id="smile">
+      <path fill="#233e56" d="M669 658c26 1 50-7 67-12 12-4 18 6 17 19-3 29-18 51-47 54-26 3-48-16-50-40-2-13 3-21 13-21z"/>
+      <path fill="#ff929e" d="M670 689c8-17 28-23 44-24 14-1 27 5 28 14 0 8-3 21-10 28-10 10-26 14-40 11-14-3-23-14-22-29z"/>
+    </g>
+  </g>
+
+  <g id="waving-hand">
+    <path fill="url(#paper-white)" d="M205 570c-18-31-50-43-85-24-29 15-50 39-52 68-2 41 36 73 78 94 43 22 83 14 98-22 5-15 13-26 21-40 17-27 18-58 3-76-17-20-43-17-63 0z"/>
+    <path fill="#d0edff" d="M68 614c-2 41 36 73 78 94 43 22 83 14 98-22 5-15 13-26 21-40-21 28-44 51-76 52-47 1-100-38-121-84z"/>
+    <path fill="none" stroke="#0097ff" stroke-width="14" stroke-linejoin="round" d="M205 570c-18-31-50-43-85-24-29 15-50 39-52 68-2 41 36 73 78 94 43 22 83 14 98-22 5-15 13-26 21-40 17-27 18-58 3-76-17-20-43-17-63 0z"/>
+  </g>
+
+  <g id="pencil">
+    <path fill="#00d6ff" d="M908 875l180-248q6-8 17-13l50-23c15-12 26-22 41-19 20 4 30 22 22 40l-13 24-14 54-188 248-85 61c-14 10-31 9-29-12z"/>
+    <path fill="#00a9f7" d="M1155 591c15-12 26-22 41-19 20 4 30 22 22 40l-13 24-28-8z"/>
+    <path fill="#98efff" d="M1088 627q6-8 17-13l50-23q27 14 50 45l-14 54-36-9-14-24-29-7z"/>
+    <path fill="#c0f8ff" d="M1105 614l50-23 13 10-56 49z"/>
+    <path fill="#22dfff" d="M908 875l180-248 24 23-175 238-20 12z"/>
+    <path fill="#00b6f6" d="M980 911l175-230 36 9-188 248-20 3z"/>
+    <path fill="#ffe2bb" d="M908 875l10 13 19-4 10 28 31-3 5 24 20 5-85 61c-14 10-31 9-29-12z"/>
+    <path fill="#ffc789" d="M983 933l20 5-85 61c-12 9-21 7-27 1z"/>
+    <path fill="#0e467c" d="M893 962c17-3 33 4 42 25l-17 12c-14 10-31 9-29-12z"/>
+    <path fill="none" stroke="#0041ab" stroke-width="14" stroke-linejoin="round" d="M908 875l180-248q6-8 17-13l50-23c15-12 26-22 41-19 20 4 30 22 22 40l-13 24-14 54-188 248-85 61c-14 10-31 9-29-12z"/>
+  </g>
+
+  <g id="holding-hand">
+    <ellipse cx="1080" cy="843" rx="69" ry="69" fill="url(#paper-white)"/>
+    <path fill="#d0edff" d="M1011 843c0 38 31 69 69 69 43 0 76-39 68-81-8 34-31 59-70 59-30 0-52-14-67-47z"/>
+    <ellipse cx="1080" cy="843" rx="69" ry="69" fill="none" stroke="#0097ff" stroke-width="14"/>
+  </g>
+</svg>

@@ -12,14 +12,17 @@ import re
 from . import config
 from .history import classroom_path, source_stamp
 from .llm import ModelClient, ModelError
-from .report_accuracy import SCORE_CAPS, score_accuracy, statement_key
-from .report_prompt import TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT, REFLECTION_NOTES
+from .review import selected_text
+from .report_accuracy import ACCURACY_PROMPT, SCORE_CAPS, score_accuracy, statement_key
+from .report_prompt import (TEACHING_REPORT, ANALYZE_CHUNK, MERGE_NOTES, REFLECTION_REPORT,
+                            REFLECTION_NOTES, LEGACY_ANALYZE_CHUNK, LEGACY_MERGE_NOTES, FILLER_COUNTS_PROMPT)
 from .report_contract import (TeachingReport, ReflectionReport, DIMENSION_NAMES, evidence_turns,
                               validate_sources as check_sources, validate_grounding, validate_reflection)
 
 REPORT_BUDGET = 300
 SCORE_NAMES = (*DIMENSION_NAMES[:3], ('interaction', '师生互动'), ('expression', '表达规范'))
 LEGACY_FILLER_WORDS = ('这个', '就是', '呃', '嗯')
+TRANSCRIPTION_NOTICE = '语音转写可能存在误差，请结合实际讲授核对。'
 
 
 def recorded_elapsed(event):
@@ -56,8 +59,8 @@ def read_classroom(root: Path, session_id: str):
                 microphone_enabled |= data.get('recording') is True
             elif kind == 'audio_input':
                 audio_received = True
-            elif kind == 'asr_empty' or (kind == 'error' and data.get('code') in {
-                    'audio_backlog', 'audio_failure', 'asr_failure', 'no_audio_frames'}):
+            elif kind == 'error' and data.get('code') in {
+                    'audio_backlog', 'audio_failure', 'asr_failure', 'no_audio_frames'}:
                 capture_error = True
             if kind == 'llm_request' and data.get('phase') == 'preparation':
                 # Older main logs store the lesson only in the preparation input.
@@ -68,8 +71,10 @@ def read_classroom(root: Path, session_id: str):
                 source_id = data['id']
                 if source_id in teachers:
                     raise ValueError('课堂讲授编号重复')
-                teachers[source_id] = {'id': source_id, 'text': data['text'], 'mode': data.get('mode', 'text')}
-                originals[source_id] = data['text']
+                original = data.get('raw_text') or data['text']
+                text = selected_text(data, original)
+                teachers[source_id] = {'id': source_id, 'text': text, 'mode': data.get('mode', 'text')}
+                originals[source_id] = original
                 timing[source_id] = recorded_elapsed(event)
                 if data.get('review_status'):
                     metadata[source_id] = {'review_status': data['review_status']}
@@ -79,7 +84,8 @@ def read_classroom(root: Path, session_id: str):
             elif kind == 'review_completed':
                 for segment in data.get('segments', []):
                     if segment['id'] in teachers:
-                        teachers[segment['id']]['text'] = segment['text']
+                        teachers[segment['id']]['text'] = selected_text(
+                            {**teachers[segment['id']], **segment}, originals[segment['id']])
                         if segment.get('review_status'):
                             metadata[segment['id']] = {'review_status': segment['review_status']}
             elif kind == 'reply' and data.get('kind') in ('question', 'answer', 'ack') and data.get('text', '').strip():
@@ -118,7 +124,7 @@ def read_classroom(root: Path, session_id: str):
     recording_observed = any(t['mode'] == 'microphone' and t['text'].strip() for t in teachers.values())
     capture_incomplete = (not started or capture_error or bool(unprocessed - teachers.keys())
                           or ((microphone_enabled or audio_received) and not recording_observed))
-    no_lesson = all(sound_check(text) for text in originals.values())
+    no_lesson = all(sound_check(source['text']) for source in teachers.values())
     transcript = [
         {'id': row['id'], 'role': row['role'], 'text': row['text'], **timing[row['id']],
          **({'original_text': originals[row['id']]}
@@ -128,6 +134,8 @@ def read_classroom(root: Path, session_id: str):
     presentation = {
         'transcript': transcript,
         'capture_status': 'incomplete' if capture_incomplete else 'empty' if no_lesson else 'complete',
+        'transcription_notice': TRANSCRIPTION_NOTICE if any(
+            source['mode'] == 'microphone' for source in teachers.values()) else '',
         **finish_time,
     }
     return {'lesson': lesson, 'teacher_segments': list(teachers.values()), 'ai_replies': replies,
@@ -144,8 +152,13 @@ def source_hash(classroom, prompt=None, *, legacy=False):
     notes = '' if legacy else REFLECTION_NOTES
     content = {'classroom': classroom, 'version': 2 if legacy else 3,
                'prompt': prompt if prompt is not None else TEACHING_REPORT if legacy else REFLECTION_REPORT,
-               'chunk_prompt': ANALYZE_CHUNK + notes, 'merge_prompt': MERGE_NOTES + notes,
+               'chunk_prompt': (LEGACY_ANALYZE_CHUNK if legacy else ANALYZE_CHUNK) + notes,
+               'merge_prompt': (LEGACY_MERGE_NOTES if legacy else MERGE_NOTES) + notes,
                'schema': schema.model_json_schema()}
+    if not legacy:
+        from .report_pipeline import ScoredReflectionReport
+        content.update(schema=ScoredReflectionReport.model_json_schema(),
+                       accuracy_prompt=ACCURACY_PROMPT, filler_prompt=FILLER_COUNTS_PROMPT)
     return hashlib.sha256(json.dumps(content, ensure_ascii=False, sort_keys=True).encode('utf-8')).hexdigest()
 
 
@@ -196,13 +209,15 @@ def public_reflection(report, accuracy=None):
                 if matched['verdict'] not in SCORE_CAPS or matched['topic'] in used_topics:
                     continue
                 used_topics.add(matched['topic'])
-                finding.update(title=matched['topic'], fact=matched['claim'], action=matched['basis'],
+                finding.update(title=matched['topic'], fact=matched['claim'],
+                               action='重讲这一处时，说明正确结论和判断依据。' + matched['basis'],
                                evidence=matched['evidence'])
             findings.append(finding)
         display['findings'] = findings
         if findings and findings[0]['dimension'] == 'accuracy':
             display['practice'] = {
-                'minutes': 2, 'task': '用核对后的依据重新讲解这一处知识。', 'example': findings[0]['action'],
+                'minutes': 2, 'task': '结合核对依据，重新讲清这一处结论和推导过程。',
+                'example': findings[0]['action'],
                 'criterion': '教师能讲清正确结论，并说明适用条件或推导依据。',
             }
         elif original and (not findings or original[0] is not findings[0]):
@@ -265,6 +280,8 @@ def export_markdown(result):
                     label = '待核实原因' if check['verdict'] == 'unverified' else '学科依据'
                     lines.append(f"  - {label}　{escape(check['basis'])}")
             text += '\n'.join([*lines, ''])
+        if result.get('transcription_notice'):
+            text += '\n' + result['transcription_notice'] + '\n'
         return text
     lines = ['# 试讲教学报告', '', '## 总体概括', '', report['overview']['text'], '']
     for key, name in DIMENSION_NAMES:
@@ -277,6 +294,8 @@ def export_markdown(result):
               '', '## 应该如何改', '', report['action']['text'], '', '## 下次怎么办', '',
               f"{practice['minutes']}分钟练习：{practice['task']}", '', f"完成标准：{practice['criterion']}", '']
     lines += ['说明：报告基于课堂文本，不代表真实学生掌握。', '']
+    if result.get('transcription_notice'):
+        lines += [result['transcription_notice'], '']
     return '\n'.join(lines)
 
 
@@ -326,8 +345,10 @@ class ReportService:
             result.update(status='ready', progress='报告已生成。',
                           report={'overview': {'text': reason, 'evidence': []}, 'keep': None,
                                   'findings': [], 'expression': None, 'practice': None},
-                          scores=status_scores(None if incomplete else 1.0, reason))
-            result['scores']['accuracy'] = score_accuracy([], [], incomplete=incomplete)
+                          scores=status_scores(None, reason))
+            if not incomplete:
+                for row in result['scores'].values():
+                    row['pending_label'] = '无可评价讲授'
             return result
         path = self.path(session_id)
         if path.exists():

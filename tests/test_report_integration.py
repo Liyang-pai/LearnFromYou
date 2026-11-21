@@ -71,7 +71,8 @@ def wait_until_ready(client):
 
 
 @pytest.mark.parametrize('has_image', [False, True])
-def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(tmp_path, monkeypatch, has_image):
+@pytest.mark.parametrize('empty_audio', [False, True])
+def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(tmp_path, monkeypatch, has_image, empty_audio):
     path = write_log(tmp_path, [
         ready(),
         event('transcript', {'id': 't1', 'mode': 'microphone', 'text': RAW}, 0),
@@ -82,6 +83,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
                              **({'image_id': 'classroom-image'} if has_image else {})}),
         event('reply', {'kind': 'answer', 'text': ANSWER}, 18),
         event('transcript', {'id': 't3', 'mode': 'text', 'text': FEEDBACK}, 20.5),
+        *([event('asr_empty', {'asr_seconds': .045}, 21)] if empty_audio else []),
         finished(),
     ])
     original = path.read_bytes()
@@ -91,7 +93,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
         async def generate(self, phase, prompt, payload, contract):
             calls.append(phase)
             assert payload['lesson'].get('has_visual_material', False) is has_image
-            assert payload['turns'][0]['original_text'] == RAW
+            assert not {'original_text', 'raw_text', 'review_status'} & payload['turns'][0].keys()
             assert payload['turns'][0]['text'] == REVIEWED
             teacher = {'source_id': 't1', 'actor': 'teacher', 'quote': '链表尾节点的指针指向空。'}
             question = {'source_id': 't2', 'actor': 'teacher', 'quote': '空链表需要访问任何节点吗？请说说理由。'}
@@ -140,6 +142,8 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
         assert calls == []
         assert client.post(REPORT).status_code == 200
         result = wait_until_ready(client)
+        assert result['capture_status'] == 'complete'
+        assert result['transcription_notice'] == '语音转写可能存在误差，请结合实际讲授核对。'
         assert result['schema_version'] == 3 and result['topic'] == '链表遍历'
         transcript = {turn['id']: turn for turn in result['transcript']}
         assert list(transcript) == ['t1', 't2', 'r1', 't3']
@@ -149,9 +153,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
         assert transcript['t2'].get('elapsed') is None
         assert transcript['r1']['role'] == 'ai' and transcript['r1']['elapsed'] == 18
         assert transcript['t3']['role'] == 'teacher' and transcript['t3']['elapsed'] == 20.5
-        assert result['word_counts'] == [{'word': word, 'count': count} for word, count in [
-            ('那个', 5), ('嗯', 4), ('我们先想一下啊', 3), ('就是', 2),
-        ]]
+        assert result['word_counts'] == []  # 原文、键盘和学生中的口头词不属于最终语音文本。
         assert 'word_counts' not in result['report']
         assert set(result['scores']) == DIMENSIONS
         assert {key: item['score'] for key, item in result['scores'].items()} == {
@@ -173,6 +175,7 @@ def test_report_route_exposes_reviewed_transcript_statistics_and_score_evidence(
         assert '内容准确核对' in markdown.text
         assert '学科依据　在线性单链表中，末节点的 next 为空。' in markdown.text
         assert f'课堂原话（教师）　“{REVIEWED}”' in markdown.text
+        assert markdown.text.count(result['transcription_notice']) == 1
         assert 'source_id' not in markdown.text and path.read_bytes() == original
         assert client.post(REPORT).json()['status'] == 'ready' and calls == ['teaching_report']
 
@@ -238,20 +241,19 @@ def test_accuracy_findings_use_checked_conclusions_and_survive_capture_gaps(tmp_
         assert client.post(REPORT).status_code == 200
         result = wait_until_ready(client)
         accuracy = result['scores']['accuracy']
-        assert accuracy['score'] == (None if incomplete else 2.0)
-        if incomplete:
-            assert {score['pending_label'] for score in result['scores'].values()} == {'记录不完整'}
-        else:
-            assert result['scores']['interaction']['pending_label'] == '未见小纸回应'
-            assert result['scores']['expression']['pending_label'] == '仅记录文字'
+        assert accuracy['score'] == 2.0
+        assert result['capture_status'] == 'complete'
+        assert result['scores']['interaction']['pending_label'] == '未见小纸回应'
+        assert result['scores']['expression']['pending_label'] == '仅记录文字'
         assert len(accuracy['checks']) == 2
         assert len(result['report']['findings']) == 1
         finding = result['report']['findings'][0]
         assert finding['evidence'] == accuracy['checks'][0]['evidence'] == evidence[:1]
-        assert finding['action'] == accuracy['checks'][0]['basis'] == result['report']['practice']['example'] == basis
+        assert accuracy['checks'][0]['basis'] == basis
+        assert finding['action'] == result['report']['practice']['example'] == '重讲这一处时，说明正确结论和判断依据。' + basis
         markdown = client.get(REPORT + '/export')
         assert wrong in markdown.text and basis in markdown.text and '错误声称子表不存在' not in markdown.text
-        assert ('记录不完整' if incomplete else '未见小纸回应') in markdown.text
+        assert '未见小纸回应' in markdown.text
         assert '资料待核对' not in markdown.text
 
 
@@ -278,8 +280,8 @@ def test_accuracy_finding_chooses_the_right_claim_when_two_checks_share_a_quote(
     with client_for(tmp_path, monkeypatch, reject_model) as client:
         result = client.get(REPORT).json()
         assert result['scores']['accuracy']['score'] == 1.0
-        assert result['report']['findings'][0]['action'] == '圆面积为 πr²。'
-        assert result['report']['practice']['example'] == '圆面积为 πr²。'
+        assert result['report']['findings'][0]['action'] == '重讲这一处时，说明正确结论和判断依据。圆面积为 πr²。'
+        assert result['report']['practice']['example'] == '重讲这一处时，说明正确结论和判断依据。圆面积为 πr²。'
         markdown = client.get(REPORT + '/export').text
         assert '学科依据　圆面积为 πr²。' in markdown and '学科依据　平面三角形内角和为 180 度。' in markdown
 
@@ -292,7 +294,7 @@ def test_accuracy_finding_chooses_the_right_claim_when_two_checks_share_a_quote(
     ([], {'unprocessed_sources': ['t1']}, True, 'incomplete'),
     ([], {}, False, 'incomplete'),
 ])
-def test_finished_without_material_scores_one_only_when_capture_is_verified(
+def test_finished_without_material_leaves_all_scores_empty(
         tmp_path, monkeypatch, before_finish, finish_changes, has_ready, expected):
     path = write_log(tmp_path, [*([ready()] if has_ready else []), *before_finish, finished(**finish_changes)])
     original = path.read_bytes()
@@ -304,10 +306,7 @@ def test_finished_without_material_scores_one_only_when_capture_is_verified(
             assert result['status'] == 'ready' and result['capture_status'] == expected
             assert result['report']['findings'] == []
             assert set(result['scores']) == DIMENSIONS
-            target = 1.0 if expected == 'empty' else None
-            assert result['scores']['accuracy']['score'] is None
-            assert all(result['scores'][key]['score'] == target and not result['scores'][key]['evidence']
-                       for key in DIMENSIONS - {'accuracy'})
+            assert all(row['score'] is None and not row['evidence'] for row in result['scores'].values())
         assert client.get(REPORT + '/export').status_code == 200
         assert path.read_bytes() == original
 

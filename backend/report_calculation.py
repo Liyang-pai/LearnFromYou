@@ -24,7 +24,7 @@ def list_depth_facts(turns, lesson):
         return {}
     facts = {}
     for turn in turns:
-        if turn['role'] != 'teacher' or (turn.get('mode') == 'microphone' and turn.get('review_status') != 'reviewed'):
+        if turn['role'] != 'teacher':
             continue
         matches = _ASSIGNMENT.findall(normalize('NFKC', turn['text']))
         if len(matches) != 1:

@@ -7,12 +7,23 @@ const labels={understood:'课堂推断理解',tentative:'推断待确认',unclea
 const card=(title,text,meta='')=>`<article class="live-record"><div class="live-record-title">${esc(title)}</div><p>${esc(text)}</p>${meta?`<small>${esc(meta)}</small>`:''}</article>`;
 const payload=(title,value,key)=>`<details class="live-payload" data-key="${esc(key)}"><summary>${esc(title)}</summary><pre>${esc(typeof publicValue(value)==='string'?publicValue(value):JSON.stringify(publicValue(value),null,2))}</pre></details>`;
 export function transcripts(s){
-  const rows=(s.records||[]).filter(e=>['transcript','review_completed','segment'].includes(e.type));
-  return rows.length?rows.map((r,i)=>{
-    const d=r.data,stamp=time(r.elapsed);
-    if(r.type==='transcript')return card(stamp+' · '+(d.mode==='microphone'?'语音转写':'转写'),d.text,d.asr_seconds==null?'':`识别 ${d.asr_seconds} 秒`);
-    if(r.type==='segment')return card(stamp+' · 教学片段',d.text,d.reason);
-    return (d.segments||[]).map((seg,n)=>`<article class="live-record"><div class="live-record-title">${stamp} · 转写审核</div><p>${esc(seg.text??seg.corrected_text??seg.raw_text)}</p><small>${esc(({bypassed:'未开启审核',corrected:'已校正',reviewed:'审核已完成',disabled:'未开启审核',unchanged:'采用原文',fallback:'审核失败，采用原文',failed:'审核失败，采用原文'})[seg.review_status]||seg.review_status||'审核完成')}${seg.review_seconds==null?'':` · ${esc(seg.review_seconds)} 秒`}</small><details data-key="raw-${i}-${n}"><summary>查看识别原文</summary><p>${esc(seg.raw_text)}</p></details></article>`).join('');
+  const sources=new Map();
+  for(const [index,event] of (s.records||[]).entries()){
+    const d=event.data;
+    if(event.type==='transcript')sources.set(d.id??`legacy-${index}`,{...d,elapsed:event.elapsed});
+    if(event.type==='review_completed')for(const segment of d.segments||[]){
+      const previous=sources.get(segment.id);
+      const raw=segment.raw_text??previous?.raw_text??previous?.text;
+      const valid=['reviewed','corrected','unchanged'].includes(segment.review_status)&&typeof segment.text==='string'&&segment.text.trim();
+      sources.set(segment.id,{...previous,...segment,text:previous?.mode==='text'||valid?segment.text:raw,raw_text:raw,elapsed:previous?.elapsed??event.elapsed});
+    }
+  }
+  const rows=[...sources.entries()];
+  return rows.length?rows.map(([id,row])=>{
+    const pending=row.review_status==='pending';
+    const status=({bypassed:'文字输入',corrected:'已校正',reviewed:'审核已完成',disabled:'未开启审核',unchanged:'采用原文',fallback:'审核失败，采用原文',failed:'审核失败，采用原文'})[row.review_status]||'';
+    const metadata=[pending?'审核中':status,row.asr_seconds==null?'':`识别 ${row.asr_seconds} 秒`,row.review_seconds==null?'':`审核 ${row.review_seconds} 秒`].filter(Boolean).join(' · ');
+    return `<article class="live-record"><div class="live-record-title">${time(row.elapsed)} · 教学片段</div><p>${esc(pending?'审核中，完成后显示本段讲授。':row.text)}</p><small>${esc(metadata)}</small>${row.mode==='microphone'||row.raw_text!=null?`<details data-key="raw-${esc(id)}"><summary>查看识别原文</summary><p>${esc(row.raw_text??row.text)}</p></details>`:''}</article>`;
   }).join(''):empty('尚无转写与教学分段。开始讲解后在这里查看。');
 }
 export function cognition(s){
@@ -35,7 +46,10 @@ export function modelInputs(s){
 const eventNames={llm_output:'模型输出',candidate:'候选回复 · 尚未发出',reply:'学生实际发言',state:'认知更新与候选',student_validation_error:'模型结果校验',student_recovery:'自动恢复',knowledge_review:'知识复核',resume_response:'恢复回应判断',suppressed:'候选已取消或抑制',invitation_expired:'回应邀请已失效',asr_empty:'未识别到有效语音',question_release:'发言控制',warning:'提示',error:'处理错误',mute:'发言控制',finished:'课堂收尾',review_glossary:'术语准备',status:'处理状态'};
 export function outputs(s){
   const rows=(s.records||[]).filter(r=>eventNames[r.type]).slice().reverse();
-  return rows.length?rows.map((r,i)=>payload(`${time(r.elapsed)} · ${eventNames[r.type]}${r.data.status?' · '+r.data.status:''}${r.type==='llm_output'&&r.data.seconds!=null?' · '+r.data.seconds+' 秒':''}`,r.type==='llm_output'?(r.data.raw??r.data):r.data,'event-'+i)).join(''):empty('尚无模型输出与处理事件。');
+  return rows.length?rows.map((r,i)=>{
+    const label=r.type==='student_recovery' && r.data.code==='readonly_fields_ignored'?'只读字段兼容':eventNames[r.type];
+    return payload(`${time(r.elapsed)} · ${label}${r.data.status?' · '+r.data.status:''}${r.type==='llm_output'&&r.data.seconds!=null?' · '+r.data.seconds+' 秒':''}`,r.type==='llm_output'?(r.data.raw??r.data):r.data,'event-'+i);
+  }).join(''):empty('尚无模型输出与处理事件。');
 }
 export const recordTabs=[['transcript','转写与分段'],['input','LLM 输入'],['student','学生状态'],['output','输出与事件']];
 export function tabs(items,selected,action){return `<div class="live-tabs" role="tablist">${items.map(([key,label])=>`<button type="button" role="tab" aria-selected="${key===selected}" id="${action}-${key}" data-action="${action}" data-id="${key}">${label}</button>`).join('')}</div>`;}
