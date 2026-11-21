@@ -315,6 +315,8 @@ class ReportPipeline:
             notes = await self.stage('teaching_report_chunk', ANALYZE_CHUNK + REFLECTION_NOTES + (
                 '\n另在accuracy_claims记录本段教师实际讲授的核心知识主张，以及有诊断价值的次要说法。'
                 '逐条列claim、core、evidence（原始source_id、角色和逐字短引）。用连续原句，不能改字或加标点。'
+                '同一句在同一source_id中反复出现时，证据须带相邻的例号、数值或更正语句，'
+                '使这段连续原文在该来源中只出现一次；不要单引每个例子都会重复的结论。'
                 '保留后续更正、限定条件及讲法不同的结论。本段重复且意思相同的只记一次，'
                 '小纸作答仅在教师随后明确采用时保留，来源用输入中的reply_id。没有适用说法时返回[]。'
             ) + FILLER_COUNTS_PROMPT, part, AccuracyChunkNotes, allowed, reflection=True)

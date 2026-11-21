@@ -1,0 +1,134 @@
+{
+  "request_limit": 16,
+  "requests": 16,
+  "responses": 16,
+  "usage": {
+    "prompt_tokens": 121268,
+    "completion_tokens": 19030,
+    "total_tokens": 140298,
+    "prompt_cache_hit_tokens": 68864,
+    "prompt_cache_miss_tokens": 52404
+  },
+  "cases": [
+    {
+      "case": "t9",
+      "status": "passed",
+      "checks": {
+        "valid": true,
+        "dependency_retained": true
+      },
+      "requests": 1,
+      "seconds": 2.469
+    },
+    {
+      "case": "t11",
+      "status": "passed",
+      "checks": {
+        "valid": true,
+        "delivery_increments_once": true
+      },
+      "requests": 1,
+      "seconds": 1.991
+    },
+    {
+      "case": "earth",
+      "status": "passed",
+      "requests": 1,
+      "seconds": 10.24,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": true,
+        "primary_improvement": true
+      },
+      "error": ""
+    },
+    {
+      "case": "short",
+      "status": "passed",
+      "requests": 1,
+      "seconds": 7.637,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": true,
+        "filler_across_turns": true,
+        "no_raw_filler": true
+      },
+      "error": ""
+    },
+    {
+      "case": "long",
+      "status": "passed",
+      "requests": 2,
+      "seconds": 13.69,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": true,
+        "filler_across_turns": true,
+        "no_raw_filler": true,
+        "late_correction": true
+      },
+      "error": ""
+    }
+  ],
+  "model": "deepseek-chat",
+  "destination": "https://api.deepseek.com/chat/completions",
+  "source_sha256": "66f81f083e0ed6b160676b344030f07f39171a3451f8055abb586e4380267e14",
+  "status": "passed",
+  "previous_attempts": [
+    {
+      "case": "earth",
+      "status": "passed",
+      "requests": 1,
+      "seconds": 10.382,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": true,
+        "primary_improvement": true
+      },
+      "error": ""
+    },
+    {
+      "case": "short",
+      "status": "passed",
+      "requests": 1,
+      "seconds": 8.196,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": true,
+        "filler_across_turns": true,
+        "no_raw_filler": true
+      },
+      "error": ""
+    },
+    {
+      "case": "long",
+      "status": "failed",
+      "requests": 4,
+      "seconds": 20.525,
+      "checks": {
+        "ready": true,
+        "five_dimensions": true,
+        "accuracy_scored": false,
+        "filler_across_turns": false,
+        "no_raw_filler": true,
+        "late_correction": false
+      },
+      "error": ""
+    },
+    {
+      "case": "long",
+      "status": "failed",
+      "requests": 4,
+      "seconds": 16.961,
+      "checks": {
+        "ready": false
+      },
+      "error": "本轮或本案例已达到真实请求上限"
+    }
+  ]
+}

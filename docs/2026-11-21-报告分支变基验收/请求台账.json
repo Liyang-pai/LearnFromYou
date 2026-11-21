@@ -1,0 +1,310 @@
+[
+  {
+    "number": 1,
+    "case": "earth",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 10.297,
+    "usage": {
+      "prompt_tokens": 6726,
+      "completion_tokens": 2155,
+      "total_tokens": 8881,
+      "prompt_tokens_details": {
+        "cached_tokens": 1536
+      },
+      "prompt_cache_hit_tokens": 1536,
+      "prompt_cache_miss_tokens": 5190
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 2,
+    "case": "t9",
+    "phase": "student",
+    "attempt": 1,
+    "seconds": 2.464,
+    "usage": {
+      "prompt_tokens": 8929,
+      "completion_tokens": 268,
+      "total_tokens": 9197,
+      "prompt_tokens_details": {
+        "cached_tokens": 8704
+      },
+      "prompt_cache_hit_tokens": 8704,
+      "prompt_cache_miss_tokens": 225
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 3,
+    "case": "t11",
+    "phase": "student",
+    "attempt": 1,
+    "seconds": 1.987,
+    "usage": {
+      "prompt_tokens": 9570,
+      "completion_tokens": 272,
+      "total_tokens": 9842,
+      "prompt_tokens_details": {
+        "cached_tokens": 9344
+      },
+      "prompt_cache_hit_tokens": 9344,
+      "prompt_cache_miss_tokens": 226
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 4,
+    "case": "short",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 8.132,
+    "usage": {
+      "prompt_tokens": 5863,
+      "completion_tokens": 2185,
+      "total_tokens": 8048,
+      "prompt_tokens_details": {
+        "cached_tokens": 5376
+      },
+      "prompt_cache_hit_tokens": 5376,
+      "prompt_cache_miss_tokens": 487
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 5,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 3.812,
+    "usage": {
+      "prompt_tokens": 9108,
+      "completion_tokens": 668,
+      "total_tokens": 9776,
+      "prompt_tokens_details": {
+        "cached_tokens": 768
+      },
+      "prompt_cache_hit_tokens": 768,
+      "prompt_cache_miss_tokens": 8340
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 6,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 3.784,
+    "usage": {
+      "prompt_tokens": 9086,
+      "completion_tokens": 626,
+      "total_tokens": 9712,
+      "prompt_tokens_details": {
+        "cached_tokens": 2304
+      },
+      "prompt_cache_hit_tokens": 2304,
+      "prompt_cache_miss_tokens": 6782
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 7,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 3.725,
+    "usage": {
+      "prompt_tokens": 5562,
+      "completion_tokens": 651,
+      "total_tokens": 6213,
+      "prompt_tokens_details": {
+        "cached_tokens": 2304
+      },
+      "prompt_cache_hit_tokens": 2304,
+      "prompt_cache_miss_tokens": 3258
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 8,
+    "case": "long",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 9.088,
+    "usage": {
+      "prompt_tokens": 7136,
+      "completion_tokens": 1744,
+      "total_tokens": 8880,
+      "prompt_tokens_details": {
+        "cached_tokens": 3200
+      },
+      "prompt_cache_hit_tokens": 3200,
+      "prompt_cache_miss_tokens": 3936
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 9,
+    "case": "earth",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 10.153,
+    "usage": {
+      "prompt_tokens": 6776,
+      "completion_tokens": 2105,
+      "total_tokens": 8881,
+      "prompt_tokens_details": {
+        "cached_tokens": 3456
+      },
+      "prompt_cache_hit_tokens": 3456,
+      "prompt_cache_miss_tokens": 3320
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 10,
+    "case": "short",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 7.566,
+    "usage": {
+      "prompt_tokens": 5913,
+      "completion_tokens": 1786,
+      "total_tokens": 7699,
+      "prompt_tokens_details": {
+        "cached_tokens": 5376
+      },
+      "prompt_cache_hit_tokens": 5376,
+      "prompt_cache_miss_tokens": 537
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 11,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 3.38,
+    "usage": {
+      "prompt_tokens": 9192,
+      "completion_tokens": 577,
+      "total_tokens": 9769,
+      "prompt_tokens_details": {
+        "cached_tokens": 1408
+      },
+      "prompt_cache_hit_tokens": 1408,
+      "prompt_cache_miss_tokens": 7784
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 12,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 2.706,
+    "usage": {
+      "prompt_tokens": 9180,
+      "completion_tokens": 450,
+      "total_tokens": 9630,
+      "prompt_tokens_details": {
+        "cached_tokens": 2432
+      },
+      "prompt_cache_hit_tokens": 2432,
+      "prompt_cache_miss_tokens": 6748
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 13,
+    "case": "long",
+    "phase": "teaching_report_chunk",
+    "attempt": 1,
+    "seconds": 2.713,
+    "usage": {
+      "prompt_tokens": 5656,
+      "completion_tokens": 586,
+      "total_tokens": 6242,
+      "prompt_tokens_details": {
+        "cached_tokens": 2432
+      },
+      "prompt_cache_hit_tokens": 2432,
+      "prompt_cache_miss_tokens": 3224
+    },
+    "finish_reason": "stop"
+  },
+  {
+    "number": 14,
+    "case": "long",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 8.049,
+    "usage": {
+      "prompt_tokens": 6960,
+      "completion_tokens": 1714,
+      "total_tokens": 8674,
+      "prompt_tokens_details": {
+        "cached_tokens": 4992
+      },
+      "prompt_cache_hit_tokens": 4992,
+      "prompt_cache_miss_tokens": 1968
+    },
+    "finish_reason": "stop",
+    "validation_error": {
+      "attempt": 1,
+      "kind": "content",
+      "errors": [
+        {
+          "field": "",
+          "error": "Value error, 声称教师演示需要可核对的操作或演算依据，请按实际行为描述"
+        }
+      ]
+    }
+  },
+  {
+    "number": 15,
+    "case": "long",
+    "phase": "teaching_report",
+    "attempt": 1,
+    "seconds": 8.036,
+    "usage": {
+      "prompt_tokens": 6960,
+      "completion_tokens": 1628,
+      "total_tokens": 8588,
+      "prompt_tokens_details": {
+        "cached_tokens": 6784
+      },
+      "prompt_cache_hit_tokens": 6784,
+      "prompt_cache_miss_tokens": 176
+    },
+    "finish_reason": "stop",
+    "validation_error": {
+      "attempt": 1,
+      "kind": "content",
+      "errors": [
+        {
+          "field": "",
+          "error": "Value error, 声称教师演示需要可核对的操作或演算依据，请按实际行为描述"
+        }
+      ]
+    }
+  },
+  {
+    "number": 16,
+    "case": "long",
+    "phase": "teaching_report",
+    "attempt": 2,
+    "seconds": 5.558,
+    "usage": {
+      "prompt_tokens": 8651,
+      "completion_tokens": 1615,
+      "total_tokens": 10266,
+      "prompt_tokens_details": {
+        "cached_tokens": 8448
+      },
+      "prompt_cache_hit_tokens": 8448,
+      "prompt_cache_miss_tokens": 203
+    },
+    "finish_reason": "stop"
+  }
+]

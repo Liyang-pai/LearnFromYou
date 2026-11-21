@@ -347,7 +347,28 @@ def test_cache_version_upgrade_rebuilds_without_touching_log_or_report(tmp_path,
     async def run():
         service = HistoryService(); assert (await service.detail(SID))['status'] == 'indexing'
         await service.jobs[SID]
-        assert module.VERSION == 4 and not old.exists()
+        assert module.VERSION == 5 and not old.exists()
         assert (await service.dialogue(SID))['items'][0]['text'] == '实际提交'
         assert path.read_bytes() == raw and report.read_text(encoding='utf-8') == '报告原样保留'
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(('status', 'reviewed', 'expected'), [
+    ('reviewed', '审核正文', '审核正文'), ('reviewed', ' ', '识别原文'),
+    ('fallback', '不可采用的结果', '识别原文'), ('disabled', '不可采用的结果', '识别原文'),
+])
+def test_history_unsubmitted_speech_uses_backend_selected_text(tmp_path, monkeypatch, status, reviewed, expected):
+    monkeypatch.setattr(config, 'ROOT', tmp_path)
+    path = write_events(tmp_path, [
+        event('transcript', {'id': 't1', 'mode': 'microphone', 'text': '识别原文'}),
+        event('review_completed', {'segments': [{'id': 't1', 'text': reviewed, 'review_status': status}]}),
+    ])
+    original = path.read_bytes()
+    async def run():
+        service = HistoryService()
+        await service.detail(SID)
+        await service.jobs[SID]
+        result = await service.dialogue(SID)
+        assert result['items'][0]['text'] == expected
+        assert path.read_bytes() == original
     asyncio.run(run())

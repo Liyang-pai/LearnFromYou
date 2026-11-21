@@ -211,13 +211,28 @@ def test_repeated_core_error_with_number_separators_counts_once():
     assert result['score'] == 2.0 and len(result['checks']) == 1
 
 
-def test_accuracy_repeated_quote_within_turn_requires_unique_context():
+@pytest.mark.parametrize('explicit_correction', [False, True])
+def test_accuracy_repeated_quote_within_turn_requires_unique_context(explicit_correction):
     wrong = '深度等于括号对数。'
     correction = '我说错了，应取最大嵌套层数。'
     turns = [{'id': 't1', 'role': 'teacher', 'text': wrong + correction + wrong}]
     old = accuracy_check('t1', wrong, verdict='core_error')
-    update = {**accuracy_check('t1', correction), 'corrects_earlier': True}
+    update = {**accuracy_check('t1', correction), 'corrects_earlier': explicit_correction}
     assert score_assessment(RubricAssessment(accuracy=[old, update]), turns)['accuracy']['score'] is None
+
+
+def test_accuracy_repeated_stable_conclusion_does_not_hide_a_later_correction():
+    wrong = '质量越大，密度越大。'
+    stable = '质量和体积同比例变化，比值不变。'
+    correction = '更正开头：同温均匀的同种物质密度不随质量改变。'
+    turns = [turn('t1', wrong), turn('t2', stable*4 + correction)]
+    result = score(turns, accuracy=[
+        accuracy_check('t1', wrong, topic='密度与质量', verdict='core_error'),
+        accuracy_check('t2', stable, topic='比值不变'),
+        {**accuracy_check('t2', correction, topic='密度与质量'), 'corrects_earlier': True},
+    ])['accuracy']
+    assert result['score'] == 5.0
+    assert any(row['corrected'] for row in result['checks'])
 
 
 def test_accuracy_accepts_canonical_teacher_statement_and_rejects_ai_only_error():

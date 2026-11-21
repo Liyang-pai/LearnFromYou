@@ -61,13 +61,16 @@ def statement_key(text):
     return ' '.join(normalize('NFKC', text).casefold().split()).rstrip('。.,;:!?') or text
 
 
-def evidence_position(item, by_id):
+def evidence_position(item, by_id, boundaries=()):
     index, turn = by_id.get(item.source_id, (-1, {}))
     if item.actor == turn.get('role'):
         text = turn['text']
         start = text.find(item.quote)
-        if start >= 0 and text.find(item.quote, start + 1) < 0:
-            return index, start
+        if start >= 0:
+            last = text.rfind(item.quote)
+            # 同一结论重复不改变判定；跨过更正或不同判定的位置时仍须唯一定位。
+            if last == start or not any(at == index and start < offset < last for at, offset in boundaries):
+                return index, start
     return None
 
 
@@ -143,7 +146,16 @@ def score_accuracy(checks, turns, *, incomplete=False, coverage_limited=False, l
     for check in checks:
         row = {'topic': check.topic, 'claim': check.claim, 'core': check.core or check.verdict in ('core_error', 'key_error'),
                'verdict': check.verdict, 'basis': check.basis, 'evidence': [], 'corrected': False}
-        located = [(evidence_position(item, by_id), item) for item in check.evidence]
+        boundaries = []
+        for other in checks:
+            if other is check or not (other.corrects_earlier or check.corrects_earlier or
+                    (statement_key(other.topic) == statement_key(check.topic) and other.verdict != check.verdict)):
+                continue
+            for ref in other.evidence:
+                at, source = by_id.get(ref.source_id, (-1, {}))
+                if ref.actor == 'teacher' and source.get('role') == 'teacher':
+                    boundaries.extend((at, match.start()) for match in re.finditer(re.escape(ref.quote), source['text']))
+        located = [(evidence_position(item, by_id, boundaries), item) for item in check.evidence]
         teachers = [(position, item) for position, item in located if position is not None and item.actor == 'teacher']
         replies = [position for position, item in located if position is not None and item.actor == 'ai']
         if (not teachers or any(position is None for position, _ in located)
